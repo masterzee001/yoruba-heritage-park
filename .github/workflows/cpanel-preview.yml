@@ -61,6 +61,7 @@ jobs:
           set ftp:ssl-allow no
           set net:max-retries 3
           set net:timeout 20
+          set cmd:fail-exit yes
           set xfer:clobber on
 
           mkdir -p "$CPANEL_APP_DIR"
@@ -68,23 +69,54 @@ jobs:
           put app.cjs -o app.cjs
           put package.json -o package.json
           put bun.lock -o bun.lock
-          mirror -R --delete --verbose .output-cpanel .output-cpanel
+
+          set cmd:fail-exit no
+          rm -r .output-cpanel-next
+          rm -r .output-cpanel-prev
+          set cmd:fail-exit yes
+
+          mirror -R --delete --verbose .output-cpanel .output-cpanel-next
+
+          set cmd:fail-exit no
+          mv .output-cpanel .output-cpanel-prev
+          set cmd:fail-exit yes
+          mv .output-cpanel-next .output-cpanel
+
           mkdir -p tmp
-          put restart.txt -o tmp/restart.txt
 
           mkdir -p "$CPANEL_WEBROOT_DIR"
           cd "$CPANEL_WEBROOT_DIR"
           put deploy/cpanel/yhp-preview.htaccess -o .htaccess
-          mkdir -p assets
-          mkdir -p brand
-          mkdir -p reference
-          mirror -R --delete --verbose .output-cpanel/public/assets assets
-          mirror -R --delete --verbose .output-cpanel/public/brand brand
-          mirror -R --delete --verbose .output-cpanel/public/reference reference
+
+          set cmd:fail-exit no
+          rm -r assets-next
+          rm -r brand-next
+          rm -r reference-next
+          rm -r assets-prev
+          rm -r brand-prev
+          rm -r reference-prev
+          set cmd:fail-exit yes
+
+          mirror -R --delete --verbose .output-cpanel/public/assets assets-next
+          mirror -R --delete --verbose .output-cpanel/public/brand brand-next
+          mirror -R --delete --verbose .output-cpanel/public/reference reference-next
+
+          set cmd:fail-exit no
+          mv assets assets-prev
+          mv brand brand-prev
+          mv reference reference-prev
+          set cmd:fail-exit yes
+          mv assets-next assets
+          mv brand-next brand
+          mv reference-next reference
+
+          cd "$CPANEL_APP_DIR"
+          put restart.txt -o tmp/restart.txt
           EOF
 
       - name: Verify preview deployment
         run: |
+          sleep 10
           curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null
           curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null
           curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/assets/styles-B0x9wfbX.css > /dev/null
