@@ -4,7 +4,7 @@ export const mockEvents: AdminEvent[] = [
   {
     isDemo: true,
     id: "e-001",
-    title: "Sample — Daily Cultural Tour",
+    title: "Daily Cultural Tour",
     slug: "daily-cultural-tour",
     category: "Cultural Tours",
     startsAt: "2026-08-01T10:00:00+01:00",
@@ -17,7 +17,7 @@ export const mockEvents: AdminEvent[] = [
   {
     isDemo: true,
     id: "e-002",
-    title: "Sample — Morning Prayer Walk",
+    title: "Morning Prayer Walk",
     slug: "morning-prayer-walk",
     category: "Prayer and Reflection",
     startsAt: "2026-08-02T06:30:00+01:00",
@@ -30,7 +30,7 @@ export const mockEvents: AdminEvent[] = [
   {
     isDemo: true,
     id: "e-003",
-    title: "Sample — Private Ceremony",
+    title: "Private Ceremony",
     slug: "private-ceremony",
     category: "Ceremonies",
     startsAt: "2026-09-10T15:00:00+01:00",

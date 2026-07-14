@@ -27,7 +27,7 @@ export function PreviewModeBanner({ variant = "default", message }: Props) {
     >
       <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
       <div className="min-w-0">
-        <p className="font-medium tracking-wide uppercase text-[10px]">
+        <p className="text-[10px] font-medium uppercase tracking-wide">
           Demonstration data · preview mode
         </p>
         <p className="mt-1 leading-relaxed">

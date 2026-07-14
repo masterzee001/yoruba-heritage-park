@@ -29,6 +29,12 @@ export interface AdminBooking extends DemoRecord {
   createdAt: string;
 }
 
+export interface BookingFilters {
+  search?: string;
+  status?: BookingStatus | "all";
+  source?: BookingSource | "all";
+}
+
 export interface AdminTicket extends DemoRecord {
   id: string;
   reference: string;
@@ -40,4 +46,10 @@ export interface AdminTicket extends DemoRecord {
   checkInStatus: "pending" | "checked_in" | "no_show";
   checkedInAt?: string;
   assignedStaff?: string;
+}
+
+export interface TicketFilters {
+  search?: string;
+  qrStatus?: AdminTicket["qrStatus"] | "all";
+  checkInStatus?: AdminTicket["checkInStatus"] | "all";
 }

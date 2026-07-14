@@ -11,4 +11,12 @@ export interface ContentPage extends DemoRecord {
   updatedAt: string;
   updatedBy: string;
   summary: string;
+  owner?: string;
+  reviewNote?: string;
+}
+
+export interface ContentFilters {
+  search?: string;
+  status?: ContentStatus | "all";
+  section?: ContentPage["section"] | "all";
 }

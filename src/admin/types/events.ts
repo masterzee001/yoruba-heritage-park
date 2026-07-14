@@ -17,6 +17,12 @@ export interface AdminEvent extends DemoRecord {
   notes?: string;
 }
 
+export interface EventFilters {
+  search?: string;
+  status?: EventStatus | "all";
+  category?: string;
+}
+
 export interface AdminExperience extends DemoRecord {
   id: string;
   title: string;
@@ -30,4 +36,15 @@ export interface AdminExperience extends DemoRecord {
   displayOrder: number;
   status: "draft" | "published" | "archived";
   accessibility?: string;
+}
+
+export interface ExperienceFilters {
+  search?: string;
+  status?: AdminExperience["status"] | "all";
+  bookingType?: AdminExperience["bookingType"] | "all";
+}
+
+export interface CalendarFilters {
+  search?: string;
+  status?: EventStatus | "all";
 }

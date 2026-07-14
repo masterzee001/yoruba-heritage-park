@@ -28,25 +28,45 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                 const active = item.exact
                   ? pathname === item.to
                   : pathname === item.to || pathname.startsWith(`${item.to}/`);
+                const content = (
+                  <>
+                    <item.icon
+                      className={cn("size-4 shrink-0", item.danger ? "text-destructive" : "")}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.badge ? (
+                      <span className="rounded-full border border-ivory/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-ivory/40">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </>
+                );
+
                 return (
                   <li key={item.to}>
-                    <Link
-                      to={item.to}
-                      onClick={onNavigate}
-                      className={cn(
-                        "flex items-center gap-3 rounded-sm px-3 py-2 transition",
-                        active
-                          ? "bg-ivory/10 text-ivory"
-                          : "text-ivory/70 hover:bg-ivory/5 hover:text-ivory",
-                      )}
-                      aria-current={active ? "page" : undefined}
-                    >
-                      <item.icon
-                        className={cn("size-4 shrink-0", item.danger ? "text-destructive" : "")}
-                        aria-hidden
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
+                    {item.disabled ? (
+                      <span
+                        className="flex items-center gap-3 rounded-sm px-3 py-2 text-ivory/35"
+                        aria-disabled="true"
+                      >
+                        {content}
+                      </span>
+                    ) : (
+                      <Link
+                        to={item.to}
+                        onClick={onNavigate}
+                        className={cn(
+                          "flex items-center gap-3 rounded-sm px-3 py-2 transition",
+                          active
+                            ? "bg-ivory/10 text-ivory"
+                            : "text-ivory/70 hover:bg-ivory/5 hover:text-ivory",
+                        )}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        {content}
+                      </Link>
+                    )}
                   </li>
                 );
               })}

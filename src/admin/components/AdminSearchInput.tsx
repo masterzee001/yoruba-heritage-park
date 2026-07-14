@@ -17,7 +17,7 @@ export function AdminSearchInput({ label = "Search", className, ...rest }: Props
       <input
         type="search"
         className="w-full rounded-sm border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-forest focus:ring-2 focus:ring-ring/30"
-        placeholder="Search records…"
+        placeholder="Search records..."
         {...rest}
       />
     </label>

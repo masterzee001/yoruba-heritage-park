@@ -10,7 +10,8 @@ export const mockContentPages: ContentPage[] = [
     status: "published",
     updatedAt: "2026-07-01T10:00:00Z",
     updatedBy: "Sample Operator",
-    summary: "Public homepage — approved copy.",
+    summary: "Public homepage — approved preview copy.",
+    owner: "Content",
   },
   {
     isDemo: true,
@@ -22,6 +23,8 @@ export const mockContentPages: ContentPage[] = [
     updatedAt: "2026-07-04T10:00:00Z",
     updatedBy: "Sample Operator",
     summary: "Pending operational confirmation of cultural narrative.",
+    owner: "Content",
+    reviewNote: "Details will be published following operational confirmation.",
   },
   {
     isDemo: true,
@@ -33,5 +36,7 @@ export const mockContentPages: ContentPage[] = [
     updatedAt: "2026-07-08T10:00:00Z",
     updatedBy: "Sample Operator",
     summary: "Awaiting authorised opening-hours and admission details.",
+    owner: "Operations",
+    reviewNote: "Do not publish prices or schedules until approved.",
   },
 ];

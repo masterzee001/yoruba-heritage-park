@@ -3,11 +3,12 @@
  *
  * These interfaces are the ONLY contract route components should depend on.
  * `mock-admin-service.ts` provides an in-memory implementation for the
- * preview build. Codex will supply a MySQL-backed implementation later
+ * preview build. A MySQL-backed implementation can be supplied later
  * without changing route components.
  */
 
 import type {
+  AdminAppointment,
   AdminBooking,
   AdminEnquiry,
   AdminEvent,
@@ -16,7 +17,15 @@ import type {
   AdminSosAlert,
   AdminTicket,
   AdminUser,
+  AppointmentFilters,
+  BookingFilters,
+  CalendarFilters,
   ContentPage,
+  ContentFilters,
+  EnquiryFilters,
+  EventFilters,
+  ExperienceFilters,
+  TicketFilters,
 } from "../types";
 
 export interface DashboardSummary {
@@ -29,28 +38,39 @@ export interface DashboardSummary {
 }
 
 export interface ContentService {
-  listPages(): Promise<ContentPage[]>;
+  listPages(filters?: ContentFilters): Promise<ContentPage[]>;
+  getPage(id: string): Promise<ContentPage | null>;
 }
 
 export interface ExperienceService {
-  list(): Promise<AdminExperience[]>;
+  list(filters?: ExperienceFilters): Promise<AdminExperience[]>;
+  get(id: string): Promise<AdminExperience | null>;
 }
 
 export interface EventService {
-  list(): Promise<AdminEvent[]>;
+  list(filters?: EventFilters): Promise<AdminEvent[]>;
+  calendar(filters?: CalendarFilters): Promise<AdminEvent[]>;
+  get(id: string): Promise<AdminEvent | null>;
 }
 
 export interface BookingService {
-  list(): Promise<AdminBooking[]>;
+  list(filters?: BookingFilters): Promise<AdminBooking[]>;
   get(id: string): Promise<AdminBooking | null>;
 }
 
 export interface TicketService {
-  list(): Promise<AdminTicket[]>;
+  list(filters?: TicketFilters): Promise<AdminTicket[]>;
+  get(id: string): Promise<AdminTicket | null>;
 }
 
 export interface EnquiryService {
-  list(): Promise<AdminEnquiry[]>;
+  list(filters?: EnquiryFilters): Promise<AdminEnquiry[]>;
+  get(id: string): Promise<AdminEnquiry | null>;
+}
+
+export interface AppointmentService {
+  list(filters?: AppointmentFilters): Promise<AdminAppointment[]>;
+  get(id: string): Promise<AdminAppointment | null>;
 }
 
 export interface PaymentService {
@@ -78,6 +98,7 @@ export interface AdminService {
   bookings: BookingService;
   tickets: TicketService;
   enquiries: EnquiryService;
+  appointments: AppointmentService;
   payments: PaymentService;
   sos: SosService;
   users: UserService;

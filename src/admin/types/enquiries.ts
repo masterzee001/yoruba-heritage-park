@@ -38,3 +38,9 @@ export interface AdminEnquiry extends DemoRecord {
   createdAt: string;
   proposedDate?: string;
 }
+
+export interface EnquiryFilters {
+  search?: string;
+  status?: EnquiryStatus | "all";
+  category?: EnquiryCategory | "all";
+}

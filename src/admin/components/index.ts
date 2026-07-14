@@ -18,6 +18,7 @@ export { AdminTimeline, type TimelineItem } from "./AdminTimeline";
 export { AdminConfirmationDialog } from "./AdminConfirmationDialog";
 export { AdminDrawer } from "./AdminDrawer";
 export { AdminModal } from "./AdminModal";
+export { AdminOperationPage, type FilterOption } from "./AdminOperationPage";
 export { PreviewModeBanner } from "./PreviewModeBanner";
 export { FeatureDisabledNotice } from "./FeatureDisabledNotice";
 export { PermissionNotice } from "./PermissionNotice";
