@@ -81,7 +81,12 @@ jobs:
           set cmd:fail-exit yes
 
           mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel .output-cpanel-next
+          put .output-cpanel/server/index.mjs -o .output-cpanel-next/server/index.mjs
+          put .output-cpanel/server/_runtime.mjs -o .output-cpanel-next/server/_runtime.mjs
+          put .output-cpanel/server/_ssr/$SSR_SERVER_FILE -o .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
+          put .output-cpanel/server/$TANSTACK_MANIFEST_FILE -o .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
           cls .output-cpanel-next/server/index.mjs
+          cls .output-cpanel-next/server/_runtime.mjs
           cls .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
           cls .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
 
@@ -127,7 +132,14 @@ jobs:
 
       - name: Verify preview deployment
         run: |
-          sleep 10
-          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null
-          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null
-          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/assets/styles-B0x9wfbX.css > /dev/null
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null \
+              && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null \
+              && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/assets/styles-B0x9wfbX.css > /dev/null; then
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          curl --fail --show-error --location https://yhp-preview.deedoc.org/
