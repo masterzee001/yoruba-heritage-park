@@ -69,7 +69,9 @@ jobs:
           set cmd:fail-exit yes
           set xfer:clobber on
 
+          set cmd:fail-exit no
           mkdir -p "$CPANEL_APP_DIR"
+          set cmd:fail-exit yes
           cd "$CPANEL_APP_DIR"
           put app.cjs -o app.cjs
           put package.json -o package.json
@@ -95,9 +97,13 @@ jobs:
           set cmd:fail-exit yes
           mv .output-cpanel-next .output-cpanel
 
+          set cmd:fail-exit no
           mkdir -p tmp
+          set cmd:fail-exit yes
 
+          set cmd:fail-exit no
           mkdir -p "$CPANEL_WEBROOT_DIR"
+          set cmd:fail-exit yes
           cd "$CPANEL_WEBROOT_DIR"
           put deploy/cpanel/yhp-preview.htaccess -o .htaccess
 
@@ -135,7 +141,7 @@ jobs:
           for attempt in {1..12}; do
             if curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null \
               && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null \
-              && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/assets/styles-B0x9wfbX.css > /dev/null; then
+              && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/brand/yhp-favicon.png > /dev/null; then
               exit 0
             fi
 
