@@ -14,6 +14,16 @@ export const mockPayments: AdminPayment[] = [
     verificationStatus: "not_applicable",
     createdAt: "2026-07-10T09:24:00Z",
     refundStatus: "none",
+    transactionReferencePlaceholder: "PREVIEW-TRANSACTION-NOT-CONNECTED",
+    relatedBookingType: "Cultural Tour",
+    activity: [
+      {
+        id: "pa-001",
+        time: "2026-07-10T09:24:00Z",
+        title: "Preview payment record created",
+        detail: "Payment processing is not enabled in preview mode.",
+      },
+    ],
   },
   {
     isDemo: true,
@@ -28,5 +38,15 @@ export const mockPayments: AdminPayment[] = [
     verificationStatus: "not_applicable",
     createdAt: "2026-07-12T08:11:00Z",
     refundStatus: "none",
+    transactionReferencePlaceholder: "PREVIEW-TRANSACTION-NOT-CONNECTED",
+    relatedBookingType: "School Group",
+    activity: [
+      {
+        id: "pa-002",
+        time: "2026-07-12T08:11:00Z",
+        title: "Preview payment record created",
+        detail: "Awaiting authorised payment configuration.",
+      },
+    ],
   },
 ];

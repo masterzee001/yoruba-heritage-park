@@ -1,0 +1,41 @@
+import type { AdminMediaAsset } from "../types";
+
+export const mockMediaAssets: AdminMediaAsset[] = [
+  {
+    isDemo: true,
+    id: "ma-001",
+    fileNamePlaceholder: "heritage-entrance-preview.jpg",
+    mediaType: "image",
+    dimensions: "Pending file verification",
+    fileSize: "Not connected",
+    altText: "Awaiting authorised alt text",
+    caption: "Not yet published",
+    usage: ["homepage"],
+    createdAt: "2026-07-10T10:00:00Z",
+    reviewState: "pending_review",
+  },
+  {
+    isDemo: true,
+    id: "ma-002",
+    fileNamePlaceholder: "teacher-guide-preview.pdf",
+    mediaType: "document",
+    fileSize: "Not connected",
+    altText: "Document placeholder",
+    caption: "Available following official approval",
+    usage: ["learning"],
+    createdAt: "2026-07-11T10:00:00Z",
+    reviewState: "not_yet_published",
+  },
+  {
+    isDemo: true,
+    id: "ma-003",
+    fileNamePlaceholder: "audio-guide-preview.mp3",
+    mediaType: "audio",
+    fileSize: "Not connected",
+    altText: "Audio placeholder",
+    caption: "Audio storage is not connected",
+    usage: ["experience"],
+    createdAt: "2026-07-12T10:00:00Z",
+    reviewState: "approved_preview",
+  },
+];

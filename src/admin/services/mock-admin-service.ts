@@ -9,27 +9,44 @@
 
 import { mockAppointments } from "../mock/appointments";
 import { mockBookings, mockTickets } from "../mock/bookings";
+import { mockCeremonyEnquiries } from "../mock/ceremonies";
 import { mockContentPages } from "../mock/content";
 import { mockEnquiries } from "../mock/enquiries";
 import { mockEvents, mockExperiences } from "../mock/events";
+import { mockLearningResources } from "../mock/learning";
+import { mockMediaAssets } from "../mock/media";
+import { mockOrikiRequests } from "../mock/oriki";
 import { mockPayments } from "../mock/payments";
 import { mockSosAlerts } from "../mock/sos";
+import { mockStayOwnEnquiries } from "../mock/stay-own";
 import { mockAdminUsers } from "../mock/users";
 import type {
   AdminAppointment,
   AdminBooking,
+  AdminCeremonyEnquiry,
   AdminEnquiry,
   AdminEvent,
   AdminExperience,
+  AdminLearningResource,
+  AdminMediaAsset,
+  AdminOrikiRequest,
+  AdminPayment,
+  AdminStayOwnEnquiry,
   AdminTicket,
   AppointmentFilters,
   BookingFilters,
   CalendarFilters,
+  CeremonyFilters,
   ContentFilters,
   ContentPage,
   EnquiryFilters,
   EventFilters,
   ExperienceFilters,
+  LearningFilters,
+  MediaFilters,
+  OrikiFilters,
+  PaymentFilters,
+  StayOwnFilters,
   TicketFilters,
 } from "../types";
 import type { AdminService, DashboardSummary } from "./admin-service";
@@ -116,6 +133,79 @@ const filterAppointments = (rows: AdminAppointment[], filters?: AppointmentFilte
       matchesValue(row.category, filters?.category),
   );
 
+const filterPayments = (rows: AdminPayment[], filters?: PaymentFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [
+          row.reference,
+          row.bookingReference,
+          row.visitorName,
+          row.transactionReferencePlaceholder,
+          row.relatedBookingType,
+        ],
+        filters?.search,
+      ) &&
+      matchesValue(row.status, filters?.status) &&
+      matchesValue(row.verificationStatus, filters?.verificationStatus) &&
+      matchesValue(row.provider, filters?.provider) &&
+      (!filters?.date || row.createdAt.startsWith(filters.date)),
+  );
+
+const filterLearning = (rows: AdminLearningResource[], filters?: LearningFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch([row.title, row.category, row.description], filters?.search) &&
+      matchesValue(row.type, filters?.type) &&
+      matchesValue(row.audience, filters?.audience) &&
+      matchesValue(row.status, filters?.status),
+  );
+
+const filterOriki = (rows: AdminOrikiRequest[], filters?: OrikiFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [row.reference, row.visitorName, row.visitorEmail, row.internalNotes],
+        filters?.search,
+      ) &&
+      matchesValue(row.status, filters?.status) &&
+      matchesValue(row.requestType, filters?.requestType),
+  );
+
+const filterCeremonies = (rows: AdminCeremonyEnquiry[], filters?: CeremonyFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [row.reference, row.contactName, row.contactEmail, row.requirements, row.internalNotes],
+        filters?.search,
+      ) &&
+      matchesValue(row.status, filters?.status) &&
+      matchesValue(row.ceremonyType, filters?.ceremonyType) &&
+      (!filters?.preferredDate || row.preferredDate === filters.preferredDate),
+  );
+
+const filterStayOwn = (rows: AdminStayOwnEnquiry[], filters?: StayOwnFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [row.reference, row.visitorName, row.visitorEmail, row.interest, row.internalNotes],
+        filters?.search,
+      ) &&
+      matchesValue(row.status, filters?.status) &&
+      matchesValue(row.inspectionState, filters?.inspectionState),
+  );
+
+const filterMedia = (rows: AdminMediaAsset[], filters?: MediaFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [row.fileNamePlaceholder, row.altText, row.caption, row.mediaType],
+        filters?.search,
+      ) &&
+      matchesValue(row.mediaType, filters?.mediaType) &&
+      (!filters?.usage || filters.usage === "all" || row.usage.includes(filters.usage)),
+  );
+
 export const mockAdminService: AdminService = {
   dashboard: {
     async summary(): Promise<DashboardSummary> {
@@ -197,8 +287,51 @@ export const mockAdminService: AdminService = {
     },
   },
   payments: {
-    async list() {
-      return later(mockPayments);
+    async list(filters) {
+      return later(filterPayments(mockPayments, filters));
+    },
+    async get(id: string) {
+      return later(mockPayments.find((p) => p.id === id) ?? null);
+    },
+  },
+  learning: {
+    async list(filters) {
+      return later(filterLearning(mockLearningResources, filters));
+    },
+    async get(id: string) {
+      return later(mockLearningResources.find((r) => r.id === id) ?? null);
+    },
+  },
+  oriki: {
+    async list(filters) {
+      return later(filterOriki(mockOrikiRequests, filters));
+    },
+    async get(id: string) {
+      return later(mockOrikiRequests.find((r) => r.id === id) ?? null);
+    },
+  },
+  ceremonies: {
+    async list(filters) {
+      return later(filterCeremonies(mockCeremonyEnquiries, filters));
+    },
+    async get(id: string) {
+      return later(mockCeremonyEnquiries.find((e) => e.id === id) ?? null);
+    },
+  },
+  stayOwn: {
+    async list(filters) {
+      return later(filterStayOwn(mockStayOwnEnquiries, filters));
+    },
+    async get(id: string) {
+      return later(mockStayOwnEnquiries.find((e) => e.id === id) ?? null);
+    },
+  },
+  media: {
+    async list(filters) {
+      return later(filterMedia(mockMediaAssets, filters));
+    },
+    async get(id: string) {
+      return later(mockMediaAssets.find((m) => m.id === id) ?? null);
     },
   },
   sos: {

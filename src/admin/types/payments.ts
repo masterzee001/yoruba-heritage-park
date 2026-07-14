@@ -18,7 +18,23 @@ export interface AdminPayment extends DemoRecord {
   currency: "NGN";
   provider: "pending_configuration";
   status: PaymentStatus;
-  verificationStatus: "unverified" | "verified" | "not_applicable";
+  verificationStatus: "unverified" | "review_required" | "preview_verified" | "not_applicable";
   createdAt: string;
-  refundStatus: "none" | "requested" | "processed";
+  refundStatus: "none" | "review_requested" | "preview_pending" | "preview_refunded";
+  transactionReferencePlaceholder: string;
+  relatedBookingType: string;
+  activity: Array<{
+    id: string;
+    time: string;
+    title: string;
+    detail?: string;
+  }>;
+}
+
+export interface PaymentFilters {
+  search?: string;
+  status?: PaymentStatus | "all";
+  verificationStatus?: AdminPayment["verificationStatus"] | "all";
+  provider?: AdminPayment["provider"] | "all";
+  date?: string;
 }

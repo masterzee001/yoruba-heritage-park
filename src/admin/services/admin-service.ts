@@ -10,21 +10,32 @@
 import type {
   AdminAppointment,
   AdminBooking,
+  AdminCeremonyEnquiry,
   AdminEnquiry,
   AdminEvent,
   AdminExperience,
+  AdminLearningResource,
+  AdminMediaAsset,
+  AdminOrikiRequest,
   AdminPayment,
   AdminSosAlert,
+  AdminStayOwnEnquiry,
   AdminTicket,
   AdminUser,
   AppointmentFilters,
   BookingFilters,
   CalendarFilters,
+  CeremonyFilters,
   ContentPage,
   ContentFilters,
   EnquiryFilters,
   EventFilters,
   ExperienceFilters,
+  LearningFilters,
+  MediaFilters,
+  OrikiFilters,
+  PaymentFilters,
+  StayOwnFilters,
   TicketFilters,
 } from "../types";
 
@@ -74,7 +85,33 @@ export interface AppointmentService {
 }
 
 export interface PaymentService {
-  list(): Promise<AdminPayment[]>;
+  list(filters?: PaymentFilters): Promise<AdminPayment[]>;
+  get(id: string): Promise<AdminPayment | null>;
+}
+
+export interface LearningService {
+  list(filters?: LearningFilters): Promise<AdminLearningResource[]>;
+  get(id: string): Promise<AdminLearningResource | null>;
+}
+
+export interface OrikiService {
+  list(filters?: OrikiFilters): Promise<AdminOrikiRequest[]>;
+  get(id: string): Promise<AdminOrikiRequest | null>;
+}
+
+export interface CeremonyService {
+  list(filters?: CeremonyFilters): Promise<AdminCeremonyEnquiry[]>;
+  get(id: string): Promise<AdminCeremonyEnquiry | null>;
+}
+
+export interface StayOwnService {
+  list(filters?: StayOwnFilters): Promise<AdminStayOwnEnquiry[]>;
+  get(id: string): Promise<AdminStayOwnEnquiry | null>;
+}
+
+export interface MediaService {
+  list(filters?: MediaFilters): Promise<AdminMediaAsset[]>;
+  get(id: string): Promise<AdminMediaAsset | null>;
 }
 
 export interface SosService {
@@ -100,6 +137,11 @@ export interface AdminService {
   enquiries: EnquiryService;
   appointments: AppointmentService;
   payments: PaymentService;
+  learning: LearningService;
+  oriki: OrikiService;
+  ceremonies: CeremonyService;
+  stayOwn: StayOwnService;
+  media: MediaService;
   sos: SosService;
   users: UserService;
 }
