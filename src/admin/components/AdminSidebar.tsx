@@ -42,10 +42,7 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                       aria-current={active ? "page" : undefined}
                     >
                       <item.icon
-                        className={cn(
-                          "size-4 shrink-0",
-                          item.danger ? "text-destructive" : "",
-                        )}
+                        className={cn("size-4 shrink-0", item.danger ? "text-destructive" : "")}
                         aria-hidden
                       />
                       <span className="truncate">{item.label}</span>

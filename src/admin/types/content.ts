@@ -1,11 +1,6 @@
 import type { DemoRecord } from "./admin";
 
-export type ContentStatus =
-  | "draft"
-  | "in_review"
-  | "approved"
-  | "published"
-  | "archived";
+export type ContentStatus = "draft" | "in_review" | "approved" | "published" | "archived";
 
 export interface ContentPage extends DemoRecord {
   id: string;

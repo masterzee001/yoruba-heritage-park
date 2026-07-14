@@ -82,10 +82,10 @@ function AdminDashboard() {
             <AdminStatusBadge tone="preview">Phase 1</AdminStatusBadge>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            The administrator portal foundation is in place. Individual operational
-            modules (bookings, tickets, payments, enquiries, SOS console and
-            governance) will be populated in the next implementation phases and
-            will read from the same typed service layer used here.
+            The administrator portal foundation is in place. Individual operational modules
+            (bookings, tickets, payments, enquiries, SOS console and governance) will be populated
+            in the next implementation phases and will read from the same typed service layer used
+            here.
           </p>
           <ul className="mt-4 grid gap-2 text-sm text-charcoal">
             <li>· Admin shell, sidebar and mobile drawer navigation are active.</li>
@@ -101,8 +101,8 @@ function AdminDashboard() {
             <h2 className="font-serif text-lg">Safety console</h2>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            SOS console is available in test-record mode only. No live emergency
-            response system is connected.
+            SOS console is available in test-record mode only. No live emergency response system is
+            connected.
           </p>
           <Link
             to="/admin/sos"

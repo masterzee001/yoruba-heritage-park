@@ -17,8 +17,7 @@ import { mockAdminUsers } from "../mock/users";
 import type { AdminService, DashboardSummary } from "./admin-service";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const later = <T>(value: T): Promise<T> =>
-  new Promise((resolve) => resolve(clone(value)));
+const later = <T>(value: T): Promise<T> => new Promise((resolve) => resolve(clone(value)));
 
 export const mockAdminService: AdminService = {
   dashboard: {
@@ -39,25 +38,57 @@ export const mockAdminService: AdminService = {
       });
     },
   },
-  content: { async listPages() { return later(mockContentPages); } },
-  experiences: { async list() { return later(mockExperiences); } },
-  events: { async list() { return later(mockEvents); } },
+  content: {
+    async listPages() {
+      return later(mockContentPages);
+    },
+  },
+  experiences: {
+    async list() {
+      return later(mockExperiences);
+    },
+  },
+  events: {
+    async list() {
+      return later(mockEvents);
+    },
+  },
   bookings: {
-    async list() { return later(mockBookings); },
+    async list() {
+      return later(mockBookings);
+    },
     async get(id: string) {
       return later(mockBookings.find((b) => b.id === id) ?? null);
     },
   },
-  tickets: { async list() { return later(mockTickets); } },
-  enquiries: { async list() { return later(mockEnquiries); } },
-  payments: { async list() { return later(mockPayments); } },
+  tickets: {
+    async list() {
+      return later(mockTickets);
+    },
+  },
+  enquiries: {
+    async list() {
+      return later(mockEnquiries);
+    },
+  },
+  payments: {
+    async list() {
+      return later(mockPayments);
+    },
+  },
   sos: {
-    async list() { return later(mockSosAlerts); },
+    async list() {
+      return later(mockSosAlerts);
+    },
     async get(id: string) {
       return later(mockSosAlerts.find((a) => a.id === id) ?? null);
     },
   },
-  users: { async list() { return later(mockAdminUsers); } },
+  users: {
+    async list() {
+      return later(mockAdminUsers);
+    },
+  },
 };
 
 export const adminService: AdminService = mockAdminService;

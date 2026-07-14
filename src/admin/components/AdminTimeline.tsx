@@ -9,9 +9,7 @@ export interface TimelineItem {
 
 export function AdminTimeline({ items }: { items: TimelineItem[] }) {
   if (items.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">No timeline entries recorded.</p>
-    );
+    return <p className="text-sm text-muted-foreground">No timeline entries recorded.</p>;
   }
   return (
     <ol className="relative ml-3 border-l border-border">

@@ -16,8 +16,7 @@ export function FeatureDisabledNotice({ feature, reason }: Props) {
       <div>
         <p className="font-medium">{feature} is not enabled in preview mode.</p>
         <p className="mt-1 text-muted-foreground">
-          {reason ??
-            "This action will be available once the production backend is connected."}
+          {reason ?? "This action will be available once the production backend is connected."}
         </p>
       </div>
     </div>

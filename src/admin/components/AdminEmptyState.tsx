@@ -17,9 +17,7 @@ export function AdminEmptyState({ icon: Icon = Inbox, title, description, action
       </div>
       <div>
         <p className="font-serif text-lg text-forest-deep">{title}</p>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {action}
     </div>

@@ -17,10 +17,7 @@ import type { AdminSosAlert, SosStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/sos")({
   head: () => ({
-    meta: [
-      { title: "SOS console — Administrator" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "SOS console — Administrator" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminSosConsole,
 });
@@ -109,9 +106,7 @@ function AdminSosConsole() {
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-medium text-forest-deep">
-                          {a.reference}
-                        </span>
+                        <span className="truncate font-medium text-forest-deep">{a.reference}</span>
                         <AdminStatusBadge tone={STATUS_TONE[a.status]}>
                           {STATUS_LABEL[a.status]}
                         </AdminStatusBadge>
@@ -137,9 +132,7 @@ function AdminSosConsole() {
             >
               <dl>
                 <DetailRow label="Visitor">{selected.visitorName ?? "—"}</DetailRow>
-                <DetailRow label="Ticket reference">
-                  {selected.ticketReference ?? "—"}
-                </DetailRow>
+                <DetailRow label="Ticket reference">{selected.ticketReference ?? "—"}</DetailRow>
                 <DetailRow label="Location label">{selected.locationLabel}</DetailRow>
                 <DetailRow label="Latitude">{selected.latitudePlaceholder}</DetailRow>
                 <DetailRow label="Longitude">{selected.longitudePlaceholder}</DetailRow>
@@ -167,16 +160,15 @@ function AdminSosConsole() {
               <div className="mt-6 aspect-[16/8] w-full overflow-hidden rounded-sm border border-border bg-[oklch(0.94_0.02_140)]">
                 <div className="grid size-full place-items-center text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-2">
-                    <MapPin className="size-3.5" aria-hidden /> Map placeholder — pending mapping integration
+                    <MapPin className="size-3.5" aria-hidden /> Map placeholder — pending mapping
+                    integration
                   </span>
                 </div>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel title="No alert selected" eyebrow="—">
-              <p className="text-sm text-muted-foreground">
-                Select a test record from the queue.
-              </p>
+              <p className="text-sm text-muted-foreground">Select a test record from the queue.</p>
             </AdminDetailPanel>
           )}
         </div>
