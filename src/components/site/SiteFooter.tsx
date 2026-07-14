@@ -6,7 +6,7 @@ const cols = [
     title: "Visit",
     links: [
       { to: "/plan", label: "Plan Your Visit" },
-      { to: "/tickets", label: "Buy Tickets" },
+      { to: "/tickets", label: "Ticket Details" },
       { to: "/events", label: "Events" },
       { to: "/faq", label: "Frequently Asked Questions" },
     ],
@@ -48,7 +48,9 @@ export function SiteFooter() {
           <p className="mt-4 text-sm leading-relaxed text-ivory/70">
             A living Yorùbá experience — culture, nature, prayer, discovery and renewal.
           </p>
-          <p className="mt-6 text-xs text-ivory/50">Details to be confirmed. Prototype only.</p>
+          <p className="mt-6 text-xs text-ivory/50">
+            Details will be published following operational confirmation.
+          </p>
         </div>
         {cols.map((c) => (
           <div key={c.title}>

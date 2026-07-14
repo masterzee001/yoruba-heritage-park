@@ -28,7 +28,7 @@ function EventsPage() {
       <PageHero
         eyebrow="Events"
         title="A calendar of gathering."
-        intro="Sample schedule for prototype presentation. Final calendar to be confirmed."
+        intro="Indicative schedule. The final calendar will be published following operational confirmation."
       />
 
       <section className="container-y py-14">

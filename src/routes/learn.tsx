@@ -45,7 +45,7 @@ function LearnPage() {
               <c.icon className="size-5 text-clay" aria-hidden />
               <h3 className="mt-6 font-serif text-2xl text-forest-deep">{c.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Sample resource — pending operational confirmation.
+                Resource details will be published following operational confirmation.
               </p>
               <button className="mt-6 self-start text-xs font-medium text-forest-deep hover:text-clay">
                 {c.action} →

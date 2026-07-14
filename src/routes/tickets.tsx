@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHero } from "@/components/site/Section";
+import { projectStatus } from "@/config/project-status";
 import { TICKET_TYPES } from "@/lib/mock-data";
-import { Check, QrCode } from "lucide-react";
+import { Check } from "lucide-react";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({
     meta: [
-      { title: "Buy Tickets — Yoruba Heritage Park" },
+      { title: "Ticket Details — Yoruba Heritage Park" },
       {
         name: "description",
         content:
@@ -23,16 +24,15 @@ function TicketsPage() {
   const [ticket, setTicket] = useState(TICKET_TYPES[0].id);
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
-
-  const price = 5000; // sample NGN placeholder
-  const total = adults * price + children * (price / 2);
+  const selectedTicket = TICKET_TYPES.find((t) => t.id === ticket);
+  const paymentEnabled = projectStatus.paymentEnabled;
 
   return (
     <>
       <PageHero
-        eyebrow="Buy Tickets"
-        title="Booking, in three considered steps."
-        intro="Prototype only. No payment is processed."
+        eyebrow="Tickets"
+        title="Visit requests, in three considered steps."
+        intro="Online payment is not active. Details will be published following operational confirmation."
       />
 
       <section className="container-y py-16">
@@ -176,22 +176,23 @@ function TicketsPage() {
                 <div className="mx-auto grid size-14 place-items-center rounded-full bg-forest-deep text-ivory">
                   <Check className="size-6" />
                 </div>
-                <h2 className="mt-6 font-serif text-3xl text-forest-deep">Booking confirmed</h2>
+                <h2 className="mt-6 font-serif text-3xl text-forest-deep">Request prepared</h2>
                 <p className="mt-3 text-muted-foreground">
-                  Sample confirmation. Reference #YHP-2026-0421.
+                  No booking record or payment has been created. The production booking flow will be
+                  enabled after operational confirmation.
                 </p>
                 <div className="mx-auto mt-10 max-w-sm border border-border bg-cream p-6 text-left">
-                  <p className="eyebrow">Digital ticket</p>
+                  <p className="eyebrow">Request summary</p>
                   <p className="mt-2 font-serif text-xl text-forest-deep">
-                    {TICKET_TYPES.find((t) => t.id === ticket)?.label}
+                    {selectedTicket?.label}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {adults} adults · {children} children
                   </p>
-                  <div className="mt-6 flex justify-center rounded-sm border border-dashed border-border p-6">
-                    <QrCode className="size-32 text-forest-deep" aria-hidden />
-                  </div>
-                  <p className="mt-4 text-center text-xs text-muted-foreground">QR placeholder</p>
+                  <p className="mt-6 rounded-sm border border-border bg-background p-4 text-sm text-muted-foreground">
+                    Digital tickets, QR codes and payment references are disabled until the booking
+                    and payment systems are live.
+                  </p>
                 </div>
               </div>
             )}
@@ -209,7 +210,11 @@ function TicketsPage() {
                   onClick={() => setStep((s) => s + 1)}
                   className="rounded-full bg-forest-deep px-6 py-2.5 text-sm text-ivory"
                 >
-                  {step === 3 ? "Continue to payment" : "Continue"}
+                  {step === 3
+                    ? paymentEnabled
+                      ? "Continue to payment"
+                      : "Review request"
+                    : "Continue"}
                 </button>
               </div>
             )}
@@ -220,7 +225,7 @@ function TicketsPage() {
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Ticket</dt>
-                <dd>{TICKET_TYPES.find((t) => t.id === ticket)?.label}</dd>
+                <dd>{selectedTicket?.label}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Adults</dt>
@@ -231,12 +236,12 @@ function TicketsPage() {
                 <dd>{children}</dd>
               </div>
               <div className="mt-3 flex justify-between border-t border-border pt-3 font-serif text-lg text-forest-deep">
-                <dt>Total</dt>
-                <dd>₦{total.toLocaleString()}</dd>
+                <dt>Pricing</dt>
+                <dd>{paymentEnabled ? "Available at checkout" : "Pending confirmation"}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs text-muted-foreground">
-              Mock pricing only. No payment processed.
+              Payments are disabled. No booking, ticket or payment record is created here.
             </p>
           </aside>
         </div>

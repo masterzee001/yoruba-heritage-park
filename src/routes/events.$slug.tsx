@@ -35,21 +35,22 @@ function EventDetail() {
       <div className="mt-14 grid gap-12 md:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6 text-foreground/85">
           <p>
-            Sample event description. Please arrive fifteen minutes before the scheduled start.
-            Meeting point will be confirmed on booking.
+            Event description, arrival guidance and meeting point details will be published
+            following operational confirmation.
           </p>
           <p>Content pending operational confirmation.</p>
         </div>
         <aside className="h-fit border border-border bg-cream p-8">
           <p className="eyebrow">Reserve</p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Places are limited. Confirm on the ticketing page.
+            Availability and reservation details will be published following operational
+            confirmation.
           </p>
           <Link
             to="/tickets"
             className="mt-6 flex justify-center rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory"
           >
-            Reserve Place
+            View Ticket Details
           </Link>
         </aside>
       </div>

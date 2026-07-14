@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ShieldAlert, MapPin, Phone, CheckCircle2, AlertTriangle, X } from "lucide-react";
+import { projectStatus } from "@/config/project-status";
 import { SOS_CATEGORIES } from "@/lib/mock-data";
 
 type SOSState =
@@ -36,6 +37,7 @@ function SOSPage() {
   const [ticket, setTicket] = useState("");
   const [name, setName] = useState("");
   const timerRef = useRef<number | null>(null);
+  const sosLiveEnabled = projectStatus.sosLiveEnabled;
 
   useEffect(() => {
     return () => {
@@ -44,6 +46,7 @@ function SOSPage() {
   }, []);
 
   const startHold = () => {
+    if (!sosLiveEnabled) return;
     setState("holding");
     setProgress(0);
     const start = Date.now();
@@ -85,9 +88,15 @@ function SOSPage() {
           </div>
           <h1 className="mt-6 font-serif text-4xl leading-tight md:text-6xl">Visitor SOS</h1>
           <p className="mt-4 max-w-md text-ivory/70">
-            Press and hold the control below to alert park response. The SOS will not activate on a
-            single tap.
+            Visitor SOS is not live yet. Details will be published following operational
+            confirmation.
           </p>
+          {!sosLiveEnabled && (
+            <div className="mt-6 max-w-xl rounded-sm border border-gold/30 bg-gold/10 p-4 text-sm text-gold">
+              Preview mode: this interface does not contact park response, emergency services or any
+              live monitoring team.
+            </div>
+          )}
 
           <div className="mt-10 space-y-4 rounded-sm border border-ivory/10 bg-ivory/[0.03] p-6">
             <label className="block">
@@ -132,17 +141,19 @@ function SOSPage() {
               Silent SOS (no sound or visible confirmation)
             </label>
             <div className="flex items-center gap-2 text-xs text-ivory/60">
-              <MapPin className="size-3.5" /> GPS permission: requested on send
+              <MapPin className="size-3.5" /> GPS permission:{" "}
+              {sosLiveEnabled ? "requested on send" : "not requested in preview mode"}
             </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="tel:+000"
-              className="inline-flex items-center gap-2 rounded-full border border-ivory/30 px-5 py-3 text-sm text-ivory hover:bg-ivory/10"
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-ivory/20 px-5 py-3 text-sm text-ivory/45"
             >
-              <Phone className="size-4" /> Direct emergency call
-            </a>
+              <Phone className="size-4" /> Direct emergency call pending
+            </button>
             <Link
               to="/"
               className="inline-flex rounded-full border border-ivory/20 px-5 py-3 text-sm text-ivory/70 hover:bg-ivory/5"
@@ -157,7 +168,7 @@ function SOSPage() {
           {(state === "ready" || state === "holding") && (
             <>
               <p className="text-xs uppercase tracking-widest text-ivory/60">
-                {state === "ready" ? "Ready" : "Press and hold"}
+                {sosLiveEnabled ? (state === "ready" ? "Ready" : "Press and hold") : "Preview mode"}
               </p>
               <button
                 onMouseDown={startHold}
@@ -165,8 +176,15 @@ function SOSPage() {
                 onMouseLeave={cancelHold}
                 onTouchStart={startHold}
                 onTouchEnd={cancelHold}
-                aria-label="Press and hold to send SOS"
-                className="relative mt-6 grid size-56 place-items-center rounded-full bg-destructive text-ivory shadow-[0_0_0_12px_oklch(0.52_0.19_25/0.15)] transition active:scale-[0.98]"
+                disabled={!sosLiveEnabled}
+                aria-label={
+                  sosLiveEnabled ? "Press and hold to send SOS" : "Visitor SOS is not live yet"
+                }
+                className={`relative mt-6 grid size-56 place-items-center rounded-full text-ivory shadow-[0_0_0_12px_oklch(0.52_0.19_25/0.15)] transition ${
+                  sosLiveEnabled
+                    ? "bg-destructive active:scale-[0.98]"
+                    : "cursor-not-allowed bg-destructive/45"
+                }`}
               >
                 <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
                   <circle
@@ -191,12 +209,15 @@ function SOSPage() {
                 <div className="relative text-center">
                   <ShieldAlert className="mx-auto size-10" />
                   <p className="mt-2 font-serif text-2xl">SOS</p>
-                  <p className="text-[10px] uppercase tracking-widest text-ivory/80">Hold 2.5s</p>
+                  <p className="text-[10px] uppercase tracking-widest text-ivory/80">
+                    {sosLiveEnabled ? "Hold 2.5s" : "Not live"}
+                  </p>
                 </div>
               </button>
               <p className="mt-8 max-w-xs text-center text-xs text-ivory/60">
-                Release to cancel. This will share your location and ticket reference with park
-                response.
+                {sosLiveEnabled
+                  ? "Release to cancel. This will share your location and ticket reference with park response."
+                  : "Live alerts, location sharing and response acknowledgement are disabled."}
               </p>
             </>
           )}
@@ -263,7 +284,8 @@ function SOSPage() {
 
           <button
             onClick={() => setState("failed")}
-            className="mt-8 text-[11px] uppercase tracking-widest text-ivory/30 hover:text-ivory/60"
+            disabled={!sosLiveEnabled}
+            className="mt-8 text-[11px] uppercase tracking-widest text-ivory/30 hover:text-ivory/60 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Preview: failed connection state
           </button>

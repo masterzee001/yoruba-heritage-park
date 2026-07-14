@@ -36,7 +36,7 @@ function ExperiencesPage() {
       <PageHero
         eyebrow="Experiences"
         title="Living encounters, gathered with care."
-        intro="A catalogue of tours, walks, consultations and workshops. Sample content."
+        intro="A catalogue of tours, walks, consultations and workshops. Details will be published following operational confirmation."
       />
 
       <section className="container-y py-16">

@@ -86,7 +86,9 @@ function CeremoniesPage() {
             <button className="w-full rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory">
               Submit Enquiry
             </button>
-            <p className="text-xs text-muted-foreground">Prototype only.</p>
+            <p className="text-xs text-muted-foreground">
+              Enquiry delivery will be enabled following operational confirmation.
+            </p>
           </form>
         </aside>
       </section>

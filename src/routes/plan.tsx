@@ -40,7 +40,7 @@ function PlanPage() {
       <PageHero
         eyebrow="Plan Your Visit"
         title="A considered visit begins here."
-        intro="Everything you need to prepare — sample content pending operational confirmation."
+        intro="Everything you need to prepare. Details will be published following operational confirmation."
       />
 
       <section className="container-y py-16">
@@ -55,14 +55,15 @@ function PlanPage() {
 
         <div className="mt-14 flex flex-wrap gap-3">
           <Link to="/tickets" className="rounded-full bg-forest-deep px-6 py-3 text-sm text-ivory">
-            Buy Tickets
+            View Ticket Details
           </Link>
-          <Link
-            to="/plan"
-            className="rounded-full border border-forest-deep/40 px-6 py-3 text-sm text-forest-deep"
+          <button
+            type="button"
+            disabled
+            className="cursor-not-allowed rounded-full border border-forest-deep/20 px-6 py-3 text-sm text-forest-deep/50"
           >
-            Book a Ride
-          </Link>
+            Ride booking pending
+          </button>
           <Link to="/faq" className="rounded-full border border-border px-6 py-3 text-sm">
             Frequently Asked Questions
           </Link>

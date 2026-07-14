@@ -1,5 +1,4 @@
-// Mock content for the Yoruba Heritage Park prototype.
-// All content marked "Sample content" / "To be confirmed" per brief.
+// Demonstration content for preview mode. Final operational details remain pending.
 
 export const SITE = {
   name: "Yoruba Heritage Park",
@@ -23,8 +22,8 @@ export const EXPERIENCES = [
     slug: "cultural-tours",
     title: "Cultural Tours",
     category: "Culture and Heritage",
-    duration: "2 hours",
-    availability: "Daily, scheduled",
+    duration: "Duration pending",
+    availability: "Pending confirmation",
     summary:
       "Guided walks through cultural grounds, traditional architecture and living craft practices.",
     image:
@@ -34,8 +33,8 @@ export const EXPERIENCES = [
     slug: "prayer-walks",
     title: "Prayer Walks",
     category: "Prayer and Reflection",
-    duration: "90 minutes",
-    availability: "Morning and evening",
+    duration: "Duration pending",
+    availability: "Pending confirmation",
     summary: "Quiet, guided walks through the forest for reflection, prayer and stillness.",
     image:
       "https://images.unsplash.com/photo-1441829266145-6d4bfb46f1e5?auto=format&fit=crop&w=1400&q=80",
@@ -44,8 +43,8 @@ export const EXPERIENCES = [
     slug: "purification",
     title: "Purification and Realignment",
     category: "Purification and Realignment",
-    duration: "By appointment",
-    availability: "Appointment only",
+    duration: "By arrangement",
+    availability: "Enquiry only",
     summary: "Personal sessions guided by cultural custodians. Content pending cultural approval.",
     image:
       "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1400&q=80",
@@ -54,8 +53,8 @@ export const EXPERIENCES = [
     slug: "divination",
     title: "Divination",
     category: "Divination",
-    duration: "By appointment",
-    availability: "Appointment only",
+    duration: "By arrangement",
+    availability: "Enquiry only",
     summary: "Traditional divination sittings with senior practitioners. Details to be confirmed.",
     image:
       "https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?auto=format&fit=crop&w=1400&q=80",
@@ -64,8 +63,8 @@ export const EXPERIENCES = [
     slug: "hunters-baba-olode",
     title: "Hunters with Baba Olóde",
     category: "Nature and Adventure",
-    duration: "Half day",
-    availability: "Scheduled",
+    duration: "Duration pending",
+    availability: "Pending confirmation",
     summary:
       "A guided forest walk in the tradition of the hunter, with elder knowledge and bush lore.",
     image:
@@ -75,8 +74,8 @@ export const EXPERIENCES = [
     slug: "oriki-heritage",
     title: "Oríkì and Heritage",
     category: "Oríkì and Heritage",
-    duration: "By appointment",
-    availability: "Consultation",
+    duration: "By arrangement",
+    availability: "Enquiry only",
     summary:
       "Personal and family Oríkì consultations, written or recorded, with heritage guidance.",
     image:
@@ -88,42 +87,42 @@ export const EVENTS = [
   {
     slug: "daily-cultural-tour",
     title: "Daily Cultural Tour",
-    date: "Sample — every day",
-    time: "10:00 · 14:00",
+    date: "Schedule pending",
+    time: "Time pending",
     category: "Cultural Tours",
-    availability: "Open",
+    availability: "Pending confirmation",
   },
   {
     slug: "morning-prayer-walk",
     title: "Morning Prayer Walk",
-    date: "Sample — weekdays",
-    time: "06:30",
+    date: "Schedule pending",
+    time: "Time pending",
     category: "Prayer and Reflection",
-    availability: "Limited",
+    availability: "Pending confirmation",
   },
   {
     slug: "purification-session",
     title: "Purification Session",
-    date: "Sample — by appointment",
+    date: "By appointment",
     time: "By arrangement",
     category: "Purification",
-    availability: "Appointment only",
+    availability: "Enquiry only",
   },
   {
     slug: "hunters-walk",
     title: "Hunters with Baba Olóde",
-    date: "Sample — Saturdays",
-    time: "06:00",
+    date: "Schedule pending",
+    time: "Time pending",
     category: "Nature and Adventure",
-    availability: "Limited",
+    availability: "Pending confirmation",
   },
   {
     slug: "craft-workshop",
     title: "Textile and Craft Workshop",
-    date: "Sample — first Saturday",
-    time: "11:00",
+    date: "Schedule pending",
+    time: "Time pending",
     category: "Workshops",
-    availability: "Open",
+    availability: "Pending confirmation",
   },
   {
     slug: "private-ceremony",

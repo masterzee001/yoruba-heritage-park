@@ -64,8 +64,8 @@ function StayPage() {
         <div className="mt-16 rounded-sm border border-border bg-cream p-8">
           <p className="eyebrow">Please note</p>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Final pricing, availability and legal details are subject to confirmation. This
-            prototype does not include online property purchase.
+            Final pricing, availability and legal details are subject to confirmation. Online
+            property purchase is not available.
           </p>
         </div>
       </section>

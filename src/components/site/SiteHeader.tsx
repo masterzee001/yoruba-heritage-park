@@ -1,4 +1,4 @@
-﻿import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Menu, Search, X } from "lucide-react";
 import { NAV } from "@/lib/mock-data";
@@ -57,7 +57,7 @@ export function SiteHeader() {
             to="/tickets"
             className="inline-flex min-h-10 items-center justify-center rounded-full border border-gold/30 bg-gold px-4 py-2 text-[0.68rem] font-bold tracking-[0.1em] text-forest-deep uppercase shadow-[0_12px_28px_oklch(0.12_0.02_155/0.32)] transition duration-300 hover:bg-ivory focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-forest-deep sm:px-5 lg:min-h-11 lg:px-6"
           >
-            Buy Tickets
+            Tickets
           </Link>
           <button
             type="button"
@@ -88,7 +88,7 @@ export function SiteHeader() {
                 >
                   {n.label}
                   <span className="text-xs font-sans text-gold/60" aria-hidden>
-                    â†’
+                    →
                   </span>
                 </Link>
               ))}
@@ -105,7 +105,7 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="flex-1 rounded-full bg-gold px-4 py-3 text-center text-sm font-semibold text-forest-deep transition hover:bg-ivory"
               >
-                Buy Tickets
+                Tickets
               </Link>
             </div>
           </nav>

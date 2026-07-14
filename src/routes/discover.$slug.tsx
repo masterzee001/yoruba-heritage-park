@@ -2,9 +2,9 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PageHero } from "@/components/site/Section";
 
 const SUBJECTS: Record<string, { name: string; body: string }> = {
-  sango: { name: "Ṣàngó", body: "Cultural profile placeholder — pending cultural review." },
-  yemoja: { name: "Yemoja", body: "Cultural profile placeholder — pending cultural review." },
-  ijebu: { name: "Ijèbú Traditions", body: "Placeholder cultural notes for review." },
+  sango: { name: "Ṣàngó", body: "Cultural profile pending cultural review." },
+  yemoja: { name: "Yemoja", body: "Cultural profile pending cultural review." },
+  ijebu: { name: "Ijèbú Traditions", body: "Cultural notes pending cultural review." },
   nature: { name: "Nature", body: "Forest, water and living habitat within the park." },
   architecture: {
     name: "Architecture",
@@ -52,7 +52,7 @@ function SubjectDetail() {
         <p className="eyebrow">Pending cultural approval</p>
         <p className="mt-4 text-lg leading-relaxed text-foreground/80">
           Full text for this cultural subject will be added following review by the cultural
-          council. Content shown here is a placeholder for layout purposes only.
+          council. Details will be published following cultural approval.
         </p>
         <Link
           to="/discover"

@@ -20,7 +20,9 @@ function AdminHome() {
           <p className="eyebrow">Overview</p>
           <h1 className="mt-2 font-serif text-3xl text-forest-deep">Dashboard</h1>
         </div>
-        <div className="text-xs text-muted-foreground">Last synced 2 minutes ago · Mock data</div>
+        <div className="text-xs text-muted-foreground">
+          Demonstration data · not connected to live operations
+        </div>
       </div>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

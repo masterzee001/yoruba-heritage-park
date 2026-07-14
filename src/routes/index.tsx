@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   MapPin,
@@ -106,13 +106,13 @@ function Home() {
           <div>
             <p className="eyebrow">Introduction</p>
             <h2 className="mt-4 font-serif text-3xl leading-[1.1] text-forest-deep md:text-5xl text-balance">
-              Rooted in Ogun State. Inspired by YorÃ¹bÃ¡ heritage. Created for the world.
+              Rooted in Ogun State. Inspired by Yorùbá heritage. Created for the world.
             </h2>
           </div>
           <div className="flex items-center">
             <p className="text-base leading-[1.8] text-foreground/80 md:text-lg">
               Yoruba Heritage Park brings together culture, spirituality, nature, education,
-              community and visitor experience within a single, carefully curated destination â€” a
+              community and visitor experience within a single, carefully curated destination — a
               place to walk, to learn, to reflect and to return.
             </p>
           </div>
@@ -186,7 +186,8 @@ function Home() {
             </h2>
             <p className="mt-5 max-w-md text-muted-foreground">
               Cultural grounds, sacred spaces, forest trails, workshop houses, event lawns and quiet
-              places for reflection. Sample locations shown.
+              places for reflection. Final location details will be published following operational
+              confirmation.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {["All", "Cultural", "Sacred", "Nature", "Workshops", "Facilities"].map((f, i) => (
@@ -275,7 +276,7 @@ function Home() {
               </h2>
             </div>
             <Link to="/experiences" className="text-sm underline-offset-4 hover:underline">
-              View all experiences â†’
+              View all experiences →
             </Link>
           </div>
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -300,7 +301,7 @@ function Home() {
                   <p className="mt-3 text-sm leading-relaxed text-ivory/70">{e.summary}</p>
                   <div className="mt-6 flex items-center justify-between border-t border-ivory/10 pt-4 text-xs text-ivory/60">
                     <span>{e.duration}</span>
-                    <span className="text-gold">View Details â†’</span>
+                    <span className="text-gold">View Details →</span>
                   </div>
                 </div>
               </Link>
@@ -315,13 +316,13 @@ function Home() {
           <SectionHead
             eyebrow="Upcoming"
             title="Events at the park."
-            intro="Sample schedule â€” final calendar to be confirmed."
+            intro="Indicative schedule. The final calendar will be published following operational confirmation."
           />
           <Link
             to="/events"
             className="text-sm font-medium text-forest-deep underline-offset-4 hover:underline"
           >
-            View Full Calendar â†’
+            View Full Calendar →
           </Link>
         </div>
         <div className="mt-14 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
@@ -342,7 +343,7 @@ function Home() {
                   params={{ slug: ev.slug }}
                   className="text-xs font-medium text-forest-deep hover:text-clay"
                 >
-                  View Event â†’
+                  View Event →
                 </Link>
               </div>
             </article>
@@ -350,7 +351,7 @@ function Home() {
         </div>
       </section>
 
-      {/* 7. ORÃKÃŒ AND CEREMONIES */}
+      {/* 7. ORÍKÌ AND CEREMONIES */}
       <section className="bg-cream py-24 md:py-32">
         <div className="container-y grid gap-12 md:grid-cols-2 md:items-center md:gap-16">
           <div className="relative aspect-[4/5] overflow-hidden">
@@ -364,16 +365,16 @@ function Home() {
           <div>
             <p className="eyebrow">Heritage services</p>
             <h2 className="mt-3 font-serif text-3xl leading-tight text-forest-deep md:text-5xl text-balance">
-              OrÃ­kÃ¬, ceremonies and family occasions.
+              Oríkì, ceremonies and family occasions.
             </h2>
             <p className="mt-5 text-muted-foreground">
-              Personal and family OrÃ­kÃ¬, YorÃ¹bÃ¡ naming ceremonies, weddings, private prayer and
-              cultural celebrations â€” held with dignity in spaces designed for gathering.
+              Personal and family Oríkì, Yorùbá naming ceremonies, weddings, private prayer and
+              cultural celebrations — held with dignity in spaces designed for gathering.
             </p>
             <ul className="mt-8 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               {[
-                "Personal OrÃ­kÃ¬",
-                "Family OrÃ­kÃ¬",
+                "Personal Oríkì",
+                "Family Oríkì",
                 "Naming ceremonies",
                 "Weddings",
                 "Private prayer",
@@ -389,7 +390,7 @@ function Home() {
                 to="/oriki"
                 className="rounded-full bg-forest-deep px-6 py-3 text-sm text-ivory hover:bg-forest"
               >
-                OrÃ­kÃ¬ and Heritage
+                Oríkì and Heritage
               </Link>
               <Link
                 to="/ceremonies"
@@ -425,13 +426,13 @@ function Home() {
               <c.icon className="size-5 text-clay" aria-hidden />
               <h3 className="mt-6 font-serif text-2xl text-forest-deep">{c.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Sample resource â€” pending operational confirmation.
+                Resource details will be published following operational confirmation.
               </p>
               <Link
                 to="/learn"
                 className="mt-6 text-xs font-medium text-forest-deep hover:text-clay"
               >
-                {c.action} â†’
+                {c.action} →
               </Link>
             </div>
           ))}
@@ -487,10 +488,10 @@ function Home() {
             { label: "Admission", value: "Details to be confirmed" },
             { label: "Location", value: "Ogun State, Nigeria", icon: MapPin },
             { label: "Transport", value: "Details to be confirmed" },
-            { label: "Parking", value: "On-site â€” to be confirmed" },
+            { label: "Parking", value: "On-site — to be confirmed" },
             { label: "Accessibility", value: "Details to be confirmed" },
             { label: "Contact", value: "See contact page" },
-            { label: "Tickets", value: "Buy online", link: "/tickets" },
+            { label: "Tickets", value: "Visit requests", link: "/tickets" },
           ].map((i) => (
             <div key={i.label} className="bg-background p-7">
               <p className="eyebrow">{i.label}</p>
@@ -500,7 +501,7 @@ function Home() {
                   to={i.link}
                   className="mt-3 inline-block text-xs font-medium text-clay hover:text-forest-deep"
                 >
-                  Buy Tickets â†’
+                  View Ticket Details →
                 </Link>
               )}
             </div>

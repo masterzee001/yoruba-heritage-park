@@ -60,7 +60,9 @@ function ContactPage() {
             <button className="mt-2 w-full rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory">
               Send Message
             </button>
-            <p className="text-xs text-muted-foreground">Prototype only.</p>
+            <p className="text-xs text-muted-foreground">
+              Message delivery will be enabled following operational confirmation.
+            </p>
           </div>
         </form>
       </section>

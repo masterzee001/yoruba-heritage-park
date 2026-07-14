@@ -17,9 +17,9 @@ export const Route = createFileRoute("/discover")({
 });
 
 const subjects = [
-  { slug: "sango", name: "Ṣàngó", note: "Cultural profile — pending cultural review." },
-  { slug: "yemoja", name: "Yemoja", note: "Cultural profile — pending cultural review." },
-  { slug: "ijebu", name: "Ijèbú Traditions", note: "Placeholder description for review." },
+  { slug: "sango", name: "Ṣàngó", note: "Cultural profile pending cultural review." },
+  { slug: "yemoja", name: "Yemoja", note: "Cultural profile pending cultural review." },
+  { slug: "ijebu", name: "Ijèbú Traditions", note: "Description pending cultural review." },
   { slug: "nature", name: "Nature", note: "Forest, water and living habitat." },
   { slug: "architecture", name: "Architecture", note: "Traditional and contemporary form." },
   { slug: "history", name: "Park History", note: "To be confirmed." },
@@ -55,8 +55,8 @@ function DiscoverPage() {
           Profiles for study and reflection.
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground">
-          Descriptions here are placeholders marked for cultural review. No religious claims,
-          historical dates or ritual instructions are made in this prototype.
+          Descriptions here are pending cultural review. No religious claims, historical dates or
+          ritual instructions are presented as final.
         </p>
 
         <div className="mt-14 grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
@@ -82,7 +82,8 @@ function DiscoverPage() {
           <h2 className="mt-3 font-serif text-3xl md:text-5xl">A living map of the park.</h2>
           <p className="mt-4 text-ivory/75">
             Cultural areas, sacred spaces, nature trails, workshop locations, event spaces,
-            accommodation areas and restricted zones. Sample layout — details to be confirmed.
+            accommodation areas and restricted zones. Final layout details will be published
+            following operational confirmation.
           </p>
           <Link
             to="/"

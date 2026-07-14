@@ -76,7 +76,9 @@ function OrikiPage() {
             >
               Send Enquiry
             </button>
-            <p className="text-xs text-muted-foreground">Prototype only. Enquiries are not sent.</p>
+            <p className="text-xs text-muted-foreground">
+              Enquiry delivery will be enabled following operational confirmation.
+            </p>
           </form>
         </aside>
       </section>

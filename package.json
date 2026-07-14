@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:cpanel": "vite build --config vite.config.cpanel.ts",
     "build:dev": "vite build --mode development",
+    "check:text-integrity": "node scripts/check-text-integrity.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
