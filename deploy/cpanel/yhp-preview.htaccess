@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/$
+RewriteRule ^(.+)$ /?__yhp_route=/$1 [L,QSA]
+
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/suwanee1155/repositories/yoruba-heritage-park"
+PassengerBaseURI "/"
+PassengerNodejs "/home/suwanee1155/nodevenv/repositories/yoruba-heritage-park/24/bin/node"
+PassengerAppType node
+PassengerStartupFile app.cjs
+PassengerAppLogFile "/home/suwanee1155/yhp-passenger.log"
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END

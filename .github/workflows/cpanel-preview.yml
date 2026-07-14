@@ -1,0 +1,90 @@
+name: Deploy cPanel Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development
+
+concurrency:
+  group: cpanel-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CPANEL_APP_DIR: /repositories/yoruba-heritage-park
+      CPANEL_WEBROOT_DIR: /public_html/yhp-preview.deedoc.org
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build cPanel output
+        run: bun run build:cpanel
+
+      - name: Install FTP client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Validate deployment secrets
+        env:
+          CPANEL_FTP_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_FTP_USERNAME: ${{ secrets.CPANEL_FTP_USERNAME }}
+          CPANEL_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          test -n "$CPANEL_FTP_HOST"
+          test -n "$CPANEL_FTP_USERNAME"
+          test -n "$CPANEL_FTP_PASSWORD"
+
+      - name: Prepare restart marker
+        run: date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
+
+      - name: Upload build to cPanel
+        env:
+          CPANEL_FTP_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_FTP_USERNAME: ${{ secrets.CPANEL_FTP_USERNAME }}
+          CPANEL_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          lftp -u "$CPANEL_FTP_USERNAME","$CPANEL_FTP_PASSWORD" "$CPANEL_FTP_HOST" <<EOF
+          set ftp:ssl-allow no
+          set net:max-retries 3
+          set net:timeout 20
+          set xfer:clobber on
+
+          mkdir -p "$CPANEL_APP_DIR"
+          cd "$CPANEL_APP_DIR"
+          put app.cjs -o app.cjs
+          put package.json -o package.json
+          put bun.lock -o bun.lock
+          mirror -R --delete --verbose .output-cpanel .output-cpanel
+          mkdir -p tmp
+          put restart.txt -o tmp/restart.txt
+
+          mkdir -p "$CPANEL_WEBROOT_DIR"
+          cd "$CPANEL_WEBROOT_DIR"
+          put deploy/cpanel/yhp-preview.htaccess -o .htaccess
+          mkdir -p assets
+          mkdir -p brand
+          mkdir -p reference
+          mirror -R --delete --verbose .output-cpanel/public/assets assets
+          mirror -R --delete --verbose .output-cpanel/public/brand brand
+          mirror -R --delete --verbose .output-cpanel/public/reference reference
+          EOF
+
+      - name: Verify preview deployment
+        run: |
+          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null
+          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null
+          curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/assets/styles-B0x9wfbX.css > /dev/null
