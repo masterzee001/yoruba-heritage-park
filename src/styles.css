@@ -1,0 +1,194 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Yoruba Heritage Park — Sacred Journey design system */
+
+@theme inline {
+  --font-serif: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-moss: var(--moss);
+  --color-clay: var(--clay);
+  --color-earth: var(--earth);
+  --color-ivory: var(--ivory);
+  --color-cream: var(--cream);
+  --color-charcoal: var(--charcoal);
+  --color-brass: var(--brass);
+  --color-gold: var(--gold);
+  --color-indigo-deep: var(--indigo-deep);
+  --color-sos: var(--sos);
+}
+
+:root {
+  --radius: 4px;
+
+  /* Brand palette */
+  --forest-deep: oklch(0.28 0.045 155);
+  --forest: oklch(0.36 0.055 150);
+  --moss: oklch(0.52 0.06 140);
+  --clay: oklch(0.58 0.09 45);
+  --earth: oklch(0.38 0.045 55);
+  --ivory: oklch(0.97 0.012 85);
+  --cream: oklch(0.94 0.02 82);
+  --charcoal: oklch(0.22 0.008 60);
+  --brass: oklch(0.62 0.07 78);
+  --gold: oklch(0.72 0.11 82);
+  --indigo-deep: oklch(0.28 0.08 265);
+  --sos: oklch(0.52 0.19 25);
+
+  /* Semantic */
+  --background: var(--ivory);
+  --foreground: var(--charcoal);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--charcoal);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--charcoal);
+  --primary: var(--forest-deep);
+  --primary-foreground: var(--ivory);
+  --secondary: var(--cream);
+  --secondary-foreground: var(--charcoal);
+  --muted: oklch(0.92 0.012 82);
+  --muted-foreground: oklch(0.42 0.015 60);
+  --accent: var(--clay);
+  --accent-foreground: var(--ivory);
+  --destructive: var(--sos);
+  --destructive-foreground: var(--ivory);
+  --border: oklch(0.88 0.015 80);
+  --input: oklch(0.88 0.015 80);
+  --ring: var(--forest);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 150);
+  --foreground: var(--ivory);
+  --card: oklch(0.22 0.025 150);
+  --card-foreground: var(--ivory);
+  --popover: oklch(0.22 0.025 150);
+  --popover-foreground: var(--ivory);
+  --primary: var(--ivory);
+  --primary-foreground: var(--forest-deep);
+  --secondary: oklch(0.26 0.03 150);
+  --secondary-foreground: var(--ivory);
+  --muted: oklch(0.26 0.03 150);
+  --muted-foreground: oklch(0.72 0.02 80);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .eyebrow {
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--color-muted-foreground);
+  }
+  ::selection {
+    background: var(--forest-deep);
+    color: var(--ivory);
+  }
+}
+
+@utility container-y {
+  @apply mx-auto w-full max-w-[1240px] px-6 md:px-10;
+}
+
+@utility hairline {
+  border-top: 1px solid var(--color-border);
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility ken-burns {
+  animation: kenburns 40s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes kenburns {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility fade-up {
+  animation: fade-up 0.9s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
