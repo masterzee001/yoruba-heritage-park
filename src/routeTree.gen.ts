@@ -28,13 +28,17 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ExperiencesSlugRouteImport } from './routes/experiences.$slug'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as DiscoverSlugRouteImport } from './routes/discover.$slug'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminStayOwnRouteImport } from './routes/admin.stay-own'
 import { Route as AdminSosRouteImport } from './routes/admin.sos'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminOrikiRouteImport } from './routes/admin.oriki'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminLearningRouteImport } from './routes/admin.learning'
+import { Route as AdminIncidentsRouteImport } from './routes/admin.incidents'
 import { Route as AdminExperiencesRouteImport } from './routes/admin.experiences'
 import { Route as AdminEventsRouteImport } from './routes/admin.events'
 import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries'
@@ -42,6 +46,7 @@ import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminCeremoniesRouteImport } from './routes/admin.ceremonies'
 import { Route as AdminCalendarRouteImport } from './routes/admin.calendar'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AdminAppointmentsRouteImport } from './routes/admin.appointments'
 
 const TicketsRoute = TicketsRouteImport.update({
@@ -139,6 +144,11 @@ const DiscoverSlugRoute = DiscoverSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => DiscoverRoute,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminTicketsRoute = AdminTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
@@ -152,6 +162,16 @@ const AdminStayOwnRoute = AdminStayOwnRouteImport.update({
 const AdminSosRoute = AdminSosRouteImport.update({
   id: '/sos',
   path: '/sos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRolesRoute = AdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
@@ -172,6 +192,11 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
 const AdminLearningRoute = AdminLearningRouteImport.update({
   id: '/learning',
   path: '/learning',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIncidentsRoute = AdminIncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminExperiencesRoute = AdminExperiencesRouteImport.update({
@@ -209,6 +234,11 @@ const AdminBookingsRoute = AdminBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAppointmentsRoute = AdminAppointmentsRouteImport.update({
   id: '/appointments',
   path: '/appointments',
@@ -230,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/ceremonies': typeof AdminCeremoniesRoute
@@ -237,13 +268,17 @@ export interface FileRoutesByFullPath {
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/experiences': typeof AdminExperiencesRoute
+  '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/sos': typeof AdminSosRoute
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -265,6 +300,7 @@ export interface FileRoutesByTo {
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/ceremonies': typeof AdminCeremoniesRoute
@@ -272,13 +308,17 @@ export interface FileRoutesByTo {
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/experiences': typeof AdminExperiencesRoute
+  '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/sos': typeof AdminSosRoute
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -302,6 +342,7 @@ export interface FileRoutesById {
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/calendar': typeof AdminCalendarRoute
   '/admin/ceremonies': typeof AdminCeremoniesRoute
@@ -309,13 +350,17 @@ export interface FileRoutesById {
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/experiences': typeof AdminExperiencesRoute
+  '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/sos': typeof AdminSosRoute
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -340,6 +385,7 @@ export interface FileRouteTypes {
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
+    | '/admin/audit-logs'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/ceremonies'
@@ -347,13 +393,17 @@ export interface FileRouteTypes {
     | '/admin/enquiries'
     | '/admin/events'
     | '/admin/experiences'
+    | '/admin/incidents'
     | '/admin/learning'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/sos'
     | '/admin/stay-own'
     | '/admin/tickets'
+    | '/admin/users'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -375,6 +425,7 @@ export interface FileRouteTypes {
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
+    | '/admin/audit-logs'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/ceremonies'
@@ -382,13 +433,17 @@ export interface FileRouteTypes {
     | '/admin/enquiries'
     | '/admin/events'
     | '/admin/experiences'
+    | '/admin/incidents'
     | '/admin/learning'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/sos'
     | '/admin/stay-own'
     | '/admin/tickets'
+    | '/admin/users'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -411,6 +466,7 @@ export interface FileRouteTypes {
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
+    | '/admin/audit-logs'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/ceremonies'
@@ -418,13 +474,17 @@ export interface FileRouteTypes {
     | '/admin/enquiries'
     | '/admin/events'
     | '/admin/experiences'
+    | '/admin/incidents'
     | '/admin/learning'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/sos'
     | '/admin/stay-own'
     | '/admin/tickets'
+    | '/admin/users'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -588,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscoverSlugRouteImport
       parentRoute: typeof DiscoverRoute
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/tickets': {
       id: '/admin/tickets'
       path: '/tickets'
@@ -607,6 +674,20 @@ declare module '@tanstack/react-router' {
       path: '/sos'
       fullPath: '/admin/sos'
       preLoaderRoute: typeof AdminSosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/roles': {
+      id: '/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AdminRolesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/payments': {
@@ -635,6 +716,13 @@ declare module '@tanstack/react-router' {
       path: '/learning'
       fullPath: '/admin/learning'
       preLoaderRoute: typeof AdminLearningRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/incidents': {
+      id: '/admin/incidents'
+      path: '/incidents'
+      fullPath: '/admin/incidents'
+      preLoaderRoute: typeof AdminIncidentsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/experiences': {
@@ -686,6 +774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBookingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/audit-logs': {
+      id: '/admin/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AdminAuditLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/appointments': {
       id: '/admin/appointments'
       path: '/appointments'
@@ -698,6 +793,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAppointmentsRoute: typeof AdminAppointmentsRoute
+  AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminCalendarRoute: typeof AdminCalendarRoute
   AdminCeremoniesRoute: typeof AdminCeremoniesRoute
@@ -705,18 +801,23 @@ interface AdminRouteChildren {
   AdminEnquiriesRoute: typeof AdminEnquiriesRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminExperiencesRoute: typeof AdminExperiencesRoute
+  AdminIncidentsRoute: typeof AdminIncidentsRoute
   AdminLearningRoute: typeof AdminLearningRoute
   AdminMediaRoute: typeof AdminMediaRoute
   AdminOrikiRoute: typeof AdminOrikiRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminRolesRoute: typeof AdminRolesRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminSosRoute: typeof AdminSosRoute
   AdminStayOwnRoute: typeof AdminStayOwnRoute
   AdminTicketsRoute: typeof AdminTicketsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAppointmentsRoute: AdminAppointmentsRoute,
+  AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminCalendarRoute: AdminCalendarRoute,
   AdminCeremoniesRoute: AdminCeremoniesRoute,
@@ -724,13 +825,17 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEnquiriesRoute: AdminEnquiriesRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminExperiencesRoute: AdminExperiencesRoute,
+  AdminIncidentsRoute: AdminIncidentsRoute,
   AdminLearningRoute: AdminLearningRoute,
   AdminMediaRoute: AdminMediaRoute,
   AdminOrikiRoute: AdminOrikiRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminRolesRoute: AdminRolesRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminSosRoute: AdminSosRoute,
   AdminStayOwnRoute: AdminStayOwnRoute,
   AdminTicketsRoute: AdminTicketsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

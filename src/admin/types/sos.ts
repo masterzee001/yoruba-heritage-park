@@ -33,5 +33,8 @@ export interface AdminSosAlert extends DemoRecord {
   status: SosStatus;
   assignedResponder?: string;
   responseNotes?: string;
+  resolutionPlaceholder?: string;
+  relatedIncidentReference?: string;
   locationLabel: string;
+  timeline: Array<{ id: string; time: string; title: string; detail?: string }>;
 }

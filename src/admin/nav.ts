@@ -78,35 +78,17 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "Safety",
     items: [
       { to: "/admin/sos", label: "SOS console", icon: ShieldAlert, danger: true },
-      {
-        to: "/admin/incidents",
-        label: "Incidents",
-        icon: LifeBuoy,
-        disabled: true,
-        badge: "Phase 4",
-      },
+      { to: "/admin/incidents", label: "Incidents", icon: LifeBuoy },
     ],
   },
   {
     id: "governance",
     label: "Governance",
     items: [
-      { to: "/admin/users", label: "Users", icon: Users, disabled: true, badge: "Phase 4" },
-      { to: "/admin/roles", label: "Roles", icon: KeyRound, disabled: true, badge: "Phase 4" },
-      {
-        to: "/admin/settings",
-        label: "Settings",
-        icon: Settings,
-        disabled: true,
-        badge: "Phase 4",
-      },
-      {
-        to: "/admin/audit-logs",
-        label: "Audit logs",
-        icon: ScrollText,
-        disabled: true,
-        badge: "Phase 4",
-      },
+      { to: "/admin/users", label: "Users", icon: Users },
+      { to: "/admin/roles", label: "Roles", icon: KeyRound },
+      { to: "/admin/settings", label: "Settings", icon: Settings },
+      { to: "/admin/audit-logs", label: "Audit logs", icon: ScrollText },
     ],
   },
 ];

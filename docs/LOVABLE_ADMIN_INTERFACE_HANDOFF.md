@@ -1,35 +1,88 @@
 # Lovable Admin Interface Handoff
 
-Status: **Phase 3 complete — commercial and specialist admin modules**.
+Status: **Phase 4 complete — safety, users and governance preview interface**.
 
-## Implemented Admin Routes
+## Complete Admin Route Inventory
 
-Phase 1 and Phase 2 routes remain active:
+| Route                 | Purpose                                 |
+| --------------------- | --------------------------------------- |
+| `/admin`              | Admin layout shell                      |
+| `/admin/`             | Dashboard overview                      |
+| `/admin/content`      | Pages and content review                |
+| `/admin/experiences`  | Experience record preview               |
+| `/admin/events`       | Event record preview                    |
+| `/admin/calendar`     | Calendar-oriented event preview         |
+| `/admin/bookings`     | Booking record preview                  |
+| `/admin/tickets`      | Ticket and check-in preview             |
+| `/admin/enquiries`    | Enquiry management preview              |
+| `/admin/appointments` | Appointment request preview             |
+| `/admin/payments`     | Payment review preview                  |
+| `/admin/learning`     | Learning resource preview management    |
+| `/admin/oriki`        | Oríkì and heritage consultation preview |
+| `/admin/ceremonies`   | Ceremony enquiry preview management     |
+| `/admin/stay-own`     | Stay & Own enquiry preview management   |
+| `/admin/media`        | Media metadata preview library          |
+| `/admin/sos`          | SOS console test-alert mode             |
+| `/admin/incidents`    | Incident management preview             |
+| `/admin/users`        | User management preview                 |
+| `/admin/roles`        | Role and permission matrix preview      |
+| `/admin/settings`     | Settings and feature-control preview    |
+| `/admin/audit-logs`   | Audit-log preview                       |
 
-| Route                 | Purpose                         |
-| --------------------- | ------------------------------- |
-| `/admin`              | Admin layout shell              |
-| `/admin/`             | Dashboard overview              |
-| `/admin/content`      | Pages and content review        |
-| `/admin/experiences`  | Experience record preview       |
-| `/admin/events`       | Event record preview            |
-| `/admin/calendar`     | Calendar-oriented event preview |
-| `/admin/bookings`     | Booking record preview          |
-| `/admin/tickets`      | Ticket and check-in preview     |
-| `/admin/enquiries`    | Enquiry management preview      |
-| `/admin/appointments` | Appointment request preview     |
-| `/admin/sos`          | SOS console test-record mode    |
+No active administrator navigation item points to a missing route.
 
-Phase 3 routes now implemented:
+## Phase 4 Routes Created
 
-| Route               | Purpose                                 |
-| ------------------- | --------------------------------------- |
-| `/admin/payments`   | Payment review preview                  |
-| `/admin/learning`   | Learning resource preview management    |
-| `/admin/oriki`      | Oríkì and heritage consultation preview |
-| `/admin/ceremonies` | Ceremony enquiry preview management     |
-| `/admin/stay-own`   | Stay & Own enquiry preview management   |
-| `/admin/media`      | Media metadata preview library          |
+- `/admin/incidents`
+- `/admin/users`
+- `/admin/roles`
+- `/admin/settings`
+- `/admin/audit-logs`
+
+## SOS Console Improvements
+
+`/admin/sos` remains the existing preview-only SOS console, now with:
+
+- Strong SOS preview banner.
+- Breadcrumbs.
+- Test-alert queue labels.
+- GPS latitude, longitude and accuracy placeholders.
+- Acknowledgement, response, resolution and related-incident placeholders.
+- Timeline display.
+- Map placeholder.
+- Local-only preview actions for acknowledgement, responder assignment, response notes, responding state, resolution and related-incident creation.
+
+No live SOS dispatch, geolocation, mapping, messaging or emergency API is connected.
+
+## Incident Management
+
+Incidents are separate from SOS alerts. They may reference a test SOS alert but do not dispatch responders or persist incident records. Incident records include source, category, severity, status, visitor/ticket placeholder, location/GPS placeholders, timeline, notes and closure state.
+
+## Users
+
+The user-management interface supports search, role/status filters, detail view and preview actions for invitation, edit, suspension, restore, role assignment and password reset notice. It does not create users, sessions, invitations or password resets.
+
+## Roles And Permissions
+
+The roles interface includes the approved future roles:
+
+- Super Administrator
+- Content Manager
+- Booking Officer
+- Safety Officer
+- Viewer / Auditor
+
+`AdminPermissionMatrix` displays a read-only module/action permission matrix. `PermissionNotice` states that real authorisation must be enforced by the production server.
+
+## Settings
+
+The settings interface groups safe preview settings for general, visitor information, booking, payments, notifications, safety, media, SEO, legal/privacy and feature controls. It does not expose secrets or environment values.
+
+Feature controls reflect `src/config/project-status.ts`; critical flags remain disabled and locked.
+
+## Audit Logs
+
+Audit logs are demonstration records only. They use masked placeholders such as `192.0.2.xxx` and `Preview browser`. Export and copy-reference actions are local preview actions only.
 
 ## Shared Components Reused
 
@@ -46,129 +99,108 @@ Phase 3 routes now implemented:
 - `DemoBadge`
 - `AdminTimeline`
 - `AdminModal`
-- `AdminFormSection`
-- `AdminField`
 - `AdminConfirmationDialog`
 - `FeatureDisabledNotice`
+- `PermissionNotice`
 - `AdminLoadingState`
 - `AdminErrorState`
+- `AdminEmptyState`
 
-`AdminOperationPage` remains available for generic table/detail modules. Phase 3 specialist modules use direct compositions of the same primitives where extra filters, timelines, forms, confirmations or grid/list views are required.
+## Components Created Or Extended
 
-## Components Extended Or Added
+Created:
 
-No new shared design system was introduced. Existing shared components were reused. Phase 3 route-level preview action buttons and notices are local to their route files.
+- `AdminPermissionMatrix`
+- `AdminSettingsSection`
 
-## Types Added Or Extended
+Updated:
 
-Added:
+- `PermissionNotice` wording now clearly describes preview-only permission UI.
 
-- `src/admin/types/learning.ts`
-- `src/admin/types/oriki.ts`
-- `src/admin/types/ceremonies.ts`
-- `src/admin/types/stay-own.ts`
-- `src/admin/types/media.ts`
+## Types Created Or Extended
+
+Created:
+
+- `src/admin/types/incidents.ts`
+- `src/admin/types/governance.ts`
 
 Extended:
 
-- `src/admin/types/payments.ts`
+- `src/admin/types/sos.ts`
+- `src/admin/types/users.ts`
 - `src/admin/types/index.ts`
 
-Every operational record type continues to extend `DemoRecord`, enforcing `isDemo: true`.
+All operational record types continue to extend `DemoRecord`.
 
-## Services Added
+## Service Methods Added
 
-`src/admin/services/admin-service.ts` now includes:
+`AdminService` now includes:
 
-- `PaymentService.list(filters)` and `PaymentService.get(id)`
-- `LearningService`
-- `OrikiService`
-- `CeremonyService`
-- `StayOwnService`
-- `MediaService`
+- `incidents.list/get`
+- `users.list/get`
+- `roles.list/get`
+- `settings.get`
+- `auditLogs.list/get`
 
-`src/admin/services/mock-admin-service.ts` implements those methods with typed filters. Route files call `adminService`; raw mock arrays are imported only inside the mock service.
+Routes call `adminService`; raw mock arrays are imported only by `mock-admin-service.ts`.
 
 ## Demonstration Records Added
 
-Added mock records in:
+Added:
 
-- `src/admin/mock/learning.ts`
-- `src/admin/mock/oriki.ts`
-- `src/admin/mock/ceremonies.ts`
-- `src/admin/mock/stay-own.ts`
-- `src/admin/mock/media.ts`
+- `src/admin/mock/incidents.ts`
+- `src/admin/mock/governance.ts`
 
 Extended:
 
-- `src/admin/mock/payments.ts`
+- `src/admin/mock/sos.ts`
+- `src/admin/mock/users.ts`
 
-All operational mock records carry `isDemo: true`. No `isDemo: false` records exist.
+Every operational mock record contains `isDemo: true`.
 
 ## Preview Actions Available
 
-- Payments: mark for review locally, verification preview, refund-review preview.
-- Learning: new-resource preview, edit preview, publish preview, archive confirmation, file-selection placeholder.
-- Oríkì: assign for review locally, add internal note locally, propose consultation locally, close request locally.
-- Ceremonies: proposal preview, date proposal preview, internal note preview, status update preview.
-- Stay & Own: assign locally, propose inspection locally, add note locally, close enquiry locally.
-- Media: select file locally, edit metadata locally, replace-file preview, delete confirmation preview, copy-reference preview, upload-interface preview.
+- Incidents: local assignment, acknowledgement, note, resolution and closure confirmation.
+- SOS: local acknowledgement, responder placeholder assignment, response note, responding state, resolution and related incident preview.
+- Users: new-user invitation preview, edit preview, suspension confirmation, restore, role assignment and password-reset notice.
+- Roles: duplicate role, edit role, permission change and restore default previews.
+- Settings: local presentation-settings save preview.
+- Audit logs: export preview and copy-reference preview.
 
-Every preview write action reports: “Preview action completed locally. No production record was created.”
+Every local write action reports: “Preview action completed locally. No production record was created.”
 
 ## Production Actions Deliberately Disabled
 
-- Real payments and refunds.
-- Payment-provider verification.
-- Card storage.
-- Real file upload, file deletion, download URLs or cloud media storage.
-- Educational resource publishing.
-- Oríkì generation, practitioner assignment or cultural approval.
-- Ceremony packages, pricing, capacity, coordinator assignment or official confirmation.
-- Property purchases, deposits, contracts, legal transfers, ownership records or property payments.
-- Email, SMS and WhatsApp delivery.
-- Authentication and authorisation enforcement.
-- Live SOS dispatch.
+- Real authentication, sessions, invitations, password resets or permission enforcement.
+- Live SOS dispatch, geolocation transmission, emergency notifications or emergency APIs.
+- Real email, SMS or WhatsApp.
+- Real audit capture, device fingerprinting, IP capture or export files.
+- Database writes.
+- Payment, media upload and ticket QR integrations remain disabled.
+
+## Security Limitations
+
+The portal is an interface preview. Navigation visibility and permission matrix displays are not security boundaries. Production authorisation, audit logging and operational controls must be enforced by server-side code.
 
 ## Responsive Behaviour
 
-- Table-based modules use `AdminDataTable`, which becomes mobile cards below the medium breakpoint.
-- Specialist modules keep detail panels below lists on narrow screens and side-by-side on wide screens.
-- Media library supports grid and list views. The grid uses fixed preview tiles and the list uses the shared responsive table.
-
-## Navigation
-
-Activated:
-
-- `/admin/payments`
-- `/admin/learning`
-- `/admin/oriki`
-- `/admin/ceremonies`
-- `/admin/stay-own`
-- `/admin/media`
-
-Remaining Phase 4 items stay disabled and non-clickable:
-
-- `/admin/incidents`
-- `/admin/users`
-- `/admin/roles`
-- `/admin/settings`
-- `/admin/audit-logs`
+All table modules use responsive tables that become mobile cards. Specialist detail panels stack below records on smaller screens and sit side-by-side on wide screens. Settings sections are full-width stacked panels.
 
 ## Feature Flags
 
-`src/config/project-status.ts` remains the single status module. Relevant values remain false:
+Critical values remain:
 
-- `paymentEnabled`
-- `mediaUploadEnabled`
-- `bookingEnabled`
-- `sosLiveEnabled`
-- `authenticationEnabled`
-- `emailEnabled`
-- `smsEnabled`
-- `whatsappEnabled`
-- `ticketQrEnabled`
-- `geolocationLiveEnabled`
+- `contentMode: "preview"`
+- `bookingEnabled: false`
+- `paymentEnabled: false`
+- `sosLiveEnabled: false`
+- `authenticationEnabled: false`
+- `emailEnabled: false`
+- `smsEnabled: false`
+- `whatsappEnabled: false`
+- `geolocationLiveEnabled: false`
+- `ticketQrEnabled: false`
+- `mediaUploadEnabled: false`
 
 ## Deployment-Controlled Files
 
@@ -179,23 +211,23 @@ Not modified:
 - `.github/workflows/cpanel-preview.yml`
 - `deploy/cpanel/yhp-preview.htaccess`
 
-## Known Limitations
-
-- Interface complete for Phase 3.
-- Demonstration workflow complete for Phase 3.
-- Backend pending.
-- Production integration pending.
-- All data remains in-memory demonstration data.
-- Preview actions update local UI state only.
-- No authentication, repository writes, payments, messaging, media storage or live SOS integrations exist.
-
 ## Backend Replacement Points
 
 - Replace `src/admin/services/mock-admin-service.ts` with repository-backed implementations.
 - Replace `src/admin/mock/*` once real repositories are available.
 - Keep route components bound to `AdminService` interfaces.
 - Keep feature activation centralised in `src/config/project-status.ts`.
+- Implement production authentication, authorisation, audit capture, SOS integrations and messaging only on the backend.
 
-## Recommended Next Backend Implementation Task
+## Remaining Production Work
 
-**Implement MySQL database foundations, environment validation, migrations and server-side repository interfaces without changing the approved admin interface.**
+- MySQL schema, migrations and repositories.
+- Environment validation.
+- Server-side authentication and roles.
+- Server-side audit logging.
+- Production SOS, geolocation and notification integrations.
+- Production payment, media, booking and messaging integrations.
+
+## Next Task
+
+**Implement the MySQL database foundation, environment validation, migrations and server-side repository layer while preserving the approved admin interface.**

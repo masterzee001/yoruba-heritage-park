@@ -19,6 +19,8 @@ export { AdminConfirmationDialog } from "./AdminConfirmationDialog";
 export { AdminDrawer } from "./AdminDrawer";
 export { AdminModal } from "./AdminModal";
 export { AdminOperationPage, type FilterOption } from "./AdminOperationPage";
+export { AdminPermissionMatrix } from "./AdminPermissionMatrix";
+export { AdminSettingsSection } from "./AdminSettingsSection";
 export { PreviewModeBanner } from "./PreviewModeBanner";
 export { FeatureDisabledNotice } from "./FeatureDisabledNotice";
 export { PermissionNotice } from "./PermissionNotice";

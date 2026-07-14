@@ -13,6 +13,8 @@ import { mockCeremonyEnquiries } from "../mock/ceremonies";
 import { mockContentPages } from "../mock/content";
 import { mockEnquiries } from "../mock/enquiries";
 import { mockEvents, mockExperiences } from "../mock/events";
+import { mockAuditLogs, mockRoleDefinitions, mockSettingsSnapshot } from "../mock/governance";
+import { mockIncidents } from "../mock/incidents";
 import { mockLearningResources } from "../mock/learning";
 import { mockMediaAssets } from "../mock/media";
 import { mockOrikiRequests } from "../mock/oriki";
@@ -29,8 +31,11 @@ import type {
   AdminExperience,
   AdminLearningResource,
   AdminMediaAsset,
+  AdminAuditLog,
+  AdminIncident,
   AdminOrikiRequest,
   AdminPayment,
+  AdminRoleDefinition,
   AdminStayOwnEnquiry,
   AdminTicket,
   AppointmentFilters,
@@ -44,6 +49,9 @@ import type {
   ExperienceFilters,
   LearningFilters,
   MediaFilters,
+  AdminUserFilters,
+  AuditLogFilters,
+  IncidentFilters,
   OrikiFilters,
   PaymentFilters,
   StayOwnFilters,
@@ -206,6 +214,49 @@ const filterMedia = (rows: AdminMediaAsset[], filters?: MediaFilters) =>
       (!filters?.usage || filters.usage === "all" || row.usage.includes(filters.usage)),
   );
 
+const filterIncidents = (rows: AdminIncident[], filters?: IncidentFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [
+          row.reference,
+          row.source,
+          row.category,
+          row.visitorOrTicketPlaceholder,
+          row.locationDescriptionPlaceholder,
+          row.relatedSosReference,
+        ],
+        filters?.search,
+      ) &&
+      matchesValue(row.category, filters?.category) &&
+      matchesValue(row.severity, filters?.severity) &&
+      matchesValue(row.status, filters?.status) &&
+      (!filters?.date || row.reportedAt.startsWith(filters.date)),
+  );
+
+const filterUsers = (rows: AdminUser[], filters?: AdminUserFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch([row.reference, row.name, row.email], filters?.search) &&
+      matchesValue(row.role, filters?.role) &&
+      matchesValue(row.status, filters?.status) &&
+      matchesValue(row.invitationState, filters?.invitationState),
+  );
+
+const filterAuditLogs = (rows: AdminAuditLog[], filters?: AuditLogFilters) =>
+  rows.filter(
+    (row) =>
+      matchesSearch(
+        [row.reference, row.userPlaceholder, row.action, row.recordReference, row.details],
+        filters?.search,
+      ) &&
+      (!filters?.user || includes(row.userPlaceholder, filters.user)) &&
+      matchesValue(row.module, filters?.module) &&
+      (!filters?.action || includes(row.action, filters.action)) &&
+      matchesValue(row.outcome, filters?.outcome) &&
+      (!filters?.date || row.occurredAt.startsWith(filters.date)),
+  );
+
 export const mockAdminService: AdminService = {
   dashboard: {
     async summary(): Promise<DashboardSummary> {
@@ -342,9 +393,41 @@ export const mockAdminService: AdminService = {
       return later(mockSosAlerts.find((a) => a.id === id) ?? null);
     },
   },
+  incidents: {
+    async list(filters) {
+      return later(filterIncidents(mockIncidents, filters));
+    },
+    async get(id: string) {
+      return later(mockIncidents.find((i) => i.id === id) ?? null);
+    },
+  },
   users: {
+    async list(filters) {
+      return later(filterUsers(mockAdminUsers, filters));
+    },
+    async get(id: string) {
+      return later(mockAdminUsers.find((u) => u.id === id) ?? null);
+    },
+  },
+  roles: {
     async list() {
-      return later(mockAdminUsers);
+      return later(mockRoleDefinitions);
+    },
+    async get(id: string) {
+      return later(mockRoleDefinitions.find((r: AdminRoleDefinition) => r.id === id) ?? null);
+    },
+  },
+  settings: {
+    async get() {
+      return later(mockSettingsSnapshot);
+    },
+  },
+  auditLogs: {
+    async list(filters) {
+      return later(filterAuditLogs(mockAuditLogs, filters));
+    },
+    async get(id: string) {
+      return later(mockAuditLogs.find((l) => l.id === id) ?? null);
     },
   },
 };

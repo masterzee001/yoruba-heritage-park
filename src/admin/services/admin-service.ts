@@ -16,8 +16,12 @@ import type {
   AdminExperience,
   AdminLearningResource,
   AdminMediaAsset,
+  AdminAuditLog,
+  AdminIncident,
   AdminOrikiRequest,
   AdminPayment,
+  AdminRoleDefinition,
+  AdminSettingsSnapshot,
   AdminSosAlert,
   AdminStayOwnEnquiry,
   AdminTicket,
@@ -33,6 +37,9 @@ import type {
   ExperienceFilters,
   LearningFilters,
   MediaFilters,
+  AuditLogFilters,
+  AdminUserFilters,
+  IncidentFilters,
   OrikiFilters,
   PaymentFilters,
   StayOwnFilters,
@@ -120,7 +127,27 @@ export interface SosService {
 }
 
 export interface UserService {
-  list(): Promise<AdminUser[]>;
+  list(filters?: AdminUserFilters): Promise<AdminUser[]>;
+  get(id: string): Promise<AdminUser | null>;
+}
+
+export interface IncidentService {
+  list(filters?: IncidentFilters): Promise<AdminIncident[]>;
+  get(id: string): Promise<AdminIncident | null>;
+}
+
+export interface RoleService {
+  list(): Promise<AdminRoleDefinition[]>;
+  get(id: string): Promise<AdminRoleDefinition | null>;
+}
+
+export interface SettingsService {
+  get(): Promise<AdminSettingsSnapshot>;
+}
+
+export interface AuditLogService {
+  list(filters?: AuditLogFilters): Promise<AdminAuditLog[]>;
+  get(id: string): Promise<AdminAuditLog | null>;
 }
 
 export interface DashboardService {
@@ -143,5 +170,9 @@ export interface AdminService {
   stayOwn: StayOwnService;
   media: MediaService;
   sos: SosService;
+  incidents: IncidentService;
   users: UserService;
+  roles: RoleService;
+  settings: SettingsService;
+  auditLogs: AuditLogService;
 }

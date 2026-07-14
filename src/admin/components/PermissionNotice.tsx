@@ -5,8 +5,8 @@ interface Props {
 }
 
 /**
- * Cosmetic permission notice. Frontend visibility is NOT security —
- * real authorisation will be enforced server-side.
+ * Cosmetic permission notice. Frontend visibility is not security;
+ * real authorisation must be enforced server-side.
  */
 export function PermissionNotice({ message }: Props) {
   return (
@@ -14,7 +14,7 @@ export function PermissionNotice({ message }: Props) {
       <ShieldOff className="mt-0.5 size-4 shrink-0" aria-hidden />
       <p>
         {message ??
-          "This area is restricted by role. Frontend visibility is not a security boundary — access is enforced server-side."}
+          "This permissions matrix is a user-interface preview only. Real authorisation must be enforced by the production server."}
       </p>
     </div>
   );

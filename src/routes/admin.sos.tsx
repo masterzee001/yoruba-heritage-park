@@ -1,12 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Clock, MapPin, ShieldAlert, Ticket, User } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
+  CheckCircle2,
+  Clock,
+  FilePlus2,
+  MapPin,
+  MessageSquarePlus,
+  ShieldAlert,
+  Ticket,
+  User,
+} from "lucide-react";
+import {
+  AdminBreadcrumbs,
   AdminDetailPanel,
   AdminErrorState,
   AdminLoadingState,
   AdminPageHeader,
   AdminStatusBadge,
+  AdminTimeline,
   DemoBadge,
   DetailRow,
   FeatureDisabledNotice,
@@ -17,7 +28,7 @@ import type { AdminSosAlert, SosStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/sos")({
   head: () => ({
-    meta: [{ title: "SOS console — Administrator" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "SOS Console — Administrator" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminSosConsole,
 });
@@ -46,6 +57,7 @@ function AdminSosConsole() {
   const [alerts, setAlerts] = useState<AdminSosAlert[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,25 +75,34 @@ function AdminSosConsole() {
   }, []);
 
   const selected = alerts?.find((a) => a.id === selectedId) ?? null;
+  const completePreviewAction = () =>
+    setNotice("Preview action completed locally. No production record was created.");
 
   return (
     <>
+      <AdminBreadcrumbs items={[{ label: "Admin", to: "/admin" }, { label: "SOS console" }]} />
       <AdminPageHeader
         eyebrow="Safety operations"
         title="SOS console"
-        description="Operational view for administrator preview only."
+        description="SOS PREVIEW MODE: No live emergency response is connected. Demonstration alerts must never be treated as real incidents."
         actions={
           <AdminStatusBadge tone="danger">
             <ShieldAlert className="size-3" aria-hidden />
-            Preview mode
+            Test alerts only
           </AdminStatusBadge>
         }
       />
 
       <PreviewModeBanner
         variant="danger"
-        message="SOS preview mode: no live emergency response is connected. Demonstration alerts must never be treated as real incidents."
+        message="SOS PREVIEW MODE. No live emergency response is connected. Demonstration alerts must never be treated as real incidents."
       />
+      <FeatureDisabledNotice
+        feature="Live SOS dispatch, geolocation and notifications"
+        reason="No browser geolocation, mapping API, emergency API, SMS, email or WhatsApp service is connected."
+      />
+
+      {notice ? <PreviewNotice>{notice}</PreviewNotice> : null}
 
       {error ? (
         <AdminErrorState description={error} />
@@ -91,7 +112,7 @@ function AdminSosConsole() {
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="rounded-sm border border-border bg-background">
             <div className="border-b border-border p-4 text-xs uppercase tracking-widest text-muted-foreground">
-              Test queue
+              Test alert queue
             </div>
             <ul>
               {alerts.map((a) => {
@@ -127,12 +148,16 @@ function AdminSosConsole() {
           {selected ? (
             <AdminDetailPanel
               eyebrow={`Alert ${selected.reference}`}
-              title={STATUS_LABEL[selected.status] + " · " + selected.category}
+              title={`${STATUS_LABEL[selected.status]} · ${selected.category}`}
               actions={<DemoBadge />}
             >
               <dl>
-                <DetailRow label="Visitor">{selected.visitorName ?? "—"}</DetailRow>
-                <DetailRow label="Ticket reference">{selected.ticketReference ?? "—"}</DetailRow>
+                <DetailRow label="Visitor">
+                  {selected.visitorName ?? "Visitor placeholder"}
+                </DetailRow>
+                <DetailRow label="Ticket reference">
+                  {selected.ticketReference ?? "Ticket placeholder"}
+                </DetailRow>
                 <DetailRow label="Location label">{selected.locationLabel}</DetailRow>
                 <DetailRow label="Latitude">{selected.latitudePlaceholder}</DetailRow>
                 <DetailRow label="Longitude">{selected.longitudePlaceholder}</DetailRow>
@@ -142,19 +167,60 @@ function AdminSosConsole() {
                     <Clock className="size-3" aria-hidden /> {selected.receivedAt}
                   </span>
                 </DetailRow>
+                <DetailRow label="Acknowledgement">
+                  {selected.acknowledgedAt ?? "Acknowledgement placeholder"}
+                </DetailRow>
                 <DetailRow label="Assigned responder">
                   <span className="inline-flex items-center gap-1">
                     <User className="size-3" aria-hidden />
-                    {selected.assignedResponder ?? "—"}
+                    {selected.assignedResponder ?? "Responder placeholder"}
                   </span>
                 </DetailRow>
+                <DetailRow label="Response notes">
+                  {selected.responseNotes ?? "Response note placeholder"}
+                </DetailRow>
+                <DetailRow label="Resolution">{selected.resolutionPlaceholder}</DetailRow>
+                <DetailRow label="Related incident">{selected.relatedIncidentReference}</DetailRow>
               </dl>
 
               <div className="mt-6">
-                <FeatureDisabledNotice
-                  feature="Live emergency dispatch"
-                  reason="Acknowledgement, responder assignment and status transitions are not connected in preview mode. Records shown are test data only."
-                />
+                <AdminTimeline items={selected.timeline} />
+              </div>
+
+              <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                <PreviewButton
+                  icon={<ShieldAlert className="size-3.5" />}
+                  onClick={completePreviewAction}
+                >
+                  Acknowledge test alert locally
+                </PreviewButton>
+                <PreviewButton icon={<User className="size-3.5" />} onClick={completePreviewAction}>
+                  Assign responder placeholder locally
+                </PreviewButton>
+                <PreviewButton
+                  icon={<MessageSquarePlus className="size-3.5" />}
+                  onClick={completePreviewAction}
+                >
+                  Add response note locally
+                </PreviewButton>
+                <PreviewButton
+                  icon={<CheckCircle2 className="size-3.5" />}
+                  onClick={completePreviewAction}
+                >
+                  Mark responding preview locally
+                </PreviewButton>
+                <PreviewButton
+                  icon={<CheckCircle2 className="size-3.5" />}
+                  onClick={completePreviewAction}
+                >
+                  Resolve test alert locally
+                </PreviewButton>
+                <PreviewButton
+                  icon={<FilePlus2 className="size-3.5" />}
+                  onClick={completePreviewAction}
+                >
+                  Create related incident preview locally
+                </PreviewButton>
               </div>
 
               <div className="mt-6 aspect-[16/8] w-full overflow-hidden rounded-sm border border-border bg-[oklch(0.94_0.02_140)]">
@@ -167,7 +233,7 @@ function AdminSosConsole() {
               </div>
             </AdminDetailPanel>
           ) : (
-            <AdminDetailPanel title="No alert selected" eyebrow="—">
+            <AdminDetailPanel title="No alert selected" eyebrow="Selection">
               <p className="text-sm text-muted-foreground">Select a test record from the queue.</p>
             </AdminDetailPanel>
           )}
@@ -179,5 +245,35 @@ function AdminSosConsole() {
         Ticket, visitor and GPS values shown are demonstration placeholders only.
       </p>
     </>
+  );
+}
+
+function PreviewNotice({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 rounded-sm border border-forest/20 bg-forest/10 px-4 py-3 text-xs text-forest-deep">
+      <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <p>{children}</p>
+    </div>
+  );
+}
+
+function PreviewButton({
+  children,
+  icon,
+  onClick,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest"
+    >
+      {icon}
+      {children}
+    </button>
   );
 }

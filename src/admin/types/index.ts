@@ -8,6 +8,8 @@ export * from "./oriki";
 export * from "./ceremonies";
 export * from "./stay-own";
 export * from "./media";
+export * from "./incidents";
+export * from "./governance";
 export * from "./enquiries";
 export * from "./appointments";
 export * from "./sos";
