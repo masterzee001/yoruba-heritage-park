@@ -115,6 +115,19 @@ function serveStaticFile(request, response) {
   return true;
 }
 
+function restoreRewrittenRoute(request) {
+  const requestUrl = request.url || "/";
+  const parsedUrl = new URL(requestUrl, "http://localhost");
+  const rewrittenRoute = parsedUrl.searchParams.get("__yhp_route");
+
+  if (!rewrittenRoute || !rewrittenRoute.startsWith("/")) {
+    return;
+  }
+
+  parsedUrl.searchParams.delete("__yhp_route");
+  request.url = `${rewrittenRoute}${parsedUrl.search}`;
+}
+
 if (port) {
   process.env.NITRO_PORT = port;
   process.env.NITRO_HOST = host;
@@ -130,6 +143,7 @@ if (fs.existsSync(serverEntry)) {
         return;
       }
 
+      restoreRewrittenRoute(request);
       server.node.handler(request, response);
     });
 
