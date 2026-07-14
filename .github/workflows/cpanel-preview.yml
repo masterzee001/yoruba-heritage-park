@@ -49,18 +49,23 @@ jobs:
           test -n "$CPANEL_FTP_PASSWORD"
 
       - name: Prepare restart marker
-        run: date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
+        run: |
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
+          echo "SSR_SERVER_FILE=$(basename .output-cpanel/server/_ssr/server-*.mjs)" >> "$GITHUB_ENV"
+          echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
 
       - name: Upload build to cPanel
         env:
           CPANEL_FTP_HOST: ${{ secrets.CPANEL_FTP_HOST }}
           CPANEL_FTP_USERNAME: ${{ secrets.CPANEL_FTP_USERNAME }}
           CPANEL_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
+          TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
         run: |
           lftp -u "$CPANEL_FTP_USERNAME","$CPANEL_FTP_PASSWORD" "$CPANEL_FTP_HOST" <<EOF
           set ftp:ssl-allow no
-          set net:max-retries 3
-          set net:timeout 20
+          set net:max-retries 5
+          set net:timeout 60
           set cmd:fail-exit yes
           set xfer:clobber on
 
@@ -75,7 +80,10 @@ jobs:
           rm -r .output-cpanel-prev
           set cmd:fail-exit yes
 
-          mirror -R --delete --verbose .output-cpanel .output-cpanel-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel .output-cpanel-next
+          cls .output-cpanel-next/server/index.mjs
+          cls .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
+          cls .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
 
           set cmd:fail-exit no
           mv .output-cpanel .output-cpanel-prev
@@ -97,9 +105,12 @@ jobs:
           rm -r reference-prev
           set cmd:fail-exit yes
 
-          mirror -R --delete --verbose .output-cpanel/public/assets assets-next
-          mirror -R --delete --verbose .output-cpanel/public/brand brand-next
-          mirror -R --delete --verbose .output-cpanel/public/reference reference-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/assets assets-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/brand brand-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/reference reference-next
+          cls assets-next/styles-*.css
+          cls assets-next/index-*.js
+          cls brand-next/yhp-favicon.png
 
           set cmd:fail-exit no
           mv assets assets-prev
