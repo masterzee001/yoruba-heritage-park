@@ -5,28 +5,51 @@ const { pathToFileURL } = require("node:url");
 
 const port = process.env.PORT;
 const host = "0.0.0.0";
+const passengerListenTarget = "passenger";
 const serverEntry = path.join(__dirname, ".output-cpanel", "server", "index.mjs");
 const stagingMessage = "Yoruba Heritage Park staging deployment is being prepared.";
 
-if (!port) {
-  throw new Error("PORT is required to start the Passenger app.");
+function listen(server) {
+  if (port) {
+    server.listen(Number(port), host);
+  } else {
+    server.listen(passengerListenTarget);
+  }
 }
 
-process.env.NITRO_PORT = port;
-process.env.NITRO_HOST = host;
+if (port) {
+  process.env.NITRO_PORT = port;
+  process.env.NITRO_HOST = host;
+} else {
+  delete process.env.NITRO_PORT;
+  delete process.env.NITRO_HOST;
+}
 
 if (fs.existsSync(serverEntry)) {
+  if (!port) {
+    globalThis.__srvxLoader__ = ({ server }) => {
+      const nodeServer = http.createServer(server.node.handler);
+      server.node.server = nodeServer;
+      listen(nodeServer);
+    };
+  }
+
   import(pathToFileURL(serverEntry).href).catch((error) => {
     console.error(error);
     process.exit(1);
   });
 } else {
-  http
+  const server = http
     .createServer((_request, response) => {
       response.writeHead(200, {
         "Content-Type": "text/html; charset=UTF-8",
       });
       response.end(stagingMessage);
     })
-    .listen(Number(port), host);
+    .on("error", (error) => {
+      console.error(error);
+      process.exit(1);
+    });
+
+  listen(server);
 }
