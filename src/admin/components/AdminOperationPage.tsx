@@ -8,7 +8,7 @@ import { AdminLoadingState } from "./AdminLoadingState";
 import { AdminPageHeader } from "./AdminPageHeader";
 import { AdminSearchInput } from "./AdminSearchInput";
 import { AdminStatusBadge, DemoBadge } from "./AdminStatusBadge";
-import { DetailRow } from "./AdminDetailPanel";
+import { AdminDetailPanel, DetailRow } from "./AdminDetailPanel";
 import { FeatureDisabledNotice } from "./FeatureDisabledNotice";
 import { PreviewModeBanner } from "./PreviewModeBanner";
 import type { DemoRecord, StatusTone } from "../types";
