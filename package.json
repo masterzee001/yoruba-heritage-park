@@ -9,9 +9,14 @@
     "build:cpanel": "vite build --config vite.config.cpanel.ts",
     "build:dev": "vite build --mode development",
     "check:text-integrity": "node scripts/check-text-integrity.mjs",
+    "db:validate": "bun scripts/db-validate.ts",
+    "db:check": "bun scripts/db-check.ts",
+    "db:status": "bun scripts/db-status.ts",
+    "db:migrate": "bun scripts/db-migrate.ts",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "bun test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -53,6 +58,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "mysql2": "^3.22.6",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",

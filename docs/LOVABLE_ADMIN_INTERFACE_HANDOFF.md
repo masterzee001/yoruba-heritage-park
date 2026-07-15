@@ -1,6 +1,8 @@
 # Lovable Admin Interface Handoff
 
-Status: **Phase 4 complete — safety, users and governance preview interface**.
+Status: **Backend Phase 1 complete — safety/governance preview interface plus server-only MySQL foundation**.
+
+The preview administrator interface remains on the mock service. The MySQL foundation exists server-side but is not yet connected to administrator routes.
 
 ## Complete Admin Route Inventory
 
@@ -219,10 +221,16 @@ Not modified:
 - Keep feature activation centralised in `src/config/project-status.ts`.
 - Implement production authentication, authorisation, audit capture, SOS integrations and messaging only on the backend.
 
+## Backend Phase 1 Foundation
+
+- Server-only environment validation now lives under `src/server/env`.
+- The MySQL/MariaDB pool, health check and migration utilities live under `src/server/db`.
+- Repository contracts and MySQL repository skeletons live under `src/server/repositories`.
+- SQL migrations, seeds and the phpMyAdmin schema snapshot live under `database/`.
+- Database commands are explicit scripts; migrations do not run on Passenger startup.
+
 ## Remaining Production Work
 
-- MySQL schema, migrations and repositories.
-- Environment validation.
 - Server-side authentication and roles.
 - Server-side audit logging.
 - Production SOS, geolocation and notification integrations.
@@ -230,4 +238,4 @@ Not modified:
 
 ## Next Task
 
-**Implement the MySQL database foundation, environment validation, migrations and server-side repository layer while preserving the approved admin interface.**
+**Implement administrator authentication, secure sessions and server-enforced role-based authorisation using the approved MySQL repository foundation.**
