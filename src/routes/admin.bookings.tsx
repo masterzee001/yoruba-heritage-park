@@ -64,8 +64,19 @@ function AdminBookingsRoute() {
       detailEyebrow={(row) => row.visitorName}
       detailRows={(row) => [
         { label: "Visitor email", value: row.visitorEmail },
+        {
+          label: "Country of origin",
+          value:
+            row.countryOfOrigin ?? "Details will be published following operational confirmation.",
+        },
         { label: "Booking type", value: row.bookingType },
         { label: "Visit date", value: row.visitDate },
+        {
+          label: "Duration of stay",
+          value: row.durationOfStayDays
+            ? `${row.durationOfStayDays} day${row.durationOfStayDays === 1 ? "" : "s"}`
+            : "Pending confirmation",
+        },
         { label: "Guests", value: row.guests },
         { label: "Payment state", value: row.paymentState },
         { label: "Checked in", value: row.checkedIn ? "Yes" : "No" },

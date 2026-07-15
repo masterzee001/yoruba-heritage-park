@@ -17,8 +17,10 @@ export interface AdminBooking extends DemoRecord {
   reference: string;
   visitorName: string;
   visitorEmail: string;
+  countryOfOrigin?: string;
   bookingType: string;
   visitDate: string;
+  durationOfStayDays?: number;
   guests: number;
   amountNgn: number;
   paymentState: "unpaid" | "pending" | "paid" | "refunded" | "not_applicable";

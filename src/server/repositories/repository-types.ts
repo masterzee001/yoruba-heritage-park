@@ -121,8 +121,10 @@ export interface BookingRecord {
   readonly reference: string;
   readonly visitorName: string;
   readonly visitorEmail: string;
+  readonly countryOfOrigin: string | null;
   readonly bookingType: string;
   readonly visitDate: Date;
+  readonly durationOfStayDays: number | null;
   readonly guests: number;
   readonly amountMinor: number;
   readonly currency: string;

@@ -11,8 +11,10 @@ interface BookingRow extends RowDataPacket {
   reference: string;
   visitor_name: string;
   visitor_email: string;
+  country_of_origin: string | null;
   booking_type: string;
   visit_date: Date;
+  duration_of_stay_days: number | null;
   guests: number;
   amount_minor: number;
   currency: string;
@@ -32,9 +34,9 @@ export class MysqlBookingsRepository implements BookingsRepository {
   async list(limit = 50): Promise<BookingRecord[]> {
     try {
       const [rows] = await this.pool.query<BookingRow[]>(
-        `SELECT id, reference, visitor_name, visitor_email, booking_type, visit_date, guests,
-          amount_minor, currency, payment_state, status, checked_in_at, source, notes,
-          created_at, updated_at, deleted_at
+        `SELECT id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
+          visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
+          status, checked_in_at, source, notes, created_at, updated_at, deleted_at
          FROM bookings
          WHERE deleted_at IS NULL
          ORDER BY visit_date DESC, created_at DESC
@@ -50,9 +52,9 @@ export class MysqlBookingsRepository implements BookingsRepository {
   async findById(id: string): Promise<BookingRecord | null> {
     try {
       const [rows] = await this.pool.query<BookingRow[]>(
-        `SELECT id, reference, visitor_name, visitor_email, booking_type, visit_date, guests,
-          amount_minor, currency, payment_state, status, checked_in_at, source, notes,
-          created_at, updated_at, deleted_at
+        `SELECT id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
+          visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
+          status, checked_in_at, source, notes, created_at, updated_at, deleted_at
          FROM bookings
          WHERE id = ?
          LIMIT 1`,
@@ -71,8 +73,10 @@ function mapBooking(row: BookingRow): BookingRecord {
     reference: row.reference,
     visitorName: row.visitor_name,
     visitorEmail: row.visitor_email,
+    countryOfOrigin: row.country_of_origin,
     bookingType: row.booking_type,
     visitDate: row.visit_date,
+    durationOfStayDays: row.duration_of_stay_days,
     guests: row.guests,
     amountMinor: row.amount_minor,
     currency: row.currency,
