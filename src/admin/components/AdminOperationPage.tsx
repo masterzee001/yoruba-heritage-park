@@ -80,7 +80,7 @@ export function AdminOperationPage<
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    loadRecords({ search, status: statusFilter })
+    loadRecords({ search, status: statusFilter as TStatus | "all" })
       .then((list) => {
         if (cancelled) return;
         setRecords(list);
