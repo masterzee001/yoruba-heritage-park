@@ -3,6 +3,7 @@ import type { Pool } from "mysql2/promise";
 
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type {
+  CreatePaymentRecordInput,
   PaymentsRepository,
   UpsertDonationCampaignInput,
   UpsertPaymentProviderSettingsInput,
@@ -12,7 +13,7 @@ import type {
   PaymentProviderSettingsRecord,
   PaymentRecord,
 } from "../repository-types";
-import { parseJsonValue, requireCode, requireLimit } from "./mysql-helpers";
+import { createRepositoryId, parseJsonValue, requireCode, requireLimit } from "./mysql-helpers";
 
 interface PaymentRow extends RowDataPacket {
   id: string;
@@ -108,6 +109,52 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
          ORDER BY created_at DESC`,
       );
       return rows.map(mapDonationCampaign);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async create(input: CreatePaymentRecordInput): Promise<PaymentRecord> {
+    try {
+      const id = createRepositoryId("pay");
+      const status = input.status ?? "pending";
+      const verificationStatus = input.verificationStatus ?? "unverified";
+      const refundStatus = input.refundStatus ?? "none";
+      await this.pool.query(
+        `INSERT INTO payments (
+          id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          requireCode(input.reference),
+          input.bookingId ?? null,
+          input.campaignId ?? null,
+          input.payerName.trim(),
+          input.payerEmail?.trim().toLowerCase() || null,
+          Math.max(0, Math.trunc(input.amountMinor)),
+          input.currency.trim().toUpperCase(),
+          requireCode(input.providerCode.toLowerCase()),
+          input.providerTransactionReference?.trim() || null,
+          status,
+          verificationStatus,
+          refundStatus,
+          JSON.stringify(input.metadataJson ?? {}),
+        ],
+      );
+      const [rows] = await this.pool.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE id = ?
+         LIMIT 1`,
+        [id],
+      );
+      const payment = rows[0];
+      if (!payment) throw new Error("Payment record was not created.");
+      return mapPayment(payment);
     } catch (error) {
       throw toDatabaseError(error);
     }

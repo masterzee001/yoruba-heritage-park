@@ -4,6 +4,11 @@ import { pendingPaymentAdapter } from "./pending-adapter";
 import type { PaymentProviderAdapter, PaymentProviderReadiness } from "./payment-provider-adapter";
 
 export type { PaymentProviderAdapter, PaymentProviderReadiness } from "./payment-provider-adapter";
+export { PaymentRequestService, createPaymentReference } from "./payment-request-service";
+export type {
+  PreparePaymentRequestInput,
+  PreparePaymentRequestResult,
+} from "./payment-request-service";
 
 const adapters = new Map<string, PaymentProviderAdapter>(
   [pendingPaymentAdapter, paypalPaymentAdapter].map((adapter) => [adapter.providerCode, adapter]),
