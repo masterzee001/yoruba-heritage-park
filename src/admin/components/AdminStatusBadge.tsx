@@ -3,12 +3,12 @@ import type { StatusTone } from "../types";
 
 const TONE: Record<StatusTone, string> = {
   neutral: "bg-cream text-charcoal border-border",
-  info: "bg-indigo-deep/10 text-indigo-deep border-indigo-deep/20",
-  success: "bg-forest/10 text-forest-deep border-forest/20",
-  warning: "bg-brass/15 text-earth border-brass/30",
-  danger: "bg-destructive/10 text-destructive border-destructive/25",
+  info: "bg-indigo-deep/10 text-indigo-deep border-indigo-deep/25",
+  success: "bg-forest/12 text-forest-deep border-forest/25",
+  warning: "bg-brass/20 text-earth border-brass/40",
+  danger: "bg-destructive/12 text-destructive border-destructive/30",
   muted: "bg-muted text-muted-foreground border-border",
-  preview: "bg-clay/10 text-clay border-clay/25",
+  preview: "bg-clay/12 text-clay border-clay/30",
 };
 
 interface Props {
@@ -21,11 +21,23 @@ export function AdminStatusBadge({ tone = "neutral", children, className }: Prop
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] whitespace-nowrap",
         TONE[tone],
         className,
       )}
     >
+      <span
+        aria-hidden
+        className={cn(
+          "size-1.5 rounded-full",
+          tone === "success" && "bg-forest",
+          tone === "danger" && "bg-destructive",
+          tone === "warning" && "bg-brass",
+          tone === "info" && "bg-indigo-deep",
+          tone === "preview" && "bg-clay",
+          (tone === "neutral" || tone === "muted") && "bg-muted-foreground/70",
+        )}
+      />
       {children}
     </span>
   );
