@@ -73,7 +73,7 @@ export function AdminOperationPage<
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
 
