@@ -3,6 +3,7 @@ import { z } from "zod";
 export type AdminDataSource = "mock" | "mysql";
 export type AuthMode = "disabled" | "database";
 export type DatabaseSslMode = "disabled" | "preferred" | "required";
+export type PayPalEnvironment = "sandbox" | "live";
 
 export interface ServerEnv {
   readonly nodeEnv: string;
@@ -26,6 +27,14 @@ export interface ServerEnv {
     readonly password?: string;
     readonly connectionLimit: number;
     readonly sslMode: DatabaseSslMode;
+  };
+  readonly payments: {
+    readonly paypal: {
+      readonly environment: PayPalEnvironment;
+      readonly clientId?: string;
+      readonly secretKey?: string;
+      readonly webhookId?: string;
+    };
   };
 }
 
@@ -89,6 +98,12 @@ const baseEnvSchema = z.object({
   AUTH_ACCOUNT_LOCK_MINUTES: integerFromEnv(15, 1, 1440),
   AUTH_PASSWORD_MIN_LENGTH: integerFromEnv(15, 12, 128),
   AUTH_TRUST_PROXY: booleanFromEnv(true),
+  PAYPAL_ENVIRONMENT: z
+    .preprocess(emptyToUndefined, z.enum(["sandbox", "live"]).default("sandbox"))
+    .default("sandbox"),
+  PAYPAL_CLIENT_ID: optionalText,
+  PAYPAL_SECRET_KEY: optionalText,
+  PAYPAL_WEBHOOK_ID: optionalText,
 });
 
 const requiredDatabaseVariables = [
@@ -147,6 +162,14 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
       password: env.DATABASE_PASSWORD,
       connectionLimit: env.DATABASE_CONNECTION_LIMIT,
       sslMode: env.DATABASE_SSL_MODE,
+    },
+    payments: {
+      paypal: {
+        environment: env.PAYPAL_ENVIRONMENT,
+        clientId: env.PAYPAL_CLIENT_ID,
+        secretKey: env.PAYPAL_SECRET_KEY,
+        webhookId: env.PAYPAL_WEBHOOK_ID,
+      },
     },
   };
 }

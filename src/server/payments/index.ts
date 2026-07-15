@@ -9,6 +9,20 @@ export type {
   PreparePaymentRequestInput,
   PreparePaymentRequestResult,
 } from "./payment-request-service";
+export {
+  buildPayPalOrderDraft,
+  createPayPalOrder,
+  requestPayPalAccessToken,
+  resolvePayPalBaseUrl,
+  resolvePayPalConfiguration,
+} from "./paypal-client";
+export type {
+  PayPalConfigurationResult,
+  PayPalCredentials,
+  PayPalEnvironment,
+  PayPalOrderDraft,
+  PayPalOrderResponse,
+} from "./paypal-client";
 
 const adapters = new Map<string, PaymentProviderAdapter>(
   [pendingPaymentAdapter, paypalPaymentAdapter].map((adapter) => [adapter.providerCode, adapter]),
