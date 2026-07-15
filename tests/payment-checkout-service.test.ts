@@ -4,6 +4,7 @@ import { PaymentCheckoutService } from "../src/server/payments";
 import type {
   CreatePaymentRecordInput,
   PaymentsRepository,
+  RecordPaymentWebhookEventInput,
   UpsertDonationCampaignInput,
   UpsertPaymentProviderSettingsInput,
 } from "../src/server/repositories/payments-repository";
@@ -11,6 +12,7 @@ import type {
   DonationCampaignRecord,
   PaymentProviderSettingsRecord,
   PaymentRecord,
+  PaymentWebhookEventRecord,
 } from "../src/server/repositories/repository-types";
 
 describe("payment checkout service", () => {
@@ -227,6 +229,15 @@ function makePaymentsRepository(
     async findByReference(reference: string) {
       return payments.find((payment) => payment.reference === reference) ?? null;
     },
+    async findByProviderTransactionReference(providerCode, providerTransactionReference) {
+      return (
+        payments.find(
+          (payment) =>
+            payment.providerCode === providerCode &&
+            payment.providerTransactionReference === providerTransactionReference,
+        ) ?? null
+      );
+    },
     async listForBooking(bookingId: string) {
       return payments.filter((payment) => payment.bookingId === bookingId);
     },
@@ -235,6 +246,11 @@ function makePaymentsRepository(
     },
     async listDonationCampaigns(): Promise<DonationCampaignRecord[]> {
       return [];
+    },
+    async recordWebhookEvent(
+      _input: RecordPaymentWebhookEventInput,
+    ): Promise<PaymentWebhookEventRecord> {
+      throw new Error("Not implemented in test repository.");
     },
     async create(_input: CreatePaymentRecordInput): Promise<PaymentRecord> {
       throw new Error("Not implemented in test repository.");

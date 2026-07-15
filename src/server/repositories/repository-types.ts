@@ -211,3 +211,17 @@ export interface PaymentRecord {
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
 }
+
+export interface PaymentWebhookEventRecord {
+  readonly id: string;
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentId: string | null;
+  readonly paymentReference: string | null;
+  readonly processingStatus: "received" | "ignored" | "review_required" | "processed" | "failed";
+  readonly verificationStatus: "unverified" | "verified" | "failed" | "not_applicable";
+  readonly payloadJson: unknown;
+  readonly receivedAt: Date;
+  readonly processedAt: Date | null;
+}

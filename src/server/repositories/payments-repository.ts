@@ -1,5 +1,6 @@
 import type {
   DonationCampaignRecord,
+  PaymentWebhookEventRecord,
   PaymentProviderSettingsRecord,
   PaymentRecord,
 } from "./repository-types";
@@ -44,12 +45,28 @@ export interface UpdatePaymentCheckoutPreparationInput {
   readonly metadataJson: unknown;
 }
 
+export interface RecordPaymentWebhookEventInput {
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentId?: string | null;
+  readonly paymentReference?: string | null;
+  readonly processingStatus?: PaymentWebhookEventRecord["processingStatus"];
+  readonly verificationStatus?: PaymentWebhookEventRecord["verificationStatus"];
+  readonly payloadJson: unknown;
+}
+
 export interface PaymentsRepository {
   list(limit?: number): Promise<PaymentRecord[]>;
   findByReference(reference: string): Promise<PaymentRecord | null>;
+  findByProviderTransactionReference(
+    providerCode: string,
+    providerTransactionReference: string,
+  ): Promise<PaymentRecord | null>;
   listForBooking(bookingId: string): Promise<PaymentRecord[]>;
   listProviderSettings(): Promise<PaymentProviderSettingsRecord[]>;
   listDonationCampaigns(): Promise<DonationCampaignRecord[]>;
+  recordWebhookEvent(input: RecordPaymentWebhookEventInput): Promise<PaymentWebhookEventRecord>;
   create(input: CreatePaymentRecordInput): Promise<PaymentRecord>;
   updateCheckoutPreparation(
     paymentId: string,

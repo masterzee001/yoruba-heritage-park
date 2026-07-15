@@ -5,6 +5,7 @@ import { getDatabasePool, toDatabaseError } from "../../db";
 import type {
   CreatePaymentRecordInput,
   PaymentsRepository,
+  RecordPaymentWebhookEventInput,
   UpdatePaymentCheckoutPreparationInput,
   UpsertDonationCampaignInput,
   UpsertPaymentProviderSettingsInput,
@@ -13,6 +14,7 @@ import type {
   DonationCampaignRecord,
   PaymentProviderSettingsRecord,
   PaymentRecord,
+  PaymentWebhookEventRecord,
 } from "../repository-types";
 import { createRepositoryId, parseJsonValue, requireCode, requireLimit } from "./mysql-helpers";
 
@@ -64,6 +66,20 @@ interface DonationCampaignRow extends RowDataPacket {
   deleted_at: Date | null;
 }
 
+interface PaymentWebhookEventRow extends RowDataPacket {
+  id: string;
+  provider_code: string;
+  provider_event_id: string;
+  event_type: string;
+  payment_id: string | null;
+  payment_reference: string | null;
+  processing_status: PaymentWebhookEventRecord["processingStatus"];
+  verification_status: PaymentWebhookEventRecord["verificationStatus"];
+  payload_json: string;
+  received_at: Date;
+  processed_at: Date | null;
+}
+
 export class MysqlPaymentsRepository implements PaymentsRepository {
   constructor(private readonly pool: Pool = getDatabasePool()) {}
 
@@ -95,6 +111,28 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
          WHERE deleted_at IS NULL AND reference = ?
          LIMIT 1`,
         [requireCode(reference)],
+      );
+      return rows[0] ? mapPayment(rows[0]) : null;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async findByProviderTransactionReference(
+    providerCode: string,
+    providerTransactionReference: string,
+  ): Promise<PaymentRecord | null> {
+    try {
+      const [rows] = await this.pool.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE deleted_at IS NULL
+          AND provider_code = ?
+          AND provider_transaction_reference = ?
+         LIMIT 1`,
+        [requireCode(providerCode.toLowerCase()), requireCode(providerTransactionReference)],
       );
       return rows[0] ? mapPayment(rows[0]) : null;
     } catch (error) {
@@ -144,6 +182,55 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
          ORDER BY created_at DESC`,
       );
       return rows.map(mapDonationCampaign);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async recordWebhookEvent(
+    input: RecordPaymentWebhookEventInput,
+  ): Promise<PaymentWebhookEventRecord> {
+    try {
+      const providerCode = requireCode(input.providerCode.toLowerCase());
+      const providerEventId = requireCode(input.providerEventId);
+      const eventType = requireCode(input.eventType);
+      const processingStatus = input.processingStatus ?? "received";
+      const verificationStatus = input.verificationStatus ?? "unverified";
+      const id = createRepositoryId("pay_webhook");
+
+      await this.pool.query(
+        `INSERT INTO payment_webhook_events (
+          id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          processing_status = VALUES(processing_status),
+          verification_status = VALUES(verification_status),
+          payload_json = VALUES(payload_json)`,
+        [
+          id,
+          providerCode,
+          providerEventId,
+          eventType,
+          input.paymentId ?? null,
+          input.paymentReference ? requireCode(input.paymentReference) : null,
+          processingStatus,
+          verificationStatus,
+          JSON.stringify(input.payloadJson ?? {}),
+        ],
+      );
+
+      const [rows] = await this.pool.query<PaymentWebhookEventRow[]>(
+        `SELECT id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json, received_at, processed_at
+         FROM payment_webhook_events
+         WHERE provider_code = ? AND provider_event_id = ?
+         LIMIT 1`,
+        [providerCode, providerEventId],
+      );
+      const event = rows[0];
+      if (!event) throw new Error("Payment webhook event was not recorded.");
+      return mapPaymentWebhookEvent(event);
     } catch (error) {
       throw toDatabaseError(error);
     }
@@ -358,5 +445,21 @@ function mapDonationCampaign(row: DonationCampaignRow): DonationCampaignRecord {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
+  };
+}
+
+function mapPaymentWebhookEvent(row: PaymentWebhookEventRow): PaymentWebhookEventRecord {
+  return {
+    id: row.id,
+    providerCode: row.provider_code,
+    providerEventId: row.provider_event_id,
+    eventType: row.event_type,
+    paymentId: row.payment_id,
+    paymentReference: row.payment_reference,
+    processingStatus: row.processing_status,
+    verificationStatus: row.verification_status,
+    payloadJson: parseJsonValue(row.payload_json),
+    receivedAt: row.received_at,
+    processedAt: row.processed_at,
   };
 }

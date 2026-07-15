@@ -15,6 +15,11 @@ export type {
   PrepareCheckoutInput,
   PrepareCheckoutResult,
 } from "./payment-checkout-service";
+export { PaymentWebhookService } from "./payment-webhook-service";
+export type {
+  RecordPaymentWebhookInput,
+  RecordPaymentWebhookResult,
+} from "./payment-webhook-service";
 export {
   buildPayPalOrderDraft,
   createPayPalOrder,
