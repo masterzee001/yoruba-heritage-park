@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState } from "react";
 import { Archive, CheckCircle2, FilePlus2, Pencil, Upload } from "lucide-react";
 import {
@@ -33,6 +34,7 @@ import type {
 } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/learning")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Learning Hub — Administrator" }, { name: "robots", content: "noindex" }],
   }),

@@ -2,13 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 
-import { getAdminAuthState, submitAdminLogin } from "@/admin/auth-functions";
+import { submitAdminLogin } from "@/admin/auth-functions";
 
-export const Route = createFileRoute("/admin_/login")({
+export const Route = createFileRoute("/staff-access")({
   validateSearch: (search: Record<string, unknown>) => ({
-    returnTo: typeof search.returnTo === "string" ? search.returnTo : "/admin",
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
   }),
-  loader: () => getAdminAuthState(),
   head: () => ({
     meta: [
       { title: "Administrator Login — Yoruba Heritage Park" },
@@ -19,15 +18,13 @@ export const Route = createFileRoute("/admin_/login")({
 });
 
 function AdminLoginRoute() {
-  const auth = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState(auth.previewMessage);
+  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const disabled = auth.mode === "disabled";
 
   return (
     <main className="grid min-h-dvh place-items-center bg-[oklch(0.97_0.005_150)] px-4 py-10 text-charcoal">
@@ -56,7 +53,7 @@ function AdminLoginRoute() {
             event.preventDefault();
             setSubmitting(true);
             const result = await submitAdminLogin({
-              data: { email, password, returnTo: search.returnTo },
+              data: { email, password, returnTo: search.returnTo ?? "/admin" },
             });
             setSubmitting(false);
             if (result.ok) {
@@ -75,7 +72,7 @@ function AdminLoginRoute() {
               autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.currentTarget.value)}
-              disabled={disabled || submitting}
+              disabled={submitting}
               className="rounded-sm border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               required
             />
@@ -89,7 +86,7 @@ function AdminLoginRoute() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.currentTarget.value)}
-                disabled={disabled || submitting}
+                disabled={submitting}
                 className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none disabled:cursor-not-allowed"
                 required
               />
@@ -106,7 +103,7 @@ function AdminLoginRoute() {
 
           <button
             type="submit"
-            disabled={disabled || submitting}
+            disabled={submitting}
             className="rounded-sm bg-forest-deep px-4 py-2.5 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Checking access" : "Log in"}

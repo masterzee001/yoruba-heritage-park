@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { AdminOperationPage, AdminStatusBadge, type AdminColumn } from "@/admin/components";
 import { adminService } from "@/admin/services";
 import type { AdminExperience, StatusTone } from "@/admin/types";
@@ -6,6 +7,7 @@ import type { AdminExperience, StatusTone } from "@/admin/types";
 type ExperienceStatus = AdminExperience["status"];
 
 export const Route = createFileRoute("/admin/experiences")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Experiences — Administrator" }, { name: "robots", content: "noindex" }],
   }),

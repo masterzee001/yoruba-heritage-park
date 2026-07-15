@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { AdminOperationPage, AdminStatusBadge, type AdminColumn } from "@/admin/components";
 import { adminService } from "@/admin/services";
 import type { AdminEvent, EventStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/calendar")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Calendar — Administrator" }, { name: "robots", content: "noindex" }],
   }),

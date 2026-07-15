@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import {
@@ -13,6 +14,7 @@ import { adminService } from "@/admin/services";
 import type { DashboardSummary } from "@/admin/services";
 
 export const Route = createFileRoute("/admin/")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   component: AdminDashboard,
 });
 

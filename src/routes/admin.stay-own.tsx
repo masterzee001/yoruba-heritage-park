@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CalendarPlus, CheckCircle2, MessageSquarePlus, UserCheck } from "lucide-react";
 import {
@@ -23,6 +24,7 @@ import { adminService } from "@/admin/services";
 import type { AdminStayOwnEnquiry, StatusTone, StayOwnFilters, StayOwnStatus } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/stay-own")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Stay & Own — Administrator" }, { name: "robots", content: "noindex" }],
   }),

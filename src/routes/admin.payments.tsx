@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, RotateCcw, SearchCheck } from "lucide-react";
 import {
@@ -24,6 +25,7 @@ import { adminService } from "@/admin/services";
 import type { AdminPayment, PaymentFilters, PaymentStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/payments")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Payments — Administrator" }, { name: "robots", content: "noindex" }],
   }),

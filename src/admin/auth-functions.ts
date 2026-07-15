@@ -49,5 +49,5 @@ export const submitAdminLogout = createServerFn({ method: "POST" }).handler(asyn
     );
   }
   clearAdminSessionCookie();
-  return { ok: true, redirectTo: "/admin/login" };
+  return { ok: true, redirectTo: "/staff-access" };
 });

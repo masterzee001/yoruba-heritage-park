@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CheckCircle2, Copy, RotateCcw, SlidersHorizontal } from "lucide-react";
 import {
@@ -21,6 +22,7 @@ import { adminService } from "@/admin/services";
 import type { AdminRoleDefinition } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/roles")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Roles — Administrator" }, { name: "robots", content: "noindex" }],
   }),

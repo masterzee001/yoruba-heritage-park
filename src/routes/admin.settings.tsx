@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Lock } from "lucide-react";
 import {
@@ -16,6 +17,7 @@ import { adminService } from "@/admin/services";
 import type { AdminSettingsSnapshot } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/settings")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Settings — Administrator" }, { name: "robots", content: "noindex" }],
   }),

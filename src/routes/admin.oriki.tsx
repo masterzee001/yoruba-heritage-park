@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CheckCircle2, MessageSquarePlus, UserCheck } from "lucide-react";
 import {
@@ -28,6 +29,7 @@ import type {
 } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/oriki")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Oríkì Services — Administrator" }, { name: "robots", content: "noindex" }],
   }),

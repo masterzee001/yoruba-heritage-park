@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CalendarPlus, CheckCircle2, ClipboardEdit, MessageSquarePlus } from "lucide-react";
 import {
@@ -29,6 +30,7 @@ import type {
 } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/ceremonies")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Ceremonies — Administrator" }, { name: "robots", content: "noindex" }],
   }),

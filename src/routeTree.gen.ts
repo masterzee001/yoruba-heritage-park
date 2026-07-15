@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TicketsRouteImport } from './routes/tickets'
 import { Route as StayRouteImport } from './routes/stay'
+import { Route as StaffAccessRouteImport } from './routes/staff-access'
 import { Route as SosRouteImport } from './routes/sos'
 import { Route as PlanRouteImport } from './routes/plan'
 import { Route as OrikiRouteImport } from './routes/oriki'
@@ -28,7 +29,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ExperiencesSlugRouteImport } from './routes/experiences.$slug'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as DiscoverSlugRouteImport } from './routes/discover.$slug'
-import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminTicketsRouteImport } from './routes/admin.tickets'
 import { Route as AdminStayOwnRouteImport } from './routes/admin.stay-own'
@@ -58,6 +58,11 @@ const TicketsRoute = TicketsRouteImport.update({
 const StayRoute = StayRouteImport.update({
   id: '/stay',
   path: '/stay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffAccessRoute = StaffAccessRouteImport.update({
+  id: '/staff-access',
+  path: '/staff-access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SosRoute = SosRouteImport.update({
@@ -144,11 +149,6 @@ const DiscoverSlugRoute = DiscoverSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => DiscoverRoute,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin_/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -263,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/oriki': typeof OrikiRoute
   '/plan': typeof PlanRoute
   '/sos': typeof SosRoute
+  '/staff-access': typeof StaffAccessRoute
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
@@ -285,7 +286,6 @@ export interface FileRoutesByFullPath {
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/admin/login': typeof AdminLoginRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -304,6 +304,7 @@ export interface FileRoutesByTo {
   '/oriki': typeof OrikiRoute
   '/plan': typeof PlanRoute
   '/sos': typeof SosRoute
+  '/staff-access': typeof StaffAccessRoute
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
@@ -326,7 +327,6 @@ export interface FileRoutesByTo {
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/admin/login': typeof AdminLoginRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -347,6 +347,7 @@ export interface FileRoutesById {
   '/oriki': typeof OrikiRoute
   '/plan': typeof PlanRoute
   '/sos': typeof SosRoute
+  '/staff-access': typeof StaffAccessRoute
   '/stay': typeof StayRoute
   '/tickets': typeof TicketsRoute
   '/admin/appointments': typeof AdminAppointmentsRoute
@@ -369,7 +370,6 @@ export interface FileRoutesById {
   '/admin/stay-own': typeof AdminStayOwnRoute
   '/admin/tickets': typeof AdminTicketsRoute
   '/admin/users': typeof AdminUsersRoute
-  '/admin_/login': typeof AdminLoginRoute
   '/discover/$slug': typeof DiscoverSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/experiences/$slug': typeof ExperiencesSlugRoute
@@ -391,6 +391,7 @@ export interface FileRouteTypes {
     | '/oriki'
     | '/plan'
     | '/sos'
+    | '/staff-access'
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
@@ -413,7 +414,6 @@ export interface FileRouteTypes {
     | '/admin/stay-own'
     | '/admin/tickets'
     | '/admin/users'
-    | '/admin/login'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -432,6 +432,7 @@ export interface FileRouteTypes {
     | '/oriki'
     | '/plan'
     | '/sos'
+    | '/staff-access'
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
@@ -454,7 +455,6 @@ export interface FileRouteTypes {
     | '/admin/stay-own'
     | '/admin/tickets'
     | '/admin/users'
-    | '/admin/login'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -474,6 +474,7 @@ export interface FileRouteTypes {
     | '/oriki'
     | '/plan'
     | '/sos'
+    | '/staff-access'
     | '/stay'
     | '/tickets'
     | '/admin/appointments'
@@ -496,7 +497,6 @@ export interface FileRouteTypes {
     | '/admin/stay-own'
     | '/admin/tickets'
     | '/admin/users'
-    | '/admin_/login'
     | '/discover/$slug'
     | '/events/$slug'
     | '/experiences/$slug'
@@ -517,9 +517,9 @@ export interface RootRouteChildren {
   OrikiRoute: typeof OrikiRoute
   PlanRoute: typeof PlanRoute
   SosRoute: typeof SosRoute
+  StaffAccessRoute: typeof StaffAccessRoute
   StayRoute: typeof StayRoute
   TicketsRoute: typeof TicketsRoute
-  AdminLoginRoute: typeof AdminLoginRoute
   EventsSlugRoute: typeof EventsSlugRoute
   ExperiencesSlugRoute: typeof ExperiencesSlugRoute
   EventsIndexRoute: typeof EventsIndexRoute
@@ -540,6 +540,13 @@ declare module '@tanstack/react-router' {
       path: '/stay'
       fullPath: '/stay'
       preLoaderRoute: typeof StayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff-access': {
+      id: '/staff-access'
+      path: '/staff-access'
+      fullPath: '/staff-access'
+      preLoaderRoute: typeof StaffAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sos': {
@@ -660,13 +667,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/discover/$slug'
       preLoaderRoute: typeof DiscoverSlugRouteImport
       parentRoute: typeof DiscoverRoute
-    }
-    '/admin_/login': {
-      id: '/admin_/login'
-      path: '/admin/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
       id: '/admin/users'
@@ -885,9 +885,9 @@ const rootRouteChildren: RootRouteChildren = {
   OrikiRoute: OrikiRoute,
   PlanRoute: PlanRoute,
   SosRoute: SosRoute,
+  StaffAccessRoute: StaffAccessRoute,
   StayRoute: StayRoute,
   TicketsRoute: TicketsRoute,
-  AdminLoginRoute: AdminLoginRoute,
   EventsSlugRoute: EventsSlugRoute,
   ExperiencesSlugRoute: ExperiencesSlugRoute,
   EventsIndexRoute: EventsIndexRoute,

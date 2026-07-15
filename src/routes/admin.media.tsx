@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CheckCircle2, Copy, Grid2X2, List, Pencil, Trash2, Upload } from "lucide-react";
 import {
@@ -32,6 +33,7 @@ import type {
 } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/media")({
+  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
     meta: [{ title: "Media Library — Administrator" }, { name: "robots", content: "noindex" }],
   }),
