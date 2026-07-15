@@ -6,7 +6,12 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
 }
 
-export function AdminSearchInput({ label = "Search", className, ...rest }: Props) {
+export function AdminSearchInput({
+  label = "Search records",
+  className,
+  placeholder = "Search records…",
+  ...rest
+}: Props) {
   return (
     <label className={cn("relative block", className)}>
       <span className="sr-only">{label}</span>
@@ -16,8 +21,9 @@ export function AdminSearchInput({ label = "Search", className, ...rest }: Props
       />
       <input
         type="search"
-        className="w-full rounded-sm border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-forest focus:ring-2 focus:ring-ring/30"
-        placeholder="Search records..."
+        aria-label={label}
+        placeholder={placeholder}
+        className="admin-focus min-h-10 w-full rounded-sm border border-border bg-background py-2 pl-9 pr-3 text-sm text-charcoal placeholder:text-muted-foreground focus:border-forest"
         {...rest}
       />
     </label>

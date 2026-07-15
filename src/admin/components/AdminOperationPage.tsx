@@ -8,7 +8,7 @@ import { AdminLoadingState } from "./AdminLoadingState";
 import { AdminPageHeader } from "./AdminPageHeader";
 import { AdminSearchInput } from "./AdminSearchInput";
 import { AdminStatusBadge, DemoBadge } from "./AdminStatusBadge";
-import { DetailRow } from "./AdminDetailPanel";
+import { AdminDetailPanel, DetailRow } from "./AdminDetailPanel";
 import { FeatureDisabledNotice } from "./FeatureDisabledNotice";
 import { PreviewModeBanner } from "./PreviewModeBanner";
 import type { DemoRecord, StatusTone } from "../types";
@@ -36,7 +36,7 @@ interface Props<TRecord extends DemoRecord & { id: string }, TStatus extends str
   detailRows: (row: TRecord) => Array<{ label: string; value: ReactNode }>;
   status: (row: TRecord) => TStatus;
   statusMap: OperationStatusMap<TStatus>;
-  statusOptions: Array<FilterOption<TStatus | "all">>;
+  statusOptions: Array<FilterOption<string>>;
   disabledFeature: string;
   disabledReason: string;
   emptyTitle?: string;
@@ -73,14 +73,14 @@ export function AdminOperationPage<
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [localNotice, setLocalNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    loadRecords({ search, status: statusFilter })
+    loadRecords({ search, status: statusFilter as TStatus | "all" })
       .then((list) => {
         if (cancelled) return;
         setRecords(list);

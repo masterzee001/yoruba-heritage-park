@@ -49,6 +49,7 @@ import type {
   ExperienceFilters,
   LearningFilters,
   MediaFilters,
+  AdminUser,
   AdminUserFilters,
   AuditLogFilters,
   IncidentFilters,
