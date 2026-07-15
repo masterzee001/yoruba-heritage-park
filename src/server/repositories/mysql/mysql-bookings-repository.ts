@@ -3,7 +3,11 @@ import type { Pool } from "mysql2/promise";
 
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type { BookingsRepository } from "../bookings-repository";
-import type { BookingRecord, CreateBookingInput } from "../repository-types";
+import type {
+  BookingRecord,
+  CreateBookingInput,
+  UpdateBookingWorkflowInput,
+} from "../repository-types";
 import { createRepositoryId, normaliseEmail, requireId, requireLimit } from "./mysql-helpers";
 
 interface BookingRow extends RowDataPacket {
@@ -23,6 +27,7 @@ interface BookingRow extends RowDataPacket {
   checked_in_at: Date | null;
   source: BookingRecord["source"];
   notes: string | null;
+  internal_notes: string | null;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
@@ -36,7 +41,7 @@ export class MysqlBookingsRepository implements BookingsRepository {
       const [rows] = await this.pool.query<BookingRow[]>(
         `SELECT id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
           visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
-          status, checked_in_at, source, notes, created_at, updated_at, deleted_at
+          status, checked_in_at, source, notes, internal_notes, created_at, updated_at, deleted_at
          FROM bookings
          WHERE deleted_at IS NULL
          ORDER BY visit_date DESC, created_at DESC
@@ -54,7 +59,7 @@ export class MysqlBookingsRepository implements BookingsRepository {
       const [rows] = await this.pool.query<BookingRow[]>(
         `SELECT id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
           visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
-          status, checked_in_at, source, notes, created_at, updated_at, deleted_at
+          status, checked_in_at, source, notes, internal_notes, created_at, updated_at, deleted_at
          FROM bookings
          WHERE id = ?
          LIMIT 1`,
@@ -115,6 +120,38 @@ export class MysqlBookingsRepository implements BookingsRepository {
       throw toDatabaseError(error);
     }
   }
+
+  async updateWorkflow(
+    id: string,
+    input: UpdateBookingWorkflowInput,
+  ): Promise<BookingRecord | null> {
+    const updates: string[] = [];
+    const values: unknown[] = [];
+
+    if (input.status) {
+      updates.push("status = ?");
+      values.push(input.status);
+    }
+
+    if ("internalNotes" in input) {
+      updates.push("internal_notes = ?");
+      values.push(input.internalNotes?.trim() || null);
+    }
+
+    if (updates.length === 0) return this.findById(id);
+
+    try {
+      await this.pool.execute(
+        `UPDATE bookings
+         SET ${updates.join(", ")}
+         WHERE id = ? AND deleted_at IS NULL`,
+        [...values, requireId(id)],
+      );
+      return this.findById(id);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
 }
 
 function createBookingReference(): string {
@@ -146,6 +183,7 @@ function mapBooking(row: BookingRow): BookingRecord {
     checkedInAt: row.checked_in_at,
     source: row.source,
     notes: row.notes,
+    internalNotes: row.internal_notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,

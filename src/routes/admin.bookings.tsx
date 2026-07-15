@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RotateCw } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, RotateCw, Save, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -15,7 +15,11 @@ import {
   FilterChip,
   type AdminColumn,
 } from "@/admin/components";
-import { listAdminBookings } from "@/admin/booking-functions";
+import {
+  listAdminBookings,
+  saveAdminBookingNotes,
+  updateAdminBookingWorkflow,
+} from "@/admin/booking-functions";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import type { AdminBooking, BookingStatus, StatusTone } from "@/admin/types";
 
@@ -73,6 +77,10 @@ function AdminBookingsRoute() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<BookingStatus | "all">("all");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [internalNotes, setInternalNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [actioning, setActioning] = useState<"confirm" | "cancel" | "complete" | null>(null);
 
   const loadBookings = useCallback(async () => {
     setError(null);
@@ -97,6 +105,59 @@ function AdminBookingsRoute() {
     () => records?.find((row) => row.id === selectedId) ?? null,
     [records, selectedId],
   );
+
+  useEffect(() => {
+    setInternalNotes(selected?.internalNotes ?? "");
+  }, [selected?.id, selected?.internalNotes]);
+
+  function replaceRecord(booking: AdminBooking) {
+    setRecords((current) => current?.map((row) => (row.id === booking.id ? booking : row)) ?? null);
+    setSelectedId(booking.id);
+  }
+
+  async function handleWorkflowAction(action: "confirm" | "cancel" | "complete") {
+    if (!selected) return;
+    setActioning(action);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await updateAdminBookingWorkflow({
+        data: { id: selected.id, action, internalNotes },
+      });
+      if (!result.ok || !result.booking) {
+        setError(result.message);
+        return;
+      }
+      replaceRecord(result.booking);
+      setNotice(result.message);
+    } catch {
+      setError("Booking workflow action could not be completed.");
+    } finally {
+      setActioning(null);
+    }
+  }
+
+  async function handleSaveNotes() {
+    if (!selected) return;
+    setSavingNotes(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await saveAdminBookingNotes({
+        data: { id: selected.id, internalNotes },
+      });
+      if (!result.ok || !result.booking) {
+        setError(result.message);
+        return;
+      }
+      replaceRecord(result.booking);
+      setNotice(result.message);
+    } catch {
+      setError("Internal booking notes could not be saved.");
+    } finally {
+      setSavingNotes(false);
+    }
+  }
 
   return (
     <>
@@ -129,6 +190,12 @@ function AdminBookingsRoute() {
           Refresh
         </button>
       </AdminFilterBar>
+
+      {notice ? (
+        <div className="rounded-sm border border-forest/20 bg-forest/10 px-4 py-3 text-sm text-forest-deep">
+          {notice}
+        </div>
+      ) : null}
 
       {error ? (
         <AdminErrorState description={error} />
@@ -185,6 +252,58 @@ function AdminBookingsRoute() {
               <div className="mt-6 rounded-sm border border-border bg-cream/30 px-4 py-3 text-xs text-muted-foreground">
                 Payment remains separate from booking intake. Requests should be reviewed before
                 confirmation or payment collection.
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                  Internal admin notes
+                  <textarea
+                    value={internalNotes}
+                    onChange={(event) => setInternalNotes(event.currentTarget.value)}
+                    rows={4}
+                    className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                    placeholder="Add operational follow-up notes for administrators."
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void handleSaveNotes()}
+                  disabled={savingNotes || Boolean(actioning)}
+                  className="inline-flex w-fit items-center gap-2 rounded-sm border border-border px-4 py-2 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Save className="size-3.5" aria-hidden />
+                  {savingNotes ? "Saving notes" : "Save notes"}
+                </button>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-5">
+                <button
+                  type="button"
+                  onClick={() => void handleWorkflowAction("confirm")}
+                  disabled={Boolean(actioning) || selected.status === "confirmed"}
+                  className="inline-flex items-center gap-2 rounded-sm border border-forest/30 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-forest/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle2 className="size-3.5" aria-hidden />
+                  {actioning === "confirm" ? "Confirming" : "Confirm"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleWorkflowAction("complete")}
+                  disabled={Boolean(actioning) || selected.status === "completed"}
+                  className="inline-flex items-center gap-2 rounded-sm border border-brass/40 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-brass/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ClipboardCheck className="size-3.5" aria-hidden />
+                  {actioning === "complete" ? "Completing" : "Mark completed"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleWorkflowAction("cancel")}
+                  disabled={Boolean(actioning) || selected.status === "cancelled"}
+                  className="inline-flex items-center gap-2 rounded-sm border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <XCircle className="size-3.5" aria-hidden />
+                  {actioning === "cancel" ? "Cancelling" : "Cancel"}
+                </button>
               </div>
             </AdminDetailPanel>
           ) : (

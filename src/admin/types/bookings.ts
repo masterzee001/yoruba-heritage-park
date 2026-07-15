@@ -28,6 +28,7 @@ export interface AdminBooking extends DemoRecord {
   checkedIn: boolean;
   source: BookingSource;
   notes?: string;
+  internalNotes?: string;
   createdAt: string;
 }
 

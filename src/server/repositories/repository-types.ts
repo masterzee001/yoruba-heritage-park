@@ -133,6 +133,7 @@ export interface BookingRecord {
   readonly checkedInAt: Date | null;
   readonly source: BookingSource;
   readonly notes: string | null;
+  readonly internalNotes: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -152,6 +153,11 @@ export interface CreateBookingInput {
   readonly status?: BookingStatus;
   readonly source?: BookingSource;
   readonly notes?: string | null;
+}
+
+export interface UpdateBookingWorkflowInput {
+  readonly status?: BookingStatus;
+  readonly internalNotes?: string | null;
 }
 
 export interface PaymentProviderSettingsRecord {
