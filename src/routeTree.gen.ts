@@ -49,6 +49,8 @@ import { Route as AdminCalendarRouteImport } from './routes/admin.calendar'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AdminAppointmentsRouteImport } from './routes/admin.appointments'
+import { Route as ApiPaymentsWebhooksStripeRouteImport } from './routes/api.payments.webhooks.stripe'
+import { Route as ApiPaymentsWebhooksPaystackRouteImport } from './routes/api.payments.webhooks.paystack'
 
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
@@ -250,6 +252,18 @@ const AdminAppointmentsRoute = AdminAppointmentsRouteImport.update({
   path: '/appointments',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPaymentsWebhooksStripeRoute =
+  ApiPaymentsWebhooksStripeRouteImport.update({
+    id: '/api/payments/webhooks/stripe',
+    path: '/api/payments/webhooks/stripe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPaymentsWebhooksPaystackRoute =
+  ApiPaymentsWebhooksPaystackRouteImport.update({
+    id: '/api/payments/webhooks/paystack',
+    path: '/api/payments/webhooks/paystack',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -292,6 +306,8 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/events/': typeof EventsIndexRoute
   '/experiences/': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
+  '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -333,6 +349,8 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/events': typeof EventsIndexRoute
   '/experiences': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
+  '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -376,6 +394,8 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/events/': typeof EventsIndexRoute
   '/experiences/': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
+  '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -420,6 +440,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/events/'
     | '/experiences/'
+    | '/api/payments/webhooks/paystack'
+    | '/api/payments/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -461,6 +483,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/events'
     | '/experiences'
+    | '/api/payments/webhooks/paystack'
+    | '/api/payments/webhooks/stripe'
   id:
     | '__root__'
     | '/'
@@ -503,6 +527,8 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/events/'
     | '/experiences/'
+    | '/api/payments/webhooks/paystack'
+    | '/api/payments/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -524,6 +550,8 @@ export interface RootRouteChildren {
   ExperiencesSlugRoute: typeof ExperiencesSlugRoute
   EventsIndexRoute: typeof EventsIndexRoute
   ExperiencesIndexRoute: typeof ExperiencesIndexRoute
+  ApiPaymentsWebhooksPaystackRoute: typeof ApiPaymentsWebhooksPaystackRoute
+  ApiPaymentsWebhooksStripeRoute: typeof ApiPaymentsWebhooksStripeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -808,6 +836,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAppointmentsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/payments/webhooks/stripe': {
+      id: '/api/payments/webhooks/stripe'
+      path: '/api/payments/webhooks/stripe'
+      fullPath: '/api/payments/webhooks/stripe'
+      preLoaderRoute: typeof ApiPaymentsWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/payments/webhooks/paystack': {
+      id: '/api/payments/webhooks/paystack'
+      path: '/api/payments/webhooks/paystack'
+      fullPath: '/api/payments/webhooks/paystack'
+      preLoaderRoute: typeof ApiPaymentsWebhooksPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -892,6 +934,8 @@ const rootRouteChildren: RootRouteChildren = {
   ExperiencesSlugRoute: ExperiencesSlugRoute,
   EventsIndexRoute: EventsIndexRoute,
   ExperiencesIndexRoute: ExperiencesIndexRoute,
+  ApiPaymentsWebhooksPaystackRoute: ApiPaymentsWebhooksPaystackRoute,
+  ApiPaymentsWebhooksStripeRoute: ApiPaymentsWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
