@@ -51,7 +51,9 @@ jobs:
       - name: Prepare restart marker
         run: |
           date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
-          echo "SSR_SERVER_FILE=$(basename .output-cpanel/server/_ssr/server-*.mjs)" >> "$GITHUB_ENV"
+          SSR_SERVER_FILE="$(find .output-cpanel/server/_ssr -maxdepth 1 \( -name 'server-*.mjs' -o -name 'ssr.mjs' \) -type f | head -n 1)"
+          test -n "$SSR_SERVER_FILE"
+          echo "SSR_SERVER_FILE=$(basename "$SSR_SERVER_FILE")" >> "$GITHUB_ENV"
           echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
 
       - name: Upload build to cPanel
