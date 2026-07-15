@@ -22,6 +22,13 @@ export type {
   RecordPaymentWebhookInput,
   RecordPaymentWebhookResult,
 } from "./payment-webhook-service";
+export { PaymentReconciliationService } from "./payment-reconciliation-service";
+export type {
+  ApplyWebhookPaymentSuccessInput,
+  ApplyWebhookPaymentSuccessResult,
+  PaymentReconciliationRepository,
+  ReconcileVerifiedWebhookResult,
+} from "./payment-reconciliation-service";
 export {
   buildPayPalOrderDraft,
   createPayPalOrder,

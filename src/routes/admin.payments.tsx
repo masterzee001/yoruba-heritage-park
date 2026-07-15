@@ -29,6 +29,7 @@ import {
   listPaymentProviderReadiness,
   listPaymentProviderSettings,
   preparePaymentCheckout,
+  reconcilePaymentWebhookEvent,
   saveDonationCampaign,
   savePaymentProviderSettings,
   type AdminDonationCampaign,
@@ -155,6 +156,7 @@ function AdminPaymentsRoute() {
   const [savingProvider, setSavingProvider] = useState(false);
   const [savingCampaign, setSavingCampaign] = useState(false);
   const [preparingCheckout, setPreparingCheckout] = useState(false);
+  const [reconcilingWebhookId, setReconcilingWebhookId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +212,29 @@ function AdminPaymentsRoute() {
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
+  const reconciliationColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
+    ...webhookColumns,
+    {
+      key: "reconcile",
+      header: "Action",
+      render: (row) => {
+        const canApply =
+          row.verificationStatus === "verified" &&
+          row.processingStatus === "review_required" &&
+          Boolean(row.paymentReference);
+        return (
+          <button
+            type="button"
+            disabled={!canApply || reconcilingWebhookId === row.id}
+            onClick={() => void handleReconcileWebhook(row)}
+            className="rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {reconcilingWebhookId === row.id ? "Applying" : "Apply verified"}
+          </button>
+        );
+      },
+    },
+  ];
   const completePreviewAction = () =>
     setNotice("Preview action completed locally. No production record was created.");
 
@@ -283,6 +308,32 @@ function AdminPaymentsRoute() {
       setError("Checkout preparation could not be completed.");
     } finally {
       setPreparingCheckout(false);
+    }
+  }
+
+  async function handleReconcileWebhook(event: AdminPaymentWebhookEvent) {
+    setReconcilingWebhookId(event.id);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await reconcilePaymentWebhookEvent({
+        data: { webhookEventId: event.id },
+      });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      const [paymentList, eventList] = await Promise.all([
+        listAdminPayments({ data: filters }),
+        listPaymentWebhookEvents(),
+      ]);
+      setRows(paymentList);
+      setWebhookEvents(eventList);
+      setNotice(result.message);
+    } catch {
+      setError("Webhook event could not be reconciled.");
+    } finally {
+      setReconcilingWebhookId(null);
     }
   }
 
@@ -608,7 +659,7 @@ function AdminPaymentsRoute() {
           <AdminLoadingState rows={2} />
         ) : (
           <AdminDataTable
-            columns={webhookColumns}
+            columns={reconciliationColumns}
             rows={webhookEvents}
             rowKey={(row) => row.id}
             caption="Payment webhook event records"
@@ -630,6 +681,19 @@ function AdminPaymentsRoute() {
                 <p className="text-xs text-muted-foreground">
                   Payment: {row.paymentReference ?? "No local match"}
                 </p>
+                <button
+                  type="button"
+                  disabled={
+                    row.verificationStatus !== "verified" ||
+                    row.processingStatus !== "review_required" ||
+                    !row.paymentReference ||
+                    reconcilingWebhookId === row.id
+                  }
+                  onClick={() => void handleReconcileWebhook(row)}
+                  className="mt-2 w-fit rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {reconcilingWebhookId === row.id ? "Applying" : "Apply verified"}
+                </button>
               </div>
             )}
           />

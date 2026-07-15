@@ -85,6 +85,10 @@ export interface PreparePaymentCheckoutInput {
   readonly paymentReference?: string;
 }
 
+export interface ReconcilePaymentWebhookEventInput {
+  readonly webhookEventId?: string;
+}
+
 export const listAdminPayments = createServerFn({ method: "GET" })
   .validator((data: PaymentFilters = {}) => data)
   .handler(async ({ data }) => {
@@ -360,6 +364,53 @@ export const preparePaymentCheckout = createServerFn({ method: "POST" })
     });
 
     return result;
+  });
+
+export const reconcilePaymentWebhookEvent = createServerFn({ method: "POST" })
+  .validator((data: ReconcilePaymentWebhookEventInput) => data)
+  .handler(async ({ data }) => {
+    const webhookEventId = data.webhookEventId?.trim();
+    if (!webhookEventId) return { ok: false, message: "Webhook event id is required." };
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { PaymentReconciliationService } = await import("../server/payments");
+    const { MysqlAuditLogRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("payments.manage");
+    const repository = new MysqlPaymentsRepository();
+    const result = await new PaymentReconciliationService(repository).applyVerifiedWebhookEvent(
+      webhookEventId,
+      principal.userId,
+    );
+    const requestContext = getRuntimeRequestContext();
+
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "payments.webhook.reconcile",
+      moduleCode: "payments",
+      recordType: "payment_webhook_event",
+      recordId: webhookEventId,
+      outcome: result.ok ? "success" : "failed",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        webhookEventId,
+        paymentReference: result.ok ? result.payment.reference : null,
+        providerCode: result.ok ? result.event.providerCode : null,
+        bookingPaymentStateApplied: result.ok ? result.bookingPaymentStateApplied : false,
+        message: result.message,
+      },
+    });
+
+    return result.ok
+      ? {
+          ok: true,
+          message: result.message,
+          paymentReference: result.payment.reference,
+          bookingPaymentStateApplied: result.bookingPaymentStateApplied,
+        }
+      : result;
   });
 
 function toAdminPayment(payment: {

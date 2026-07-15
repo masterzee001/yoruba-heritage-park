@@ -3,6 +3,10 @@ import type { Pool } from "mysql2/promise";
 
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type {
+  ApplyWebhookPaymentSuccessInput,
+  ApplyWebhookPaymentSuccessResult,
+} from "../../payments/payment-reconciliation-service";
+import type {
   CreatePaymentRecordInput,
   PaymentsRepository,
   RecordPaymentWebhookEventInput,
@@ -16,7 +20,13 @@ import type {
   PaymentRecord,
   PaymentWebhookEventRecord,
 } from "../repository-types";
-import { createRepositoryId, parseJsonValue, requireCode, requireLimit } from "./mysql-helpers";
+import {
+  createRepositoryId,
+  parseJsonValue,
+  requireCode,
+  requireId,
+  requireLimit,
+} from "./mysql-helpers";
 
 interface PaymentRow extends RowDataPacket {
   id: string;
@@ -203,6 +213,22 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
     }
   }
 
+  async findWebhookEventById(id: string): Promise<PaymentWebhookEventRecord | null> {
+    try {
+      const [rows] = await this.pool.query<PaymentWebhookEventRow[]>(
+        `SELECT id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json, received_at, processed_at
+         FROM payment_webhook_events
+         WHERE id = ?
+         LIMIT 1`,
+        [requireId(id)],
+      );
+      return rows[0] ? mapPaymentWebhookEvent(rows[0]) : null;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
   async recordWebhookEvent(
     input: RecordPaymentWebhookEventInput,
   ): Promise<PaymentWebhookEventRecord> {
@@ -327,6 +353,131 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
       return mapPayment(payment);
     } catch (error) {
       throw toDatabaseError(error);
+    }
+  }
+
+  async applyWebhookPaymentSuccess(
+    input: ApplyWebhookPaymentSuccessInput,
+  ): Promise<ApplyWebhookPaymentSuccessResult> {
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [eventRows] = await connection.query<PaymentWebhookEventRow[]>(
+        `SELECT id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json, received_at, processed_at
+         FROM payment_webhook_events
+         WHERE id = ?
+         FOR UPDATE`,
+        [requireId(input.eventId)],
+      );
+      const event = eventRows[0];
+      if (!event) throw new Error("Webhook event was not found.");
+
+      const [paymentRows] = await connection.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE id = ? AND deleted_at IS NULL
+         FOR UPDATE`,
+        [requireId(input.paymentId)],
+      );
+      const payment = paymentRows[0];
+      if (!payment) throw new Error("Payment record was not found.");
+
+      const appliedAt = new Date().toISOString();
+      const nextPaymentMetadata = {
+        ...(asRecord(parseJsonValue(payment.metadata_json)) ?? {}),
+        reconciliation: {
+          source: "payment_webhook",
+          webhookEventId: event.id,
+          providerCode: event.provider_code,
+          providerEventId: event.provider_event_id,
+          appliedByUserId: input.appliedByUserId,
+          appliedAt,
+        },
+      };
+      const nextEventPayload = {
+        ...(asRecord(parseJsonValue(event.payload_json)) ?? {}),
+        yhpProcessing: {
+          ...readProcessingRecord(parseJsonValue(event.payload_json)),
+          statusMutationApplied: true,
+          appliedPaymentStatus: "successful",
+          appliedVerificationStatus: "preview_verified",
+          appliedByUserId: input.appliedByUserId,
+          appliedAt,
+        },
+      };
+
+      await connection.query(
+        `UPDATE payments
+         SET status = 'successful',
+          verification_status = 'preview_verified',
+          metadata_json = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        [JSON.stringify(nextPaymentMetadata), payment.id],
+      );
+
+      let bookingPaymentStateApplied = false;
+      if (payment.booking_id) {
+        const [result] = await connection.query(
+          `UPDATE bookings
+           SET payment_state = 'paid',
+            status = CASE WHEN status = 'awaiting_payment' THEN 'confirmed' ELSE status END
+           WHERE id = ? AND deleted_at IS NULL`,
+          [payment.booking_id],
+        );
+        bookingPaymentStateApplied =
+          typeof result === "object" &&
+          result !== null &&
+          "affectedRows" in result &&
+          Number(result.affectedRows) > 0;
+      }
+
+      await connection.query(
+        `UPDATE payment_webhook_events
+         SET processing_status = 'processed',
+          processed_at = CURRENT_TIMESTAMP,
+          payload_json = ?
+         WHERE id = ?`,
+        [JSON.stringify(nextEventPayload), event.id],
+      );
+
+      const [updatedPaymentRows] = await connection.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE id = ?
+         LIMIT 1`,
+        [payment.id],
+      );
+      const [updatedEventRows] = await connection.query<PaymentWebhookEventRow[]>(
+        `SELECT id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json, received_at, processed_at
+         FROM payment_webhook_events
+         WHERE id = ?
+         LIMIT 1`,
+        [event.id],
+      );
+
+      const updatedPayment = updatedPaymentRows[0];
+      const updatedEvent = updatedEventRows[0];
+      if (!updatedPayment || !updatedEvent) {
+        throw new Error("Payment reconciliation could not be read after update.");
+      }
+      await connection.commit();
+
+      return {
+        payment: mapPayment(updatedPayment),
+        event: mapPaymentWebhookEvent(updatedEvent),
+        bookingPaymentStateApplied,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw toDatabaseError(error);
+    } finally {
+      connection.release();
     }
   }
 
@@ -478,4 +629,16 @@ function mapPaymentWebhookEvent(row: PaymentWebhookEventRow): PaymentWebhookEven
     receivedAt: row.received_at,
     processedAt: row.processed_at,
   };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readProcessingRecord(payload: unknown): Record<string, unknown> {
+  const record = asRecord(payload);
+  const processing = asRecord(record?.yhpProcessing);
+  return processing ?? {};
 }
