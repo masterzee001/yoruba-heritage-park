@@ -15,6 +15,21 @@ export interface AdminPaymentProviderSettings {
   readonly updatedAt: string;
 }
 
+export interface AdminPaymentProviderReadiness {
+  readonly providerCode: string;
+  readonly displayName: string;
+  readonly adapterCode: string;
+  readonly supported: boolean;
+  readonly enabled: boolean;
+  readonly mode: "test" | "live";
+  readonly currency: string;
+  readonly integrationReady: boolean;
+  readonly liveCaptureEnabled: false;
+  readonly capabilities: string[];
+  readonly missingConfiguration: string[];
+  readonly warnings: string[];
+}
+
 export interface AdminDonationCampaign {
   readonly id: string;
   readonly campaignCode: string;
@@ -71,6 +86,31 @@ export const listPaymentProviderSettings = createServerFn({ method: "GET" }).han
     minimumAmountMinor: provider.minimumAmountMinor,
     updatedAt: provider.updatedAt.toISOString(),
   }));
+});
+
+export const listPaymentProviderReadiness = createServerFn({ method: "GET" }).handler(async () => {
+  const { MysqlPaymentsRepository } = await import("../server/repositories/mysql");
+  const { evaluatePaymentProviderSettings } = await import("../server/payments");
+  const { requireAdminServerPermission } = await import("./server-permissions");
+  await requireAdminServerPermission("payments.view");
+  const providers = await new MysqlPaymentsRepository().listProviderSettings();
+  return providers.map((provider): AdminPaymentProviderReadiness => {
+    const readiness = evaluatePaymentProviderSettings(provider);
+    return {
+      providerCode: readiness.providerCode,
+      displayName: readiness.displayName,
+      adapterCode: readiness.adapterCode,
+      supported: readiness.supported,
+      enabled: readiness.enabled,
+      mode: readiness.mode,
+      currency: readiness.currency,
+      integrationReady: readiness.integrationReady,
+      liveCaptureEnabled: readiness.liveCaptureEnabled,
+      capabilities: readiness.capabilities,
+      missingConfiguration: readiness.missingConfiguration,
+      warnings: readiness.warnings,
+    };
+  });
 });
 
 export const listDonationCampaigns = createServerFn({ method: "GET" }).handler(async () => {

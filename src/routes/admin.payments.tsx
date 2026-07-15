@@ -24,10 +24,12 @@ import { projectStatus } from "@/config/project-status";
 import {
   listAdminPayments,
   listDonationCampaigns,
+  listPaymentProviderReadiness,
   listPaymentProviderSettings,
   saveDonationCampaign,
   savePaymentProviderSettings,
   type AdminDonationCampaign,
+  type AdminPaymentProviderReadiness,
   type AdminPaymentProviderSettings,
 } from "@/admin/payment-functions";
 import type { AdminPayment, PaymentFilters, PaymentStatus, StatusTone } from "@/admin/types";
@@ -81,6 +83,9 @@ const columns: AdminColumn<AdminPayment>[] = [
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
+  const [providerReadiness, setProviderReadiness] = useState<
+    AdminPaymentProviderReadiness[] | null
+  >(null);
   const [campaigns, setCampaigns] = useState<AdminDonationCampaign[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -125,8 +130,12 @@ function AdminPaymentsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    listPaymentProviderSettings()
-      .then((list) => !cancelled && setProviders(list))
+    Promise.all([listPaymentProviderSettings(), listPaymentProviderReadiness()])
+      .then(([providerList, readinessList]) => {
+        if (cancelled) return;
+        setProviders(providerList);
+        setProviderReadiness(readinessList);
+      })
       .catch(() => !cancelled && setError("Payment provider settings could not be loaded."));
     return () => {
       cancelled = true;
@@ -160,7 +169,12 @@ function AdminPaymentsRoute() {
         setError(result.message);
         return;
       }
-      setProviders(await listPaymentProviderSettings());
+      const [providerList, readinessList] = await Promise.all([
+        listPaymentProviderSettings(),
+        listPaymentProviderReadiness(),
+      ]);
+      setProviders(providerList);
+      setProviderReadiness(readinessList);
       setNotice(result.message);
     } catch {
       setError("Payment provider settings could not be saved.");
@@ -334,6 +348,37 @@ function AdminPaymentsRoute() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Secret reference: {provider.secretReference ?? "Not set"}
                     </p>
+                    {providerReadiness
+                      ?.filter((readiness) => readiness.providerCode === provider.providerCode)
+                      .map((readiness) => (
+                        <div
+                          key={readiness.providerCode}
+                          className="mt-3 rounded-sm border border-border bg-cream/50 p-3 text-xs text-muted-foreground"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Adapter: {readiness.adapterCode}</span>
+                            <AdminStatusBadge
+                              tone={readiness.integrationReady ? "success" : "warning"}
+                            >
+                              {readiness.integrationReady ? "Ready to wire" : "Needs setup"}
+                            </AdminStatusBadge>
+                          </div>
+                          <p className="mt-2">
+                            Capabilities:{" "}
+                            {readiness.capabilities.length
+                              ? readiness.capabilities.join(", ")
+                              : "Pending provider"}
+                          </p>
+                          {readiness.missingConfiguration.length ? (
+                            <p className="mt-1">
+                              Missing: {readiness.missingConfiguration.join(", ")}
+                            </p>
+                          ) : null}
+                          <p className="mt-1">
+                            Capture: {readiness.liveCaptureEnabled ? "Enabled" : "Off"}
+                          </p>
+                        </div>
+                      ))}
                   </li>
                 ))}
               </ul>
