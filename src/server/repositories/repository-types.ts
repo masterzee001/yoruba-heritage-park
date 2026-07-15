@@ -138,6 +138,22 @@ export interface BookingRecord {
   readonly deletedAt: Date | null;
 }
 
+export interface CreateBookingInput {
+  readonly visitorName: string;
+  readonly visitorEmail: string;
+  readonly countryOfOrigin?: string | null;
+  readonly bookingType: string;
+  readonly visitDate: string;
+  readonly durationOfStayDays?: number | null;
+  readonly guests: number;
+  readonly amountMinor?: number;
+  readonly currency?: string;
+  readonly paymentState?: BookingRecord["paymentState"];
+  readonly status?: BookingStatus;
+  readonly source?: BookingSource;
+  readonly notes?: string | null;
+}
+
 export interface PaymentProviderSettingsRecord {
   readonly id: string;
   readonly providerCode: string;

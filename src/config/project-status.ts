@@ -25,7 +25,7 @@ export interface ProjectStatus {
 
 export const projectStatus: ProjectStatus = {
   contentMode: "preview",
-  bookingEnabled: false,
+  bookingEnabled: true,
   paymentEnabled: false,
   sosLiveEnabled: false,
   showPendingInformation: true,

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Check } from "lucide-react";
+
+import { submitPublicBookingRequest } from "@/booking/booking-functions";
 import { PageHero } from "@/components/site/Section";
 import { projectStatus } from "@/config/project-status";
 import { TICKET_TYPES } from "@/lib/mock-data";
-import { Check } from "lucide-react";
 
 export const Route = createFileRoute("/tickets")({
   head: () => ({
@@ -22,17 +24,96 @@ export const Route = createFileRoute("/tickets")({
 function TicketsPage() {
   const [step, setStep] = useState(1);
   const [ticket, setTicket] = useState(TICKET_TYPES[0].id);
+  const [visitDate, setVisitDate] = useState("");
+  const [visitTime, setVisitTime] = useState("10:00");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [durationOfStayDays, setDurationOfStayDays] = useState(1);
+  const [groupCategory, setGroupCategory] = useState("Individual / family");
+  const [addTourBus, setAddTourBus] = useState(false);
+  const [visitorName, setVisitorName] = useState("");
+  const [visitorEmail, setVisitorEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [countryOfOrigin, setCountryOfOrigin] = useState("");
+  const [notes, setNotes] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [bookingReference, setBookingReference] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
   const selectedTicket = TICKET_TYPES.find((t) => t.id === ticket);
+  const bookingEnabled = projectStatus.bookingEnabled;
   const paymentEnabled = projectStatus.paymentEnabled;
+
+  async function handleSubmitRequest() {
+    setMessage(null);
+
+    if (!bookingEnabled) {
+      setMessage(
+        "Booking requests are not active yet. Details will be published following operational confirmation.",
+      );
+      return;
+    }
+
+    if (
+      !selectedTicket ||
+      !visitDate ||
+      !visitorName.trim() ||
+      !visitorEmail.trim() ||
+      !phone.trim() ||
+      !emergencyContact.trim() ||
+      !countryOfOrigin.trim()
+    ) {
+      setMessage("Please complete the required booking details before submitting.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await submitPublicBookingRequest({
+        data: {
+          ticketId: ticket,
+          ticketLabel: selectedTicket.label,
+          visitDate,
+          visitTime,
+          adults,
+          children,
+          durationOfStayDays,
+          groupCategory,
+          addTourBus,
+          visitorName,
+          visitorEmail,
+          phone,
+          emergencyContact,
+          countryOfOrigin,
+          notes,
+        },
+      });
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      setBookingReference(result.reference);
+      setMessage(result.message);
+      setStep(4);
+    } catch (error) {
+      console.error(error);
+      setMessage("Booking request could not be submitted. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <>
       <PageHero
         eyebrow="Tickets"
         title="Visit requests, in three considered steps."
-        intro="Online payment is not active. Details will be published following operational confirmation."
+        intro={
+          paymentEnabled
+            ? "Submit a visit request. Payment options will be shown only after provider confirmation."
+            : "Submit a visit request for review. Payment collection is not active yet."
+        }
       />
 
       <section className="container-y py-16">
@@ -62,6 +143,12 @@ function TicketsPage() {
 
         <div className="grid gap-10 md:grid-cols-[1.6fr_1fr]">
           <div className="border border-border bg-background p-8">
+            {message && step !== 4 ? (
+              <p className="mb-6 rounded-sm border border-brass/30 bg-brass/10 px-3 py-2 text-sm text-forest-deep">
+                {message}
+              </p>
+            ) : null}
+
             {step === 1 && (
               <>
                 <h2 className="font-serif text-2xl text-forest-deep">Choose a ticket</h2>
@@ -96,12 +183,18 @@ function TicketsPage() {
                     <span className="text-sm">Date</span>
                     <input
                       type="date"
+                      value={visitDate}
+                      onChange={(event) => setVisitDate(event.currentTarget.value)}
                       className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
                     />
                   </label>
                   <label className="block">
                     <span className="text-sm">Time</span>
-                    <select className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5">
+                    <select
+                      value={visitTime}
+                      onChange={(event) => setVisitTime(event.currentTarget.value)}
+                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
+                    >
                       <option>10:00</option>
                       <option>14:00</option>
                     </select>
@@ -112,7 +205,7 @@ function TicketsPage() {
                       type="number"
                       min={0}
                       value={adults}
-                      onChange={(e) => setAdults(Number(e.target.value))}
+                      onChange={(event) => setAdults(Math.max(0, Number(event.target.value)))}
                       className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
                     />
                   </label>
@@ -122,20 +215,41 @@ function TicketsPage() {
                       type="number"
                       min={0}
                       value={children}
-                      onChange={(e) => setChildren(Number(e.target.value))}
+                      onChange={(event) => setChildren(Math.max(0, Number(event.target.value)))}
+                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm">Duration of stay</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={durationOfStayDays}
+                      onChange={(event) =>
+                        setDurationOfStayDays(Math.max(1, Number(event.target.value)))
+                      }
                       className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
                     />
                   </label>
                   <label className="block">
                     <span className="text-sm">Group category</span>
-                    <select className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5">
+                    <select
+                      value={groupCategory}
+                      onChange={(event) => setGroupCategory(event.currentTarget.value)}
+                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
+                    >
                       <option>Individual / family</option>
                       <option>School</option>
                       <option>Private group</option>
                     </select>
                   </label>
                   <label className="flex items-center gap-2 pt-6">
-                    <input type="checkbox" />{" "}
+                    <input
+                      type="checkbox"
+                      checked={addTourBus}
+                      onChange={(event) => setAddTourBus(event.currentTarget.checked)}
+                    />
                     <span className="text-sm">Add designated tour bus</span>
                   </label>
                 </div>
@@ -146,24 +260,31 @@ function TicketsPage() {
               <>
                 <h2 className="font-serif text-2xl text-forest-deep">Visitor details</h2>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  {[
-                    { l: "Full name", t: "text" },
-                    { l: "Email", t: "email" },
-                    { l: "Phone number", t: "tel" },
-                    { l: "Emergency contact", t: "tel" },
-                  ].map((f) => (
-                    <label key={f.l} className="block">
-                      <span className="text-sm">{f.l}</span>
-                      <input
-                        type={f.t}
-                        className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
-                      />
-                    </label>
-                  ))}
+                  <TextField label="Full name" value={visitorName} onChange={setVisitorName} />
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={visitorEmail}
+                    onChange={setVisitorEmail}
+                  />
+                  <TextField label="Phone number" type="tel" value={phone} onChange={setPhone} />
+                  <TextField
+                    label="Emergency contact"
+                    type="tel"
+                    value={emergencyContact}
+                    onChange={setEmergencyContact}
+                  />
+                  <TextField
+                    label="Country of origin"
+                    value={countryOfOrigin}
+                    onChange={setCountryOfOrigin}
+                  />
                   <label className="block sm:col-span-2">
                     <span className="text-sm">Booking notes</span>
                     <textarea
                       rows={3}
+                      value={notes}
+                      onChange={(event) => setNotes(event.currentTarget.value)}
                       className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
                     />
                   </label>
@@ -176,22 +297,28 @@ function TicketsPage() {
                 <div className="mx-auto grid size-14 place-items-center rounded-full bg-forest-deep text-ivory">
                   <Check className="size-6" />
                 </div>
-                <h2 className="mt-6 font-serif text-3xl text-forest-deep">Request prepared</h2>
+                <h2 className="mt-6 font-serif text-3xl text-forest-deep">Request received</h2>
                 <p className="mt-3 text-muted-foreground">
-                  No booking record or payment has been created. The production booking flow will be
-                  enabled after operational confirmation.
+                  {message ??
+                    "Your booking request has been received for review before confirmation."}
                 </p>
                 <div className="mx-auto mt-10 max-w-sm border border-border bg-cream p-6 text-left">
                   <p className="eyebrow">Request summary</p>
                   <p className="mt-2 font-serif text-xl text-forest-deep">
                     {selectedTicket?.label}
                   </p>
+                  {bookingReference ? (
+                    <p className="mt-2 text-sm font-medium text-forest-deep">
+                      Reference: {bookingReference}
+                    </p>
+                  ) : null}
                   <p className="text-sm text-muted-foreground">
-                    {adults} adults · {children} children
+                    {adults} adults · {children} children · {durationOfStayDays} day
+                    {durationOfStayDays === 1 ? "" : "s"}
                   </p>
                   <p className="mt-6 rounded-sm border border-border bg-background p-4 text-sm text-muted-foreground">
-                    Digital tickets, QR codes and payment references are disabled until the booking
-                    and payment systems are live.
+                    Payment is not active for this request. The team will review availability before
+                    any confirmation or payment collection.
                   </p>
                 </div>
               </div>
@@ -200,21 +327,18 @@ function TicketsPage() {
             {step < 4 && (
               <div className="mt-10 flex justify-between border-t border-border pt-6">
                 <button
-                  disabled={step === 1}
+                  disabled={step === 1 || submitting}
                   onClick={() => setStep((s) => s - 1)}
                   className="rounded-full border border-border px-5 py-2.5 text-sm disabled:opacity-40"
                 >
                   Back
                 </button>
                 <button
-                  onClick={() => setStep((s) => s + 1)}
-                  className="rounded-full bg-forest-deep px-6 py-2.5 text-sm text-ivory"
+                  disabled={submitting || !bookingEnabled}
+                  onClick={() => (step === 3 ? void handleSubmitRequest() : setStep((s) => s + 1))}
+                  className="rounded-full bg-forest-deep px-6 py-2.5 text-sm text-ivory disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {step === 3
-                    ? paymentEnabled
-                      ? "Continue to payment"
-                      : "Review request"
-                    : "Continue"}
+                  {step === 3 ? (submitting ? "Submitting" : "Submit request") : "Continue"}
                 </button>
               </div>
             )}
@@ -235,17 +359,48 @@ function TicketsPage() {
                 <dt className="text-muted-foreground">Children</dt>
                 <dd>{children}</dd>
               </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Duration</dt>
+                <dd>
+                  {durationOfStayDays} day{durationOfStayDays === 1 ? "" : "s"}
+                </dd>
+              </div>
               <div className="mt-3 flex justify-between border-t border-border pt-3 font-serif text-lg text-forest-deep">
                 <dt>Pricing</dt>
                 <dd>{paymentEnabled ? "Available at checkout" : "Pending confirmation"}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs text-muted-foreground">
-              Payments are disabled. No booking, ticket or payment record is created here.
+              Booking requests are saved for administrator review. Payment collection is separate
+              and not active yet.
             </p>
           </aside>
         </div>
       </section>
     </>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
+      />
+    </label>
   );
 }

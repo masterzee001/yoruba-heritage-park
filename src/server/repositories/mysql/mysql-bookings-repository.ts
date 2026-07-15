@@ -3,8 +3,8 @@ import type { Pool } from "mysql2/promise";
 
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type { BookingsRepository } from "../bookings-repository";
-import type { BookingRecord } from "../repository-types";
-import { requireId, requireLimit } from "./mysql-helpers";
+import type { BookingRecord, CreateBookingInput } from "../repository-types";
+import { createRepositoryId, normaliseEmail, requireId, requireLimit } from "./mysql-helpers";
 
 interface BookingRow extends RowDataPacket {
   id: string;
@@ -65,6 +65,67 @@ export class MysqlBookingsRepository implements BookingsRepository {
       throw toDatabaseError(error);
     }
   }
+
+  async create(input: CreateBookingInput): Promise<BookingRecord> {
+    const id = createRepositoryId("booking");
+    const reference = createBookingReference();
+    const visitorName = input.visitorName.trim();
+    const visitorEmail = normaliseEmail(input.visitorEmail);
+    const bookingType = input.bookingType.trim();
+    const countryOfOrigin = input.countryOfOrigin?.trim() || null;
+    const durationOfStayDays = input.durationOfStayDays ?? null;
+    const guests = Math.max(1, Math.trunc(input.guests));
+    const amountMinor = Math.max(0, Math.trunc(input.amountMinor ?? 0));
+    const currency = (input.currency ?? "NGN").trim().toUpperCase();
+    const paymentState = input.paymentState ?? "not_applicable";
+    const status = input.status ?? "pending";
+    const source = input.source ?? "website";
+    const notes = input.notes?.trim() || null;
+
+    try {
+      await this.pool.execute(
+        `INSERT INTO bookings (
+          id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
+          visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
+          status, source, notes
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          reference,
+          visitorName,
+          visitorEmail,
+          countryOfOrigin,
+          bookingType,
+          input.visitDate,
+          durationOfStayDays,
+          guests,
+          amountMinor,
+          currency,
+          paymentState,
+          status,
+          source,
+          notes,
+        ],
+      );
+      const booking = await this.findById(id);
+      if (!booking) throw new Error("Created booking could not be read.");
+      return booking;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+}
+
+function createBookingReference(): string {
+  const date = new Date();
+  const stamp = [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("");
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `YHP-B-${stamp}-${suffix}`;
 }
 
 function mapBooking(row: BookingRow): BookingRecord {
