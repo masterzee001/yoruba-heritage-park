@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { getAdminAuthState, submitAdminLogin } from "@/admin/auth-functions";
 
-export const Route = createFileRoute("/admin/login")({
+export const Route = createFileRoute("/admin_/login")({
   validateSearch: (search: Record<string, unknown>) => ({
     returnTo: typeof search.returnTo === "string" ? search.returnTo : "/admin",
   }),

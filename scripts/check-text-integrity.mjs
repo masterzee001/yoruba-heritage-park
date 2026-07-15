@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const blockedPatterns = [
   "YorÃ¹bÃ¡",
@@ -43,6 +43,7 @@ const textExtensions = new Set([
 const files = execFileSync("git", ["ls-files"], { encoding: "utf8" })
   .split(/\r?\n/)
   .filter(Boolean)
+  .filter((file) => existsSync(file))
   .filter((file) => file !== "scripts/check-text-integrity.mjs")
   .filter((file) => {
     const dot = file.lastIndexOf(".");
