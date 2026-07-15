@@ -25,6 +25,7 @@ import { supportedPaymentCurrencies } from "@/config/payment-currencies";
 import {
   listAdminPayments,
   listDonationCampaigns,
+  listPaymentWebhookEvents,
   listPaymentProviderReadiness,
   listPaymentProviderSettings,
   preparePaymentCheckout,
@@ -33,6 +34,7 @@ import {
   type AdminDonationCampaign,
   type AdminPaymentProviderReadiness,
   type AdminPaymentProviderSettings,
+  type AdminPaymentWebhookEvent,
 } from "@/admin/payment-functions";
 import type { AdminPayment, PaymentFilters, PaymentStatus, StatusTone } from "@/admin/types";
 
@@ -82,6 +84,44 @@ const columns: AdminColumn<AdminPayment>[] = [
   },
 ];
 
+const webhookColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
+  {
+    key: "eventType",
+    header: "Event",
+    render: (row) => <span className="font-medium">{row.eventType}</span>,
+  },
+  {
+    key: "providerEventId",
+    header: "Provider event",
+    hideOnMobile: true,
+    render: (row) => row.providerEventId,
+  },
+  {
+    key: "paymentReference",
+    header: "Payment",
+    render: (row) => row.paymentReference ?? "No local match",
+  },
+  {
+    key: "processingStatus",
+    header: "Processing",
+    render: (row) => (
+      <AdminStatusBadge tone={row.processingStatus === "review_required" ? "warning" : "muted"}>
+        {formatToken(row.processingStatus)}
+      </AdminStatusBadge>
+    ),
+  },
+  {
+    key: "verificationStatus",
+    header: "Verification",
+    hideOnMobile: true,
+    render: (row) => (
+      <AdminStatusBadge tone={row.verificationStatus === "verified" ? "success" : "preview"}>
+        {formatToken(row.verificationStatus)}
+      </AdminStatusBadge>
+    ),
+  },
+];
+
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
@@ -89,6 +129,7 @@ function AdminPaymentsRoute() {
     AdminPaymentProviderReadiness[] | null
   >(null);
   const [campaigns, setCampaigns] = useState<AdminDonationCampaign[] | null>(null);
+  const [webhookEvents, setWebhookEvents] = useState<AdminPaymentWebhookEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<PaymentFilters>({ status: "all" });
@@ -150,6 +191,16 @@ function AdminPaymentsRoute() {
     listDonationCampaigns()
       .then((list) => !cancelled && setCampaigns(list))
       .catch(() => !cancelled && setError("Donation campaigns could not be loaded."));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    listPaymentWebhookEvents()
+      .then((list) => !cancelled && setWebhookEvents(list))
+      .catch(() => !cancelled && setError("Payment webhook events could not be loaded."));
     return () => {
       cancelled = true;
     };
@@ -539,6 +590,72 @@ function AdminPaymentsRoute() {
         </div>
       </section>
 
+      <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Provider events</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">Webhook intake monitor</h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              PayPal provider events recorded by the server appear here for administrator review.
+              Events are stored for audit only until signature verification and status-change policy
+              are activated.
+            </p>
+          </div>
+          <AdminStatusBadge tone="preview">Manual review</AdminStatusBadge>
+        </div>
+
+        {!webhookEvents ? (
+          <AdminLoadingState rows={2} />
+        ) : (
+          <AdminDataTable
+            columns={webhookColumns}
+            rows={webhookEvents}
+            rowKey={(row) => row.id}
+            caption="Payment webhook event records"
+            emptyTitle="No webhook events"
+            emptyDescription="No PayPal provider events have been received by this environment."
+            renderMobileCard={(row) => (
+              <div className="grid gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="font-medium">{row.eventType}</span>
+                  <AdminStatusBadge
+                    tone={row.processingStatus === "review_required" ? "warning" : "muted"}
+                  >
+                    {formatToken(row.processingStatus)}
+                  </AdminStatusBadge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {row.providerCode} · {row.providerEventId}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Payment: {row.paymentReference ?? "No local match"}
+                </p>
+              </div>
+            )}
+          />
+        )}
+
+        {webhookEvents?.length ? (
+          <div className="grid gap-2 rounded-sm border border-border bg-cream/30 p-4 text-xs text-muted-foreground sm:grid-cols-3">
+            <p>
+              Latest event:{" "}
+              {new Date(webhookEvents[0].receivedAt).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </p>
+            <p>
+              Matched events:{" "}
+              {webhookEvents.filter((event) => Boolean(event.paymentReference)).length}
+            </p>
+            <p>
+              Automatic mutations:{" "}
+              {webhookEvents.some((event) => event.statusMutationApplied) ? "Detected" : "None"}
+            </p>
+          </div>
+        ) : null}
+      </section>
+
       <AdminFilterBar>
         <AdminSearchInput
           value={filters.search ?? ""}
@@ -695,6 +812,13 @@ function parseSuggestedAmounts(value: string): number[] {
     .map((part) => Number(part.trim()))
     .filter((amount) => Number.isFinite(amount) && amount > 0)
     .map((amount) => Math.round(amount * 100));
+}
+
+function formatToken(value: string): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function ProviderInput({

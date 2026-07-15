@@ -187,6 +187,22 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
     }
   }
 
+  async listWebhookEvents(limit = 50): Promise<PaymentWebhookEventRecord[]> {
+    try {
+      const [rows] = await this.pool.query<PaymentWebhookEventRow[]>(
+        `SELECT id, provider_code, provider_event_id, event_type, payment_id, payment_reference,
+          processing_status, verification_status, payload_json, received_at, processed_at
+         FROM payment_webhook_events
+         ORDER BY received_at DESC
+         LIMIT ?`,
+        [requireLimit(limit)],
+      );
+      return rows.map(mapPaymentWebhookEvent);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
   async recordWebhookEvent(
     input: RecordPaymentWebhookEventInput,
   ): Promise<PaymentWebhookEventRecord> {

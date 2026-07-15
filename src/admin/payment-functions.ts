@@ -41,6 +41,20 @@ export interface AdminDonationCampaign {
   readonly updatedAt: string;
 }
 
+export interface AdminPaymentWebhookEvent {
+  readonly id: string;
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentReference: string | null;
+  readonly processingStatus: "received" | "ignored" | "review_required" | "processed" | "failed";
+  readonly verificationStatus: "unverified" | "verified" | "failed" | "not_applicable";
+  readonly receivedAt: string;
+  readonly processedAt: string | null;
+  readonly matchedBy: string | null;
+  readonly statusMutationApplied: boolean;
+}
+
 export interface SavePaymentProviderSettingsInput {
   readonly providerCode?: string;
   readonly displayName?: string;
@@ -131,6 +145,14 @@ export const listDonationCampaigns = createServerFn({ method: "GET" }).handler(a
   await requireAdminServerPermission("payments.view");
   const campaigns = await new MysqlPaymentsRepository().listDonationCampaigns();
   return campaigns.map(toAdminDonationCampaign);
+});
+
+export const listPaymentWebhookEvents = createServerFn({ method: "GET" }).handler(async () => {
+  const { MysqlPaymentsRepository } = await import("../server/repositories/mysql");
+  const { requireAdminServerPermission } = await import("./server-permissions");
+  await requireAdminServerPermission("payments.view");
+  const events = await new MysqlPaymentsRepository().listWebhookEvents(25);
+  return events.map(toAdminPaymentWebhookEvent);
 });
 
 export const savePaymentProviderSettings = createServerFn({ method: "POST" })
@@ -403,6 +425,52 @@ function toAdminDonationCampaign(campaign: {
           .filter((value) => Number.isFinite(value) && value > 0)
       : [],
     updatedAt: campaign.updatedAt.toISOString(),
+  };
+}
+
+function toAdminPaymentWebhookEvent(event: {
+  readonly id: string;
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentReference: string | null;
+  readonly processingStatus: AdminPaymentWebhookEvent["processingStatus"];
+  readonly verificationStatus: AdminPaymentWebhookEvent["verificationStatus"];
+  readonly payloadJson: unknown;
+  readonly receivedAt: Date;
+  readonly processedAt: Date | null;
+}): AdminPaymentWebhookEvent {
+  const processing = readWebhookProcessingMetadata(event.payloadJson);
+  return {
+    id: event.id,
+    providerCode: event.providerCode,
+    providerEventId: event.providerEventId,
+    eventType: event.eventType,
+    paymentReference: event.paymentReference,
+    processingStatus: event.processingStatus,
+    verificationStatus: event.verificationStatus,
+    receivedAt: event.receivedAt.toISOString(),
+    processedAt: event.processedAt?.toISOString() ?? null,
+    matchedBy: processing.matchedBy,
+    statusMutationApplied: processing.statusMutationApplied,
+  };
+}
+
+function readWebhookProcessingMetadata(payload: unknown): {
+  readonly matchedBy: string | null;
+  readonly statusMutationApplied: boolean;
+} {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { matchedBy: null, statusMutationApplied: false };
+  }
+  const processing = (payload as { yhpProcessing?: unknown }).yhpProcessing;
+  if (!processing || typeof processing !== "object" || Array.isArray(processing)) {
+    return { matchedBy: null, statusMutationApplied: false };
+  }
+  const record = processing as { matchedBy?: unknown; statusMutationApplied?: unknown };
+  return {
+    matchedBy: typeof record.matchedBy === "string" ? record.matchedBy : null,
+    statusMutationApplied: record.statusMutationApplied === true,
   };
 }
 

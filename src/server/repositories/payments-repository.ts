@@ -66,6 +66,7 @@ export interface PaymentsRepository {
   listForBooking(bookingId: string): Promise<PaymentRecord[]>;
   listProviderSettings(): Promise<PaymentProviderSettingsRecord[]>;
   listDonationCampaigns(): Promise<DonationCampaignRecord[]>;
+  listWebhookEvents(limit?: number): Promise<PaymentWebhookEventRecord[]>;
   recordWebhookEvent(input: RecordPaymentWebhookEventInput): Promise<PaymentWebhookEventRecord>;
   create(input: CreatePaymentRecordInput): Promise<PaymentRecord>;
   updateCheckoutPreparation(

@@ -126,6 +126,9 @@ function makePaymentsRepository(
     async listDonationCampaigns(): Promise<DonationCampaignRecord[]> {
       return [];
     },
+    async listWebhookEvents(): Promise<PaymentWebhookEventRecord[]> {
+      return events;
+    },
     async recordWebhookEvent(
       input: RecordPaymentWebhookEventInput,
     ): Promise<PaymentWebhookEventRecord> {
