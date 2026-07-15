@@ -30,8 +30,19 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                   : pathname === item.to || pathname.startsWith(`${item.to}/`);
                 const content = (
                   <>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute inset-y-1 left-0 w-[3px] rounded-r-sm transition",
+                        active ? "bg-brass" : "bg-transparent",
+                      )}
+                    />
                     <item.icon
-                      className={cn("size-4 shrink-0", item.danger ? "text-destructive" : "")}
+                      className={cn(
+                        "size-4 shrink-0",
+                        item.danger ? "text-destructive" : "",
+                        active && !item.danger ? "text-brass" : "",
+                      )}
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -43,12 +54,16 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                   </>
                 );
 
+                const base =
+                  "relative flex items-center gap-3 rounded-sm px-3 py-2 min-h-9 transition";
+
                 return (
                   <li key={item.to}>
                     {item.disabled ? (
                       <span
-                        className="flex items-center gap-3 rounded-sm px-3 py-2 text-ivory/35"
+                        className={cn(base, "text-ivory/35")}
                         aria-disabled="true"
+                        title="Not available in preview mode"
                       >
                         {content}
                       </span>
@@ -57,10 +72,11 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                         to={item.to}
                         onClick={onNavigate}
                         className={cn(
-                          "flex items-center gap-3 rounded-sm px-3 py-2 transition",
+                          base,
+                          "outline-none focus-visible:ring-2 focus-visible:ring-brass/70 focus-visible:ring-offset-0",
                           active
-                            ? "bg-ivory/10 text-ivory"
-                            : "text-ivory/70 hover:bg-ivory/5 hover:text-ivory",
+                            ? "bg-ivory/10 text-ivory font-medium"
+                            : "text-ivory/75 hover:bg-ivory/5 hover:text-ivory",
                         )}
                         aria-current={active ? "page" : undefined}
                       >
