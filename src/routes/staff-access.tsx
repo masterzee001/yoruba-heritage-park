@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 
@@ -19,7 +19,6 @@ export const Route = createFileRoute("/staff-access")({
 
 function AdminLoginRoute() {
   const search = Route.useSearch();
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,17 +50,25 @@ function AdminLoginRoute() {
           className="mt-6 grid gap-4"
           onSubmit={async (event) => {
             event.preventDefault();
-            setSubmitting(true);
-            const result = await submitAdminLogin({
-              data: { email, password, returnTo: search.returnTo ?? "/admin" },
-            });
-            setSubmitting(false);
-            if (result.ok) {
-              await navigate({
-                to: result.returnTo.startsWith("/admin") ? result.returnTo : "/admin",
+            setMessage(null);
+            try {
+              setSubmitting(true);
+              const result = await submitAdminLogin({
+                data: { email, password, returnTo: search.returnTo ?? "/admin" },
               });
-            } else {
+              if (result.ok) {
+                const returnTo = result.returnTo.startsWith("/admin") ? result.returnTo : "/admin";
+                window.location.assign(returnTo);
+                return;
+              }
               setMessage(result.message);
+            } catch (error) {
+              console.error(error);
+              setMessage(
+                "Login could not be completed. Please try again or contact the site administrator.",
+              );
+            } finally {
+              setSubmitting(false);
             }
           }}
         >
