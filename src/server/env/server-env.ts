@@ -192,7 +192,9 @@ function assertNoViteDatabaseVariables(source: NodeJS.ProcessEnv): void {
       (key.includes("DATABASE") ||
         key.includes("AUTH") ||
         key.includes("PAYMENT") ||
-        key.includes("PAYPAL")),
+        key.includes("PAYPAL") ||
+        key.includes("PAYSTACK") ||
+        key.includes("STRIPE")),
   );
 
   if (invalidVariables.length > 0) {

@@ -336,6 +336,8 @@ function AdminBookingsRoute() {
                       className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
                     >
                       <option value="paypal">PayPal</option>
+                      <option value="paystack">Paystack</option>
+                      <option value="stripe">Stripe</option>
                       <option value="pending_configuration">Pending configuration</option>
                     </select>
                   </label>

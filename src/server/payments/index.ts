@@ -1,6 +1,8 @@
 import type { PaymentProviderSettingsRecord } from "../repositories/repository-types";
+import { paystackPaymentAdapter } from "./paystack-adapter";
 import { paypalPaymentAdapter } from "./paypal-adapter";
 import { pendingPaymentAdapter } from "./pending-adapter";
+import { stripePaymentAdapter } from "./stripe-adapter";
 import type { PaymentProviderAdapter, PaymentProviderReadiness } from "./payment-provider-adapter";
 
 export type { PaymentProviderAdapter, PaymentProviderReadiness } from "./payment-provider-adapter";
@@ -36,7 +38,9 @@ export type {
 } from "./paypal-client";
 
 const adapters = new Map<string, PaymentProviderAdapter>(
-  [pendingPaymentAdapter, paypalPaymentAdapter].map((adapter) => [adapter.providerCode, adapter]),
+  [pendingPaymentAdapter, paypalPaymentAdapter, paystackPaymentAdapter, stripePaymentAdapter].map(
+    (adapter) => [adapter.providerCode, adapter],
+  ),
 );
 
 export function getPaymentProviderAdapter(providerCode: string): PaymentProviderAdapter | null {

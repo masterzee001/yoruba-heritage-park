@@ -92,6 +92,12 @@ describe("server environment validation", () => {
     expect(() => getServerEnv({ source: { VITE_PAYPAL_SECRET_KEY: "secret" } })).toThrow(
       ServerEnvError,
     );
+    expect(() => getServerEnv({ source: { VITE_PAYSTACK_SECRET_KEY: "secret" } })).toThrow(
+      ServerEnvError,
+    );
+    expect(() => getServerEnv({ source: { VITE_STRIPE_SECRET_KEY: "secret" } })).toThrow(
+      ServerEnvError,
+    );
   });
 });
 

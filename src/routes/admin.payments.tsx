@@ -596,7 +596,7 @@ function AdminPaymentsRoute() {
             <p className="eyebrow">Provider events</p>
             <h2 className="mt-1 font-serif text-xl text-forest-deep">Webhook intake monitor</h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              PayPal provider events recorded by the server appear here for administrator review.
+              Payment provider events recorded by the server appear here for administrator review.
               Events are stored for audit only until signature verification and status-change policy
               are activated.
             </p>
@@ -613,7 +613,7 @@ function AdminPaymentsRoute() {
             rowKey={(row) => row.id}
             caption="Payment webhook event records"
             emptyTitle="No webhook events"
-            emptyDescription="No PayPal provider events have been received by this environment."
+            emptyDescription="No payment provider events have been received by this environment."
             renderMobileCard={(row) => (
               <div className="grid gap-2">
                 <div className="flex items-start justify-between gap-3">
@@ -705,6 +705,7 @@ function AdminPaymentsRoute() {
           <option value="pending_configuration">Pending configuration</option>
           <option value="paypal">PayPal</option>
           <option value="paystack">Paystack</option>
+          <option value="stripe">Stripe</option>
         </select>
         <input
           type="date"
