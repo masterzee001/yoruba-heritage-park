@@ -67,7 +67,11 @@ export type {
   StripeCredentials,
   StripeHttpClient,
 } from "./stripe-client";
-export { verifyPaystackWebhookSignature, verifyStripeWebhookSignature } from "./webhook-signatures";
+export {
+  verifyPayPalWebhookSignature,
+  verifyPaystackWebhookSignature,
+  verifyStripeWebhookSignature,
+} from "./webhook-signatures";
 export type { WebhookSignatureVerificationResult } from "./webhook-signatures";
 
 const adapters = new Map<string, PaymentProviderAdapter>(

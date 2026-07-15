@@ -1,15 +1,21 @@
 import type { PaymentsRepository } from "../repositories/payments-repository";
 import type { PaymentProviderSettingsRecord } from "../repositories/repository-types";
 import { PaymentWebhookService } from "./payment-webhook-service";
-import { verifyPaystackWebhookSignature, verifyStripeWebhookSignature } from "./webhook-signatures";
+import type { PayPalHttpClient } from "./paypal-client";
+import {
+  verifyPayPalWebhookSignature,
+  verifyPaystackWebhookSignature,
+  verifyStripeWebhookSignature,
+} from "./webhook-signatures";
 
-export type PaymentWebhookEndpointProvider = "paystack" | "stripe";
+export type PaymentWebhookEndpointProvider = "paypal" | "paystack" | "stripe";
 
 export interface HandlePaymentWebhookRequestOptions {
   readonly providerCode: PaymentWebhookEndpointProvider;
   readonly request: Request;
   readonly paymentsRepository: PaymentsRepository;
   readonly env?: Record<string, string | undefined>;
+  readonly paypalClient?: PayPalHttpClient;
 }
 
 export async function handlePaymentWebhookRequest({
@@ -17,6 +23,7 @@ export async function handlePaymentWebhookRequest({
   request,
   paymentsRepository,
   env = process.env,
+  paypalClient,
 }: HandlePaymentWebhookRequestOptions): Promise<Response> {
   if (request.method !== "POST") {
     return Response.json({ ok: false, message: "Method not allowed." }, { status: 405 });
@@ -29,18 +36,15 @@ export async function handlePaymentWebhookRequest({
   }
 
   const providerSettings = await findProviderSettings(paymentsRepository, providerCode);
-  const signatureVerification =
-    providerCode === "paystack"
-      ? verifyPaystackWebhookSignature({
-          rawBody,
-          signature: request.headers.get("x-paystack-signature"),
-          secretKey: resolvePaystackWebhookSecret(providerSettings, env),
-        })
-      : verifyStripeWebhookSignature({
-          rawBody,
-          signatureHeader: request.headers.get("stripe-signature"),
-          endpointSecret: resolveStripeWebhookSecret(providerSettings, env),
-        });
+  const signatureVerification = await verifyWebhookSignature({
+    providerCode,
+    request,
+    rawBody,
+    payload: payload.value,
+    providerSettings,
+    env,
+    paypalClient,
+  });
 
   const result = await new PaymentWebhookService(paymentsRepository).record({
     providerCode,
@@ -70,6 +74,49 @@ export async function handlePaymentWebhookRequest({
     },
     { status: signatureVerification.ok ? 202 : 400 },
   );
+}
+
+async function verifyWebhookSignature({
+  providerCode,
+  request,
+  rawBody,
+  payload,
+  providerSettings,
+  env,
+  paypalClient,
+}: {
+  readonly providerCode: PaymentWebhookEndpointProvider;
+  readonly request: Request;
+  readonly rawBody: string;
+  readonly payload: unknown;
+  readonly providerSettings: PaymentProviderSettingsRecord | null;
+  readonly env: Record<string, string | undefined>;
+  readonly paypalClient?: PayPalHttpClient;
+}) {
+  if (providerCode === "paypal") {
+    const configuration = resolvePayPalWebhookConfiguration(providerSettings, env);
+    return verifyPayPalWebhookSignature({
+      payload,
+      headers: request.headers,
+      webhookId: configuration.webhookId,
+      credentials: configuration.credentials,
+      client: paypalClient,
+    });
+  }
+
+  if (providerCode === "paystack") {
+    return verifyPaystackWebhookSignature({
+      rawBody,
+      signature: request.headers.get("x-paystack-signature"),
+      secretKey: resolvePaystackWebhookSecret(providerSettings, env),
+    });
+  }
+
+  return verifyStripeWebhookSignature({
+    rawBody,
+    signatureHeader: request.headers.get("stripe-signature"),
+    endpointSecret: resolveStripeWebhookSecret(providerSettings, env),
+  });
 }
 
 function parseJsonPayload(rawBody: string):
@@ -113,15 +160,53 @@ function resolveStripeWebhookSecret(
   return env[secretReference]?.trim();
 }
 
+function resolvePayPalWebhookConfiguration(
+  providerSettings: PaymentProviderSettingsRecord | null,
+  env: Record<string, string | undefined>,
+) {
+  const config = readWebhookConfiguration(providerSettings?.configurationJson);
+  const secretReference = providerSettings?.secretReference?.trim() || "PAYPAL_SECRET_KEY";
+  const clientId = providerSettings?.publicKey?.trim() || env.PAYPAL_CLIENT_ID?.trim();
+  const secretKey = env[secretReference]?.trim();
+  const environment =
+    env.PAYPAL_ENVIRONMENT === "live" || providerSettings?.mode === "live" ? "live" : "sandbox";
+  const webhookIdReference = config.webhookIdReference || "PAYPAL_WEBHOOK_ID";
+  const webhookId = config.webhookId || env[webhookIdReference]?.trim();
+
+  return {
+    webhookId,
+    credentials:
+      clientId && secretKey
+        ? {
+            environment,
+            clientId,
+            secretKey,
+          }
+        : null,
+  };
+}
+
 function readWebhookConfiguration(value: unknown): {
   readonly webhookSecretReference?: string;
+  readonly webhookIdReference?: string;
+  readonly webhookId?: string;
 } {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const record = value as { webhookSecretReference?: unknown };
+  const record = value as {
+    webhookSecretReference?: unknown;
+    webhookIdReference?: unknown;
+    webhookId?: unknown;
+  };
   return {
     webhookSecretReference:
       typeof record.webhookSecretReference === "string"
         ? record.webhookSecretReference.trim() || undefined
         : undefined,
+    webhookIdReference:
+      typeof record.webhookIdReference === "string"
+        ? record.webhookIdReference.trim() || undefined
+        : undefined,
+    webhookId:
+      typeof record.webhookId === "string" ? record.webhookId.trim() || undefined : undefined,
   };
 }

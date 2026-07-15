@@ -17,6 +17,79 @@ import type {
 } from "../src/server/repositories/repository-types";
 
 describe("payment webhook endpoint handlers", () => {
+  test("records a verified PayPal webhook through the PayPal verification API", async () => {
+    const rawBody = JSON.stringify({
+      id: "WH-PAYPAL-TEST",
+      event_type: "CHECKOUT.ORDER.APPROVED",
+      resource: {
+        id: "PAYPAL-ORDER-TEST",
+        purchase_units: [{ reference_id: "YHP-PAY-TEST" }],
+      },
+    });
+    const repository = makePaymentsRepository({
+      providers: [
+        makeProviderSettings({
+          providerCode: "paypal",
+          publicKey: "client_test",
+          secretReference: "PAYPAL_SECRET_KEY",
+        }),
+      ],
+      payments: [
+        makePaymentRecord({
+          providerCode: "paypal",
+          providerTransactionReference: "PAYPAL-ORDER-TEST",
+        }),
+      ],
+    });
+    const paypalClient = {
+      async fetch(input: string | URL) {
+        const url = String(input);
+        if (url.endsWith("/v1/oauth2/token")) {
+          return Response.json({ access_token: "token_test", token_type: "Bearer" });
+        }
+        return Response.json({ verification_status: "SUCCESS" });
+      },
+    };
+
+    const response = await handlePaymentWebhookRequest({
+      providerCode: "paypal",
+      request: new Request("https://example.test/api/payments/webhooks/paypal", {
+        method: "POST",
+        headers: {
+          "paypal-auth-algo": "SHA256withRSA",
+          "paypal-cert-url": "https://api-m.sandbox.paypal.com/certs/test",
+          "paypal-transmission-id": "transmission-test",
+          "paypal-transmission-sig": "signature-test",
+          "paypal-transmission-time": "2026-01-01T00:00:00Z",
+        },
+        body: rawBody,
+      }),
+      paymentsRepository: repository,
+      env: {
+        PAYPAL_ENVIRONMENT: "sandbox",
+        PAYPAL_SECRET_KEY: "secret_test",
+        PAYPAL_WEBHOOK_ID: "WH-123",
+      },
+      paypalClient,
+    });
+
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      matchedPaymentReference: "YHP-PAY-TEST",
+      verificationStatus: "verified",
+      statusMutationApplied: false,
+    });
+    expect(repository.events[0]).toMatchObject({
+      providerCode: "paypal",
+      providerEventId: "WH-PAYPAL-TEST",
+      eventType: "CHECKOUT.ORDER.APPROVED",
+      paymentReference: "YHP-PAY-TEST",
+      verificationStatus: "verified",
+      processingStatus: "review_required",
+    });
+  });
+
   test("records a verified Paystack webhook from the raw request body", async () => {
     const rawBody = JSON.stringify({
       event: "charge.success",

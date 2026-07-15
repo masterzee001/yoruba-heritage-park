@@ -1,15 +1,22 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import {
+  requestPayPalAccessToken,
+  resolvePayPalBaseUrl,
+  type PayPalCredentials,
+  type PayPalHttpClient,
+} from "./paypal-client";
+
 export type WebhookSignatureVerificationResult =
   | {
       readonly ok: true;
-      readonly providerCode: "paystack" | "stripe";
-      readonly scheme: "hmac-sha512" | "stripe-v1";
+      readonly providerCode: "paypal" | "paystack" | "stripe";
+      readonly scheme: "paypal-postback" | "hmac-sha512" | "stripe-v1";
     }
   | {
       readonly ok: false;
-      readonly providerCode: "paystack" | "stripe";
-      readonly scheme: "hmac-sha512" | "stripe-v1";
+      readonly providerCode: "paypal" | "paystack" | "stripe";
+      readonly scheme: "paypal-postback" | "hmac-sha512" | "stripe-v1";
       readonly reason: string;
     };
 
@@ -59,6 +66,64 @@ export function verifyStripeWebhookSignature(input: {
     : failedStripe("Stripe webhook signature mismatch.");
 }
 
+export async function verifyPayPalWebhookSignature(input: {
+  readonly payload: unknown;
+  readonly headers: Headers;
+  readonly webhookId: string | null | undefined;
+  readonly credentials: PayPalCredentials | null | undefined;
+  readonly client?: PayPalHttpClient;
+}): Promise<WebhookSignatureVerificationResult> {
+  const webhookId = input.webhookId?.trim();
+  if (!webhookId) return failedPayPal("Missing PayPal webhook id.");
+  if (!input.credentials) return failedPayPal("Missing PayPal API credentials.");
+
+  const verificationPayload = {
+    auth_algo: input.headers.get("paypal-auth-algo")?.trim(),
+    cert_url: input.headers.get("paypal-cert-url")?.trim(),
+    transmission_id: input.headers.get("paypal-transmission-id")?.trim(),
+    transmission_sig: input.headers.get("paypal-transmission-sig")?.trim(),
+    transmission_time: input.headers.get("paypal-transmission-time")?.trim(),
+    webhook_id: webhookId,
+    webhook_event: input.payload,
+  };
+
+  const missingHeader = Object.entries(verificationPayload).find(
+    ([key, value]) => key !== "webhook_event" && !value,
+  );
+  if (missingHeader) {
+    return failedPayPal(`Missing PayPal ${missingHeader[0].replaceAll("_", "-")} value.`);
+  }
+
+  try {
+    const client = input.client ?? globalThis;
+    const token = await requestPayPalAccessToken(input.credentials, client);
+    const response = await client.fetch(
+      `${resolvePayPalBaseUrl(input.credentials.environment)}/v1/notifications/verify-webhook-signature`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `${token.token_type} ${token.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(verificationPayload),
+      },
+    );
+
+    if (!response.ok) {
+      return failedPayPal(`PayPal webhook verification failed with status ${response.status}.`);
+    }
+
+    const result = (await response.json()) as { verification_status?: unknown };
+    return result.verification_status === "SUCCESS"
+      ? { ok: true, providerCode: "paypal", scheme: "paypal-postback" }
+      : failedPayPal("PayPal webhook verification returned failure.");
+  } catch (error) {
+    return failedPayPal(
+      error instanceof Error ? error.message : "PayPal webhook verification failed.",
+    );
+  }
+}
+
 function parseStripeSignatureHeader(header: string): {
   readonly timestamp: number | null;
   readonly signatures: string[];
@@ -78,6 +143,10 @@ function parseStripeSignatureHeader(header: string): {
 function safeEqualHex(actual: string, expected: string): boolean {
   if (!/^[a-f0-9]+$/i.test(actual) || actual.length !== expected.length) return false;
   return timingSafeEqual(Buffer.from(actual, "hex"), Buffer.from(expected, "hex"));
+}
+
+function failedPayPal(reason: string): WebhookSignatureVerificationResult {
+  return { ok: false, providerCode: "paypal", scheme: "paypal-postback", reason };
 }
 
 function failedPaystack(reason: string): WebhookSignatureVerificationResult {

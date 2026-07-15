@@ -51,6 +51,7 @@ import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AdminAppointmentsRouteImport } from './routes/admin.appointments'
 import { Route as ApiPaymentsWebhooksStripeRouteImport } from './routes/api.payments.webhooks.stripe'
 import { Route as ApiPaymentsWebhooksPaystackRouteImport } from './routes/api.payments.webhooks.paystack'
+import { Route as ApiPaymentsWebhooksPaypalRouteImport } from './routes/api.payments.webhooks.paypal'
 
 const TicketsRoute = TicketsRouteImport.update({
   id: '/tickets',
@@ -264,6 +265,12 @@ const ApiPaymentsWebhooksPaystackRoute =
     path: '/api/payments/webhooks/paystack',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPaymentsWebhooksPaypalRoute =
+  ApiPaymentsWebhooksPaypalRouteImport.update({
+    id: '/api/payments/webhooks/paypal',
+    path: '/api/payments/webhooks/paypal',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -306,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/events/': typeof EventsIndexRoute
   '/experiences/': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paypal': typeof ApiPaymentsWebhooksPaypalRoute
   '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
   '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
@@ -349,6 +357,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/events': typeof EventsIndexRoute
   '/experiences': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paypal': typeof ApiPaymentsWebhooksPaypalRoute
   '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
   '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
@@ -394,6 +403,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/events/': typeof EventsIndexRoute
   '/experiences/': typeof ExperiencesIndexRoute
+  '/api/payments/webhooks/paypal': typeof ApiPaymentsWebhooksPaypalRoute
   '/api/payments/webhooks/paystack': typeof ApiPaymentsWebhooksPaystackRoute
   '/api/payments/webhooks/stripe': typeof ApiPaymentsWebhooksStripeRoute
 }
@@ -440,6 +450,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/events/'
     | '/experiences/'
+    | '/api/payments/webhooks/paypal'
     | '/api/payments/webhooks/paystack'
     | '/api/payments/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/events'
     | '/experiences'
+    | '/api/payments/webhooks/paypal'
     | '/api/payments/webhooks/paystack'
     | '/api/payments/webhooks/stripe'
   id:
@@ -527,6 +539,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/events/'
     | '/experiences/'
+    | '/api/payments/webhooks/paypal'
     | '/api/payments/webhooks/paystack'
     | '/api/payments/webhooks/stripe'
   fileRoutesById: FileRoutesById
@@ -550,6 +563,7 @@ export interface RootRouteChildren {
   ExperiencesSlugRoute: typeof ExperiencesSlugRoute
   EventsIndexRoute: typeof EventsIndexRoute
   ExperiencesIndexRoute: typeof ExperiencesIndexRoute
+  ApiPaymentsWebhooksPaypalRoute: typeof ApiPaymentsWebhooksPaypalRoute
   ApiPaymentsWebhooksPaystackRoute: typeof ApiPaymentsWebhooksPaystackRoute
   ApiPaymentsWebhooksStripeRoute: typeof ApiPaymentsWebhooksStripeRoute
 }
@@ -850,6 +864,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPaymentsWebhooksPaystackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/payments/webhooks/paypal': {
+      id: '/api/payments/webhooks/paypal'
+      path: '/api/payments/webhooks/paypal'
+      fullPath: '/api/payments/webhooks/paypal'
+      preLoaderRoute: typeof ApiPaymentsWebhooksPaypalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -934,6 +955,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExperiencesSlugRoute: ExperiencesSlugRoute,
   EventsIndexRoute: EventsIndexRoute,
   ExperiencesIndexRoute: ExperiencesIndexRoute,
+  ApiPaymentsWebhooksPaypalRoute: ApiPaymentsWebhooksPaypalRoute,
   ApiPaymentsWebhooksPaystackRoute: ApiPaymentsWebhooksPaystackRoute,
   ApiPaymentsWebhooksStripeRoute: ApiPaymentsWebhooksStripeRoute,
 }

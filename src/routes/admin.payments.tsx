@@ -127,11 +127,11 @@ const webhookSetupGuide = [
   {
     providerCode: "paypal",
     displayName: "PayPal",
-    callbackUrl: "Pending PayPal webhook verification endpoint",
+    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/paypal",
     secretReferences: ["PAYPAL_CLIENT_ID", "PAYPAL_SECRET_KEY", "PAYPAL_WEBHOOK_ID"],
-    status: "Endpoint pending",
+    status: "Ready for test webhook",
     notes:
-      "Checkout credentials can be configured now. Do not register a live PayPal webhook until server-side PayPal signature verification is enabled.",
+      "Use this URL in PayPal dashboard webhook settings. The server verifies PayPal transmission headers with PAYPAL_WEBHOOK_ID before reconciliation.",
   },
   {
     providerCode: "paystack",
@@ -576,9 +576,7 @@ function AdminPaymentsRoute() {
             <div key={provider.providerCode} className="rounded-sm border border-border p-4">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-serif text-lg text-forest-deep">{provider.displayName}</h3>
-                <AdminStatusBadge tone={provider.providerCode === "paypal" ? "preview" : "success"}>
-                  {provider.status}
-                </AdminStatusBadge>
+                <AdminStatusBadge tone="success">{provider.status}</AdminStatusBadge>
               </div>
               <div className="mt-3 grid gap-2 text-xs">
                 <div>
