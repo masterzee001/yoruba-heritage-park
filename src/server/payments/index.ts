@@ -9,6 +9,12 @@ export type {
   PreparePaymentRequestInput,
   PreparePaymentRequestResult,
 } from "./payment-request-service";
+export { PaymentCheckoutService } from "./payment-checkout-service";
+export type {
+  PaymentCheckoutServiceOptions,
+  PrepareCheckoutInput,
+  PrepareCheckoutResult,
+} from "./payment-checkout-service";
 export {
   buildPayPalOrderDraft,
   createPayPalOrder,

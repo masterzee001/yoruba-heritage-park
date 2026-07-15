@@ -41,6 +41,7 @@ export interface CreatePaymentRecordInput {
 
 export interface PaymentsRepository {
   list(limit?: number): Promise<PaymentRecord[]>;
+  findByReference(reference: string): Promise<PaymentRecord | null>;
   listForBooking(bookingId: string): Promise<PaymentRecord[]>;
   listProviderSettings(): Promise<PaymentProviderSettingsRecord[]>;
   listDonationCampaigns(): Promise<DonationCampaignRecord[]>;

@@ -204,6 +204,9 @@ function makePaymentsRepository(
     async list() {
       return payments;
     },
+    async findByReference(reference: string) {
+      return payments.find((payment) => payment.reference === reference) ?? null;
+    },
     async listForBooking(bookingId: string) {
       return payments.filter((payment) => payment.bookingId === bookingId);
     },
