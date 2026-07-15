@@ -42,6 +42,9 @@ function DiscoverPage() {
           <h2 className="mt-4 font-serif text-4xl leading-tight text-forest-deep md:text-6xl">
             Olódùmárè
           </h2>
+          <p className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-clay">
+            ALL MIGHTY GOD
+          </p>
           <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
             Held in reverence above all. Introduced here with a hierarchy of respect and not
             presented as one profile among equal cards. Full content pending cultural approval.
