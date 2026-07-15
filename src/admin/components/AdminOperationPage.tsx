@@ -36,7 +36,7 @@ interface Props<TRecord extends DemoRecord & { id: string }, TStatus extends str
   detailRows: (row: TRecord) => Array<{ label: string; value: ReactNode }>;
   status: (row: TRecord) => TStatus;
   statusMap: OperationStatusMap<TStatus>;
-  statusOptions: Array<FilterOption<TStatus | "all">>;
+  statusOptions: Array<FilterOption<string>>;
   disabledFeature: string;
   disabledReason: string;
   emptyTitle?: string;
