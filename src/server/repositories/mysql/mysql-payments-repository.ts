@@ -5,6 +5,7 @@ import { getDatabasePool, toDatabaseError } from "../../db";
 import type {
   CreatePaymentRecordInput,
   PaymentsRepository,
+  UpdatePaymentCheckoutPreparationInput,
   UpsertDonationCampaignInput,
   UpsertPaymentProviderSettingsInput,
 } from "../payments-repository";
@@ -188,6 +189,38 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
       );
       const payment = rows[0];
       if (!payment) throw new Error("Payment record was not created.");
+      return mapPayment(payment);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async updateCheckoutPreparation(
+    paymentId: string,
+    input: UpdatePaymentCheckoutPreparationInput,
+  ): Promise<PaymentRecord> {
+    try {
+      await this.pool.query(
+        `UPDATE payments
+         SET provider_transaction_reference = ?, metadata_json = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        [
+          requireCode(input.providerTransactionReference),
+          JSON.stringify(input.metadataJson ?? {}),
+          paymentId,
+        ],
+      );
+      const [rows] = await this.pool.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE id = ? AND deleted_at IS NULL
+         LIMIT 1`,
+        [paymentId],
+      );
+      const payment = rows[0];
+      if (!payment) throw new Error("Payment record was not found after checkout update.");
       return mapPayment(payment);
     } catch (error) {
       throw toDatabaseError(error);

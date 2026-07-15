@@ -67,6 +67,10 @@ export interface PrepareBookingPaymentRequestInput {
   readonly currency?: string;
 }
 
+export interface PreparePaymentCheckoutInput {
+  readonly paymentReference?: string;
+}
+
 export const listAdminPayments = createServerFn({ method: "GET" })
   .validator((data: PaymentFilters = {}) => data)
   .handler(async ({ data }) => {
@@ -296,6 +300,44 @@ export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
       paymentReference: result.payment.reference,
       message: `Payment request ${result.payment.reference} prepared. Checkout remains inactive.`,
     };
+  });
+
+export const preparePaymentCheckout = createServerFn({ method: "POST" })
+  .validator((data: PreparePaymentCheckoutInput) => data)
+  .handler(async ({ data }) => {
+    const paymentReference = data.paymentReference?.trim();
+    if (!paymentReference) return { ok: false, message: "Payment reference is required." };
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { PaymentCheckoutService } = await import("../server/payments");
+    const { MysqlAuditLogRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("payments.manage");
+    const repository = new MysqlPaymentsRepository();
+    const result = await new PaymentCheckoutService(repository).prepare({ paymentReference });
+    const requestContext = getRuntimeRequestContext();
+
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "payments.checkout.prepare",
+      moduleCode: "payments",
+      recordType: "payment",
+      recordId: paymentReference,
+      outcome: result.ok ? "success" : "failed",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        paymentReference,
+        providerCode: result.ok ? result.providerCode : null,
+        providerOrderId: result.ok ? result.providerOrderId : null,
+        checkoutUrlPrepared: result.ok ? Boolean(result.checkoutUrl) : false,
+        sandbox: result.ok ? result.sandbox : null,
+        message: result.message,
+      },
+    });
+
+    return result;
   });
 
 function toAdminPayment(payment: {

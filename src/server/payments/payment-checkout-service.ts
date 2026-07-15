@@ -103,12 +103,22 @@ export class PaymentCheckoutService {
     }
 
     const order = await createPayPalOrder(configuration.credentials, payment, this.paypalClient);
+    const checkoutUrl = findApprovalUrl(order);
+    await this.paymentsRepository.updateCheckoutPreparation(payment.id, {
+      providerTransactionReference: order.id,
+      metadataJson: buildCheckoutMetadata(payment, {
+        providerOrderId: order.id,
+        checkoutUrl,
+        sandbox: configuration.credentials.environment === "sandbox",
+      }),
+    });
+
     return {
       ok: true,
       providerCode: "paypal",
       paymentReference: payment.reference,
       providerOrderId: order.id,
-      checkoutUrl: findApprovalUrl(order),
+      checkoutUrl,
       sandbox: configuration.credentials.environment === "sandbox",
       message:
         configuration.credentials.environment === "sandbox"
@@ -125,4 +135,30 @@ export class PaymentCheckoutService {
 
 function findApprovalUrl(order: PayPalOrderResponse): string | null {
   return order.links?.find((link) => link.rel === "approve")?.href ?? null;
+}
+
+function buildCheckoutMetadata(
+  payment: PaymentRecord,
+  checkout: {
+    readonly providerOrderId: string;
+    readonly checkoutUrl: string | null;
+    readonly sandbox: boolean;
+  },
+): unknown {
+  const existing =
+    payment.metadataJson &&
+    typeof payment.metadataJson === "object" &&
+    !Array.isArray(payment.metadataJson)
+      ? payment.metadataJson
+      : {};
+  return {
+    ...existing,
+    checkout: {
+      provider: "paypal",
+      providerOrderId: checkout.providerOrderId,
+      checkoutUrl: checkout.checkoutUrl,
+      sandbox: checkout.sandbox,
+      preparedAt: new Date().toISOString(),
+    },
+  };
 }

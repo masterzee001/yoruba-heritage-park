@@ -32,7 +32,8 @@ describe("payment checkout service", () => {
 
   test("creates a PayPal sandbox checkout order for a pending payment", async () => {
     const fetchCalls: string[] = [];
-    const service = new PaymentCheckoutService(makePaymentsRepository(), {
+    const repository = makePaymentsRepository();
+    const service = new PaymentCheckoutService(repository, {
       paymentEnabled: true,
       env: {
         PAYPAL_ENVIRONMENT: "sandbox",
@@ -42,6 +43,7 @@ describe("payment checkout service", () => {
     });
 
     const result = await service.prepare({ paymentReference: "yhp-pay-test" });
+    const payment = await repository.findByReference("YHP-PAY-TEST");
 
     expect(result).toEqual({
       ok: true,
@@ -56,6 +58,15 @@ describe("payment checkout service", () => {
       "https://api-m.sandbox.paypal.com/v1/oauth2/token",
       "https://api-m.sandbox.paypal.com/v2/checkout/orders",
     ]);
+    expect(payment?.providerTransactionReference).toBe("ORDER-123");
+    expect(payment?.metadataJson).toMatchObject({
+      checkout: {
+        provider: "paypal",
+        providerOrderId: "ORDER-123",
+        checkoutUrl: "https://www.sandbox.paypal.com/checkoutnow?token=ORDER-123",
+        sandbox: true,
+      },
+    });
   });
 
   test("blocks live checkout unless live capture is explicitly allowed", async () => {
@@ -176,6 +187,17 @@ function makePaymentsRepository(
     },
     async create(_input: CreatePaymentRecordInput): Promise<PaymentRecord> {
       throw new Error("Not implemented in test repository.");
+    },
+    async updateCheckoutPreparation(paymentId, input): Promise<PaymentRecord> {
+      const index = payments.findIndex((payment) => payment.id === paymentId);
+      if (index === -1) throw new Error("Payment not found.");
+      const payment = payments[index];
+      payments[index] = {
+        ...payment,
+        providerTransactionReference: input.providerTransactionReference,
+        metadataJson: input.metadataJson,
+      };
+      return payments[index];
     },
     async upsertProviderSettings(
       _input: UpsertPaymentProviderSettingsInput,

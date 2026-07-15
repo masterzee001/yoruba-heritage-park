@@ -27,6 +27,7 @@ import {
   listDonationCampaigns,
   listPaymentProviderReadiness,
   listPaymentProviderSettings,
+  preparePaymentCheckout,
   saveDonationCampaign,
   savePaymentProviderSettings,
   type AdminDonationCampaign,
@@ -112,6 +113,7 @@ function AdminPaymentsRoute() {
   });
   const [savingProvider, setSavingProvider] = useState(false);
   const [savingCampaign, setSavingCampaign] = useState(false);
+  const [preparingCheckout, setPreparingCheckout] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +210,28 @@ function AdminPaymentsRoute() {
       setError("Donation campaign could not be saved.");
     } finally {
       setSavingCampaign(false);
+    }
+  }
+
+  async function handlePrepareCheckout(payment: AdminPayment) {
+    setPreparingCheckout(true);
+    setNotice(null);
+    try {
+      const result = await preparePaymentCheckout({
+        data: { paymentReference: payment.reference },
+      });
+      setNotice(
+        result.ok && result.checkoutUrl
+          ? `${result.message} Provider order: ${result.providerOrderId}.`
+          : result.message,
+      );
+      if (result.ok) {
+        setRows(await listAdminPayments({ data: filters }));
+      }
+    } catch {
+      setError("Checkout preparation could not be completed.");
+    } finally {
+      setPreparingCheckout(false);
     }
   }
 
@@ -647,9 +671,10 @@ function AdminPaymentsRoute() {
                 </PreviewButton>
                 <PreviewButton
                   icon={<CreditCard className="size-3.5" />}
-                  onClick={completePreviewAction}
+                  onClick={() => void handlePrepareCheckout(selected)}
+                  disabled={preparingCheckout}
                 >
-                  Mark for review locally
+                  {preparingCheckout ? "Preparing checkout" : "Prepare checkout"}
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
@@ -697,16 +722,19 @@ function PreviewButton({
   children,
   icon,
   onClick,
+  disabled = false,
 }: {
   children: React.ReactNode;
   icon: React.ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest"
+      disabled={disabled}
+      className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
     >
       {icon}
       {children}

@@ -239,6 +239,9 @@ function makePaymentsRepository(
       payments.push(payment);
       return payment;
     },
+    async updateCheckoutPreparation(): Promise<PaymentRecord> {
+      throw new Error("Not implemented in test repository.");
+    },
     async upsertProviderSettings(
       _input: UpsertPaymentProviderSettingsInput,
     ): Promise<PaymentProviderSettingsRecord> {

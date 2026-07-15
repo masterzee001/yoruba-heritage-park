@@ -39,6 +39,11 @@ export interface CreatePaymentRecordInput {
   readonly metadataJson?: unknown;
 }
 
+export interface UpdatePaymentCheckoutPreparationInput {
+  readonly providerTransactionReference: string;
+  readonly metadataJson: unknown;
+}
+
 export interface PaymentsRepository {
   list(limit?: number): Promise<PaymentRecord[]>;
   findByReference(reference: string): Promise<PaymentRecord | null>;
@@ -46,6 +51,10 @@ export interface PaymentsRepository {
   listProviderSettings(): Promise<PaymentProviderSettingsRecord[]>;
   listDonationCampaigns(): Promise<DonationCampaignRecord[]>;
   create(input: CreatePaymentRecordInput): Promise<PaymentRecord>;
+  updateCheckoutPreparation(
+    paymentId: string,
+    input: UpdatePaymentCheckoutPreparationInput,
+  ): Promise<PaymentRecord>;
   upsertProviderSettings(
     input: UpsertPaymentProviderSettingsInput,
     updatedByUserId: string,
