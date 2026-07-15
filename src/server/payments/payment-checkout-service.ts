@@ -1,4 +1,4 @@
-import { projectStatus } from "../../config/project-status";
+import { getServerEnv } from "../env/server-env";
 import type { PaymentsRepository } from "../repositories/payments-repository";
 import type {
   PaymentProviderSettingsRecord,
@@ -49,9 +49,10 @@ export class PaymentCheckoutService {
     private readonly paymentsRepository: PaymentsRepository,
     options: PaymentCheckoutServiceOptions = {},
   ) {
-    this.paymentEnabled = options.paymentEnabled ?? projectStatus.paymentEnabled;
-    this.allowLiveCapture = options.allowLiveCapture ?? false;
     this.env = options.env ?? process.env;
+    const serverEnv = getServerEnv({ source: this.env });
+    this.paymentEnabled = options.paymentEnabled ?? serverEnv.payments.checkoutEnabled;
+    this.allowLiveCapture = options.allowLiveCapture ?? serverEnv.payments.allowLiveCapture;
     this.paypalClient = options.paypalClient;
   }
 

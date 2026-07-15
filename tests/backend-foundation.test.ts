@@ -26,6 +26,9 @@ describe("server environment validation", () => {
     expect(env.database.port).toBe(3306);
     expect(env.database.connectionLimit).toBe(5);
     expect(env.database.sslMode).toBe("disabled");
+    expect(env.payments.checkoutEnabled).toBe(false);
+    expect(env.payments.allowLiveCapture).toBe(false);
+    expect(env.payments.paypal.environment).toBe("sandbox");
   });
 
   test("requires database variables when mysql mode is selected", () => {
@@ -70,6 +73,23 @@ describe("server environment validation", () => {
 
   test("rejects VITE-prefixed database variables", () => {
     expect(() => getServerEnv({ source: { VITE_DATABASE_PASSWORD: "secret" } })).toThrow(
+      ServerEnvError,
+    );
+  });
+
+  test("validates server-only payment launch flags", () => {
+    const env = getServerEnv({
+      source: {
+        PAYMENT_CHECKOUT_ENABLED: "true",
+        PAYMENT_ALLOW_LIVE_CAPTURE: "true",
+        PAYPAL_ENVIRONMENT: "live",
+      },
+    });
+
+    expect(env.payments.checkoutEnabled).toBe(true);
+    expect(env.payments.allowLiveCapture).toBe(true);
+    expect(env.payments.paypal.environment).toBe("live");
+    expect(() => getServerEnv({ source: { VITE_PAYPAL_SECRET_KEY: "secret" } })).toThrow(
       ServerEnvError,
     );
   });

@@ -29,6 +29,8 @@ export interface ServerEnv {
     readonly sslMode: DatabaseSslMode;
   };
   readonly payments: {
+    readonly checkoutEnabled: boolean;
+    readonly allowLiveCapture: boolean;
     readonly paypal: {
       readonly environment: PayPalEnvironment;
       readonly clientId?: string;
@@ -98,6 +100,8 @@ const baseEnvSchema = z.object({
   AUTH_ACCOUNT_LOCK_MINUTES: integerFromEnv(15, 1, 1440),
   AUTH_PASSWORD_MIN_LENGTH: integerFromEnv(15, 12, 128),
   AUTH_TRUST_PROXY: booleanFromEnv(true),
+  PAYMENT_CHECKOUT_ENABLED: booleanFromEnv(false),
+  PAYMENT_ALLOW_LIVE_CAPTURE: booleanFromEnv(false),
   PAYPAL_ENVIRONMENT: z
     .preprocess(emptyToUndefined, z.enum(["sandbox", "live"]).default("sandbox"))
     .default("sandbox"),
@@ -164,6 +168,8 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
       sslMode: env.DATABASE_SSL_MODE,
     },
     payments: {
+      checkoutEnabled: env.PAYMENT_CHECKOUT_ENABLED,
+      allowLiveCapture: env.PAYMENT_ALLOW_LIVE_CAPTURE,
       paypal: {
         environment: env.PAYPAL_ENVIRONMENT,
         clientId: env.PAYPAL_CLIENT_ID,
@@ -181,11 +187,16 @@ export function validateServerEnv(options: ServerEnvOptions = {}): { ok: true } 
 
 function assertNoViteDatabaseVariables(source: NodeJS.ProcessEnv): void {
   const invalidVariables = Object.keys(source).filter(
-    (key) => key.startsWith("VITE_") && (key.includes("DATABASE") || key.includes("AUTH")),
+    (key) =>
+      key.startsWith("VITE_") &&
+      (key.includes("DATABASE") ||
+        key.includes("AUTH") ||
+        key.includes("PAYMENT") ||
+        key.includes("PAYPAL")),
   );
 
   if (invalidVariables.length > 0) {
-    throw new ServerEnvError("Database variables must not use the VITE_ prefix.", {
+    throw new ServerEnvError("Server-only variables must not use the VITE_ prefix.", {
       invalidVariables,
     });
   }

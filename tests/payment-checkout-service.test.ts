@@ -30,6 +30,28 @@ describe("payment checkout service", () => {
     expect(fetchCalls).toEqual([]);
   });
 
+  test("can enable sandbox checkout from server environment flags", async () => {
+    const fetchCalls: string[] = [];
+    const service = new PaymentCheckoutService(makePaymentsRepository(), {
+      env: {
+        PAYMENT_CHECKOUT_ENABLED: "true",
+        PAYPAL_ENVIRONMENT: "sandbox",
+        PAYPAL_SECRET_KEY: "secret-value",
+      },
+      paypalClient: makePayPalClient(fetchCalls),
+    });
+
+    const result = await service.prepare({ paymentReference: "YHP-PAY-TEST" });
+
+    expect(result).toMatchObject({
+      ok: true,
+      providerCode: "paypal",
+      sandbox: true,
+      message: "PayPal sandbox checkout order prepared.",
+    });
+    expect(fetchCalls).toHaveLength(2);
+  });
+
   test("creates a PayPal sandbox checkout order for a pending payment", async () => {
     const fetchCalls: string[] = [];
     const repository = makePaymentsRepository();
@@ -93,6 +115,35 @@ describe("payment checkout service", () => {
     expect(await service.prepare({ paymentReference: "YHP-PAY-TEST" })).toEqual({
       ok: false,
       message: "Live payment capture is not enabled for this environment.",
+    });
+  });
+
+  test("can allow live checkout only through explicit launch control", async () => {
+    const service = new PaymentCheckoutService(
+      makePaymentsRepository({
+        providers: [
+          makeProviderSettings({
+            mode: "live",
+            publicKey: "paypal-client-id",
+            secretReference: "PAYPAL_SECRET_KEY",
+          }),
+        ],
+      }),
+      {
+        env: {
+          PAYMENT_CHECKOUT_ENABLED: "true",
+          PAYMENT_ALLOW_LIVE_CAPTURE: "true",
+          PAYPAL_ENVIRONMENT: "live",
+          PAYPAL_SECRET_KEY: "secret-value",
+        },
+        paypalClient: makePayPalClient([]),
+      },
+    );
+
+    expect(await service.prepare({ paymentReference: "YHP-PAY-TEST" })).toMatchObject({
+      ok: true,
+      sandbox: false,
+      message: "PayPal checkout order prepared.",
     });
   });
 
