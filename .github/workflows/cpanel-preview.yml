@@ -51,7 +51,10 @@ jobs:
       - name: Prepare restart marker
         run: |
           date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
-          SSR_SERVER_FILE="$(find .output-cpanel/server/_ssr -maxdepth 1 \( -name 'server-*.mjs' -o -name 'ssr.mjs' \) -type f | head -n 1)"
+          SSR_SERVER_FILE=".output-cpanel/server/_ssr/ssr.mjs"
+          if [ ! -f "$SSR_SERVER_FILE" ]; then
+            SSR_SERVER_FILE="$(find .output-cpanel/server/_ssr -maxdepth 1 -name 'server-*.mjs' -type f | sort | head -n 1)"
+          fi
           test -n "$SSR_SERVER_FILE"
           echo "SSR_SERVER_FILE=$(basename "$SSR_SERVER_FILE")" >> "$GITHUB_ENV"
           echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
