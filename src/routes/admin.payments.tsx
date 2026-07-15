@@ -123,6 +123,36 @@ const webhookColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
   },
 ];
 
+const webhookSetupGuide = [
+  {
+    providerCode: "paypal",
+    displayName: "PayPal",
+    callbackUrl: "Pending PayPal webhook verification endpoint",
+    secretReferences: ["PAYPAL_CLIENT_ID", "PAYPAL_SECRET_KEY", "PAYPAL_WEBHOOK_ID"],
+    status: "Endpoint pending",
+    notes:
+      "Checkout credentials can be configured now. Do not register a live PayPal webhook until server-side PayPal signature verification is enabled.",
+  },
+  {
+    providerCode: "paystack",
+    displayName: "Paystack",
+    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/paystack",
+    secretReferences: ["PAYSTACK_PUBLIC_KEY", "PAYSTACK_SECRET_KEY"],
+    status: "Ready for test webhook",
+    notes:
+      "Use this URL in Paystack dashboard webhook settings. The server verifies x-paystack-signature before reconciliation.",
+  },
+  {
+    providerCode: "stripe",
+    displayName: "Stripe",
+    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/stripe",
+    secretReferences: ["STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+    status: "Ready for test webhook",
+    notes:
+      "Use this URL as the Stripe endpoint and store its signing secret in STRIPE_WEBHOOK_SECRET. Checkout return URLs stay in Stripe configuration.",
+  },
+] as const;
+
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
@@ -523,6 +553,57 @@ function AdminPaymentsRoute() {
               </ul>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Webhook setup</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">
+              Provider callback URLs and secret references
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Use these values when configuring provider dashboards and cPanel environment
+              variables. Secrets must stay server-side and should not be pasted into public fields.
+            </p>
+          </div>
+          <AdminStatusBadge tone="warning">Admin setup only</AdminStatusBadge>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {webhookSetupGuide.map((provider) => (
+            <div key={provider.providerCode} className="rounded-sm border border-border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-serif text-lg text-forest-deep">{provider.displayName}</h3>
+                <AdminStatusBadge tone={provider.providerCode === "paypal" ? "preview" : "success"}>
+                  {provider.status}
+                </AdminStatusBadge>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs">
+                <div>
+                  <p className="font-medium text-foreground">Callback URL</p>
+                  <code className="mt-1 block break-all rounded-sm border border-border bg-cream/40 px-2 py-1.5 text-muted-foreground">
+                    {provider.callbackUrl}
+                  </code>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Environment references</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {provider.secretReferences.map((reference) => (
+                      <code
+                        key={reference}
+                        className="rounded-sm border border-border bg-cream/40 px-2 py-1 text-muted-foreground"
+                      >
+                        {reference}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-muted-foreground">{provider.notes}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
