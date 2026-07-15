@@ -36,6 +36,7 @@ const migrations = [
   migration("003_commercial_operations.sql"),
   migration("004_booking_profile_and_paypal.sql"),
   migration("005_booking_admin_workflow.sql"),
+  migration("006_payment_campaign_setup.sql"),
 ];
 const schema = read("database/latest-schema.sql");
 const commercialOperationsSchema = read("database/migrations/003_commercial_operations.sql");
@@ -43,6 +44,7 @@ const bookingProfileAndPaypalSchema = read(
   "database/migrations/004_booking_profile_and_paypal.sql",
 );
 const bookingAdminWorkflowSchema = read("database/migrations/005_booking_admin_workflow.sql");
+const paymentCampaignSetupSchema = read("database/migrations/006_payment_campaign_setup.sql");
 const seeds = [
   read("database/seeds/001_roles_permissions.sql"),
   read("database/seeds/002_auth_permissions.sql"),
@@ -78,6 +80,9 @@ ${bookingProfileAndPaypalSchema}
 
 -- Approved booking administration workflow schema.
 ${bookingAdminWorkflowSchema}
+
+-- Approved payment campaign setup schema.
+${paymentCampaignSetupSchema}
 
 -- Approved role and permission seeds.
 ${seeds.join("\n\n")}

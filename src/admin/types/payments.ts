@@ -16,7 +16,7 @@ export interface AdminPayment extends DemoRecord {
   visitorName: string;
   amountNgn: number;
   currency: "NGN";
-  provider: "pending_configuration";
+  provider: string;
   status: PaymentStatus;
   verificationStatus: "unverified" | "review_required" | "preview_verified" | "not_applicable";
   createdAt: string;

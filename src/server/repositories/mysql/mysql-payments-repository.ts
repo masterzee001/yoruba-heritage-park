@@ -4,9 +4,14 @@ import type { Pool } from "mysql2/promise";
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type {
   PaymentsRepository,
+  UpsertDonationCampaignInput,
   UpsertPaymentProviderSettingsInput,
 } from "../payments-repository";
-import type { PaymentProviderSettingsRecord, PaymentRecord } from "../repository-types";
+import type {
+  DonationCampaignRecord,
+  PaymentProviderSettingsRecord,
+  PaymentRecord,
+} from "../repository-types";
 import { parseJsonValue, requireCode, requireLimit } from "./mysql-helpers";
 
 interface PaymentRow extends RowDataPacket {
@@ -45,6 +50,18 @@ interface PaymentProviderRow extends RowDataPacket {
   updated_at: Date;
 }
 
+interface DonationCampaignRow extends RowDataPacket {
+  id: string;
+  campaign_code: string;
+  title: string;
+  description: string | null;
+  status: DonationCampaignRecord["status"];
+  suggested_amounts_json: string;
+  created_at: Date;
+  updated_at: Date;
+  deleted_at: Date | null;
+}
+
 export class MysqlPaymentsRepository implements PaymentsRepository {
   constructor(private readonly pool: Pool = getDatabasePool()) {}
 
@@ -76,6 +93,21 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
          ORDER BY display_name ASC`,
       );
       return rows.map(mapProviderSettings);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async listDonationCampaigns(): Promise<DonationCampaignRecord[]> {
+    try {
+      const [rows] = await this.pool.query<DonationCampaignRow[]>(
+        `SELECT id, campaign_code, title, description, status, suggested_amounts_json,
+          created_at, updated_at, deleted_at
+         FROM donation_campaigns
+         WHERE deleted_at IS NULL
+         ORDER BY created_at DESC`,
+      );
+      return rows.map(mapDonationCampaign);
     } catch (error) {
       throw toDatabaseError(error);
     }
@@ -123,6 +155,42 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
       throw toDatabaseError(error);
     }
   }
+
+  async upsertDonationCampaign(
+    input: UpsertDonationCampaignInput,
+  ): Promise<DonationCampaignRecord> {
+    try {
+      const campaignCode = requireCode(input.campaignCode.toLowerCase());
+      const id = `don_${campaignCode.replace(/[^a-z0-9_]/g, "_")}`;
+      const amounts = input.suggestedAmountsMinor
+        .map((amount) => Math.max(0, Math.trunc(amount)))
+        .filter((amount) => amount > 0);
+      await this.pool.query(
+        `INSERT INTO donation_campaigns (
+          id, campaign_code, title, description, status, suggested_amounts_json
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          title = VALUES(title),
+          description = VALUES(description),
+          status = VALUES(status),
+          suggested_amounts_json = VALUES(suggested_amounts_json)`,
+        [
+          id,
+          campaignCode,
+          input.title.trim(),
+          input.description?.trim() || null,
+          input.status,
+          JSON.stringify(amounts),
+        ],
+      );
+      const campaigns = await this.listDonationCampaigns();
+      const campaign = campaigns.find((row) => row.campaignCode === campaignCode);
+      if (!campaign) throw new Error("Donation campaign settings were not saved.");
+      return campaign;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
 }
 
 function mapPayment(row: PaymentRow): PaymentRecord {
@@ -162,5 +230,19 @@ function mapProviderSettings(row: PaymentProviderRow): PaymentProviderSettingsRe
     updatedByUserId: row.updated_by_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function mapDonationCampaign(row: DonationCampaignRow): DonationCampaignRecord {
+  return {
+    id: row.id,
+    campaignCode: row.campaign_code,
+    title: row.title,
+    description: row.description,
+    status: row.status,
+    suggestedAmountsJson: parseJsonValue(row.suggested_amounts_json),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at,
   };
 }

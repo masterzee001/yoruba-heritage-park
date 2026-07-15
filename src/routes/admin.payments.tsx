@@ -22,11 +22,14 @@ import {
 } from "@/admin/components";
 import { projectStatus } from "@/config/project-status";
 import {
+  listAdminPayments,
+  listDonationCampaigns,
   listPaymentProviderSettings,
+  saveDonationCampaign,
   savePaymentProviderSettings,
+  type AdminDonationCampaign,
   type AdminPaymentProviderSettings,
 } from "@/admin/payment-functions";
-import { adminService } from "@/admin/services";
 import type { AdminPayment, PaymentFilters, PaymentStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/payments")({
@@ -78,26 +81,35 @@ const columns: AdminColumn<AdminPayment>[] = [
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
+  const [campaigns, setCampaigns] = useState<AdminDonationCampaign[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<PaymentFilters>({ status: "all" });
   const [notice, setNotice] = useState<string | null>(null);
   const [providerForm, setProviderForm] = useState({
-    providerCode: "paystack",
-    displayName: "Paystack",
+    providerCode: "paypal",
+    displayName: "PayPal",
     mode: "test" as "test" | "live",
     enabled: false,
     publicKey: "",
-    secretReference: "PAYSTACK_SECRET_KEY",
+    secretReference: "PAYPAL_SECRET_KEY",
     currency: "NGN",
     minimumAmountMinor: 0,
   });
+  const [campaignForm, setCampaignForm] = useState({
+    campaignCode: "heritage-support",
+    title: "Heritage Support",
+    description:
+      "Donation campaign setup for future approved fundraising. Public payment collection remains inactive.",
+    status: "draft" as AdminDonationCampaign["status"],
+    suggestedAmounts: "5000, 10000, 25000",
+  });
   const [savingProvider, setSavingProvider] = useState(false);
+  const [savingCampaign, setSavingCampaign] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    adminService.payments
-      .list(filters)
+    listAdminPayments({ data: filters })
       .then((list) => {
         if (cancelled) return;
         setRows(list);
@@ -116,6 +128,16 @@ function AdminPaymentsRoute() {
     listPaymentProviderSettings()
       .then((list) => !cancelled && setProviders(list))
       .catch(() => !cancelled && setError("Payment provider settings could not be loaded."));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    listDonationCampaigns()
+      .then((list) => !cancelled && setCampaigns(list))
+      .catch(() => !cancelled && setError("Donation campaigns could not be loaded."));
     return () => {
       cancelled = true;
     };
@@ -144,6 +166,33 @@ function AdminPaymentsRoute() {
       setError("Payment provider settings could not be saved.");
     } finally {
       setSavingProvider(false);
+    }
+  }
+
+  async function handleSaveCampaign(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingCampaign(true);
+    setNotice(null);
+    try {
+      const result = await saveDonationCampaign({
+        data: {
+          campaignCode: campaignForm.campaignCode,
+          title: campaignForm.title,
+          description: campaignForm.description,
+          status: campaignForm.status,
+          suggestedAmountsMinor: parseSuggestedAmounts(campaignForm.suggestedAmounts),
+        },
+      });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setCampaigns(await listDonationCampaigns());
+      setNotice(result.message);
+    } catch {
+      setError("Donation campaign could not be saved.");
+    } finally {
+      setSavingCampaign(false);
     }
   }
 
@@ -293,6 +342,121 @@ function AdminPaymentsRoute() {
         </div>
       </section>
 
+      <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Donation setup</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">
+              Campaign forms and suggested amounts
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Prepare donation campaign metadata in the style of a giving plugin. Public donation
+              forms and payment capture remain inactive until provider integration is approved.
+            </p>
+          </div>
+          <AdminStatusBadge tone="preview">Capture off</AdminStatusBadge>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
+          <form className="grid gap-3" onSubmit={handleSaveCampaign}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProviderInput
+                label="Campaign code"
+                value={campaignForm.campaignCode}
+                onChange={(value) =>
+                  setCampaignForm((current) => ({ ...current, campaignCode: value }))
+                }
+              />
+              <ProviderInput
+                label="Campaign title"
+                value={campaignForm.title}
+                onChange={(value) => setCampaignForm((current) => ({ ...current, title: value }))}
+              />
+              <label className="grid gap-1.5 text-sm font-medium">
+                Status
+                <select
+                  value={campaignForm.status}
+                  onChange={(event) =>
+                    setCampaignForm((current) => ({
+                      ...current,
+                      status: event.currentTarget.value as AdminDonationCampaign["status"],
+                    }))
+                  }
+                  className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </label>
+              <ProviderInput
+                label="Suggested amounts"
+                value={campaignForm.suggestedAmounts}
+                onChange={(value) =>
+                  setCampaignForm((current) => ({ ...current, suggestedAmounts: value }))
+                }
+              />
+            </div>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Description
+              <textarea
+                value={campaignForm.description}
+                onChange={(event) =>
+                  setCampaignForm((current) => ({
+                    ...current,
+                    description: event.currentTarget.value,
+                  }))
+                }
+                rows={3}
+                className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={savingCampaign}
+              className="w-fit rounded-sm bg-forest-deep px-4 py-2 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingCampaign ? "Saving campaign" : "Save campaign"}
+            </button>
+          </form>
+
+          <div className="rounded-sm border border-border bg-cream/30 p-4">
+            <h3 className="font-serif text-lg text-forest-deep">Configured campaigns</h3>
+            {!campaigns ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading campaigns...</p>
+            ) : campaigns.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No campaigns configured.</p>
+            ) : (
+              <ul className="mt-3 grid gap-2 text-sm">
+                {campaigns.map((campaign) => (
+                  <li
+                    key={campaign.id}
+                    className="rounded-sm border border-border bg-background p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{campaign.title}</span>
+                      <AdminStatusBadge tone={campaign.status === "active" ? "warning" : "muted"}>
+                        {campaign.status}
+                      </AdminStatusBadge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{campaign.campaignCode}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Suggested:{" "}
+                      {campaign.suggestedAmountsMinor.length
+                        ? campaign.suggestedAmountsMinor
+                            .map((amount) => `NGN ${amount / 100}`)
+                            .join(", ")
+                        : "Pending"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
       <AdminFilterBar>
         <AdminSearchInput
           value={filters.search ?? ""}
@@ -340,6 +504,8 @@ function AdminPaymentsRoute() {
         >
           <option value="all">All providers</option>
           <option value="pending_configuration">Pending configuration</option>
+          <option value="paypal">PayPal</option>
+          <option value="paystack">Paystack</option>
         </select>
         <input
           type="date"
@@ -438,6 +604,14 @@ function AdminPaymentsRoute() {
       )}
     </>
   );
+}
+
+function parseSuggestedAmounts(value: string): number[] {
+  return value
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((amount) => Number.isFinite(amount) && amount > 0)
+    .map((amount) => Math.round(amount * 100));
 }
 
 function ProviderInput({

@@ -176,6 +176,18 @@ export interface PaymentProviderSettingsRecord {
   readonly updatedAt: Date;
 }
 
+export interface DonationCampaignRecord {
+  readonly id: string;
+  readonly campaignCode: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly status: "draft" | "active" | "paused" | "archived";
+  readonly suggestedAmountsJson: unknown;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly deletedAt: Date | null;
+}
+
 export interface PaymentRecord {
   readonly id: string;
   readonly reference: string;
