@@ -41,6 +41,7 @@ export interface CreatePaymentRecordInput {
 
 export interface PaymentsRepository {
   list(limit?: number): Promise<PaymentRecord[]>;
+  listForBooking(bookingId: string): Promise<PaymentRecord[]>;
   listProviderSettings(): Promise<PaymentProviderSettingsRecord[]>;
   listDonationCampaigns(): Promise<DonationCampaignRecord[]>;
   create(input: CreatePaymentRecordInput): Promise<PaymentRecord>;

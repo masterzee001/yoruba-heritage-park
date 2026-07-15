@@ -55,6 +55,19 @@ export class PaymentRequestService {
     const provider = await this.findProvider(providerCode);
     if (!provider) return { ok: false, message: "Payment provider is not configured." };
 
+    if (input.bookingId) {
+      const existing = await this.paymentsRepository.listForBooking(input.bookingId);
+      const openPayment = existing.find((payment) =>
+        ["pending", "successful", "refund_pending"].includes(payment.status),
+      );
+      if (openPayment) {
+        return {
+          ok: false,
+          message: `Booking already has an open payment request: ${openPayment.reference}.`,
+        };
+      }
+    }
+
     const readiness = evaluatePaymentProviderSettings(provider, this.env);
     if (!readiness.supported) {
       return {

@@ -59,6 +59,12 @@ export interface SaveDonationCampaignInput {
   readonly suggestedAmountsMinor?: number[];
 }
 
+export interface PrepareBookingPaymentRequestInput {
+  readonly bookingId?: string;
+  readonly providerCode?: string;
+  readonly amountMinor?: number;
+}
+
 export const listAdminPayments = createServerFn({ method: "GET" })
   .validator((data: PaymentFilters = {}) => data)
   .handler(async ({ data }) => {
@@ -219,6 +225,66 @@ export const saveDonationCampaign = createServerFn({ method: "POST" })
       },
     });
     return { ok: true, message: "Donation campaign saved." };
+  });
+
+export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
+  .validator((data: PrepareBookingPaymentRequestInput) => data)
+  .handler(async ({ data }) => {
+    if (!data.bookingId) return { ok: false, message: "Booking id is required." };
+    const providerCode = data.providerCode?.trim().toLowerCase() || "paypal";
+    const amountMinor = Math.trunc(data.amountMinor ?? 0);
+    if (!providerCode) return { ok: false, message: "Payment provider is required." };
+    if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+      return { ok: false, message: "Approved payment amount must be greater than zero." };
+    }
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { PaymentRequestService } = await import("../server/payments");
+    const { MysqlAuditLogRepository, MysqlBookingsRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("payments.manage");
+    const booking = await new MysqlBookingsRepository().findById(data.bookingId);
+    if (!booking || booking.deletedAt) return { ok: false, message: "Booking was not found." };
+    if (booking.status === "cancelled" || booking.status === "refunded") {
+      return { ok: false, message: "Payment request cannot be prepared for this booking status." };
+    }
+
+    const repository = new MysqlPaymentsRepository();
+    const result = await new PaymentRequestService(repository).prepare({
+      bookingId: booking.id,
+      payerName: booking.visitorName,
+      payerEmail: booking.visitorEmail,
+      amountMinor,
+      currency: "NGN",
+      providerCode,
+    });
+
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "payments.booking_request.prepare",
+      moduleCode: "payments",
+      recordType: "booking",
+      recordId: booking.id,
+      outcome: result.ok ? "success" : "failed",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        bookingReference: booking.reference,
+        providerCode,
+        amountMinor,
+        paymentReference: result.ok ? result.payment.reference : null,
+        message: result.message,
+      },
+    });
+
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      paymentReference: result.payment.reference,
+      message: `Payment request ${result.payment.reference} prepared. Checkout remains inactive.`,
+    };
   });
 
 function toAdminPayment(payment: {

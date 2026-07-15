@@ -109,18 +109,57 @@ describe("payment request service", () => {
       });
     }
   });
+
+  test("prevents duplicate open booking payment requests", async () => {
+    const existingPayment = makePaymentRecord({
+      reference: "YHP-PAY-EXISTING",
+      bookingId: "booking_1",
+      status: "pending",
+    });
+    const service = new PaymentRequestService(
+      makePaymentsRepository({
+        providers: [
+          makeProviderSettings({
+            providerCode: "paypal",
+            displayName: "PayPal",
+            enabled: true,
+            publicKey: "paypal-client-id",
+            secretReference: "PAYPAL_SECRET_KEY",
+          }),
+        ],
+        payments: [existingPayment],
+      }),
+      { PAYPAL_SECRET_KEY: "secret-value" },
+    );
+
+    const result = await service.prepare({
+      bookingId: "booking_1",
+      payerName: "Visitor Name",
+      amountMinor: 500000,
+      providerCode: "paypal",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toBe("Booking already has an open payment request: YHP-PAY-EXISTING.");
+    }
+  });
 });
 
 function makePaymentsRepository(
   options: {
     providers?: PaymentProviderSettingsRecord[];
+    payments?: PaymentRecord[];
   } = {},
 ): PaymentsRepository {
   const providers = options.providers ?? [];
-  const payments: PaymentRecord[] = [];
+  const payments: PaymentRecord[] = [...(options.payments ?? [])];
   return {
     async list() {
       return payments;
+    },
+    async listForBooking(bookingId: string) {
+      return payments.filter((payment) => payment.bookingId === bookingId);
     },
     async listProviderSettings() {
       return providers;
@@ -161,6 +200,29 @@ function makePaymentsRepository(
     ): Promise<DonationCampaignRecord> {
       throw new Error("Not implemented in test repository.");
     },
+  };
+}
+
+function makePaymentRecord(overrides: Partial<PaymentRecord> = {}): PaymentRecord {
+  return {
+    id: "pay_existing",
+    reference: "YHP-PAY-TEST",
+    bookingId: null,
+    campaignId: null,
+    payerName: "Visitor Name",
+    payerEmail: "visitor@example.test",
+    amountMinor: 500000,
+    currency: "NGN",
+    providerCode: "paypal",
+    providerTransactionReference: null,
+    status: "pending",
+    verificationStatus: "unverified",
+    refundStatus: "none",
+    metadataJson: {},
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    deletedAt: null,
+    ...overrides,
   };
 }
 

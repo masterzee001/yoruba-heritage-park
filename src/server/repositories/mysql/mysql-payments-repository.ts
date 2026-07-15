@@ -84,6 +84,23 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
     }
   }
 
+  async listForBooking(bookingId: string): Promise<PaymentRecord[]> {
+    try {
+      const [rows] = await this.pool.query<PaymentRow[]>(
+        `SELECT id, reference, booking_id, campaign_id, payer_name, payer_email, amount_minor,
+          currency, provider_code, provider_transaction_reference, status, verification_status,
+          refund_status, metadata_json, created_at, updated_at, deleted_at
+         FROM payments
+         WHERE deleted_at IS NULL AND booking_id = ?
+         ORDER BY created_at DESC`,
+        [bookingId],
+      );
+      return rows.map(mapPayment);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
   async listProviderSettings(): Promise<PaymentProviderSettingsRecord[]> {
     try {
       const [rows] = await this.pool.query<PaymentProviderRow[]>(
