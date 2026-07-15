@@ -6,6 +6,11 @@ import type {
 } from "../repositories/repository-types";
 import { evaluatePaymentProviderSettings } from "./index";
 import {
+  initializePaystackTransaction,
+  resolvePaystackConfiguration,
+  type PaystackHttpClient,
+} from "./paystack-client";
+import {
   createPayPalOrder,
   resolvePayPalConfiguration,
   type PayPalHttpClient,
@@ -21,12 +26,13 @@ export interface PaymentCheckoutServiceOptions {
   readonly allowLiveCapture?: boolean;
   readonly env?: Record<string, string | undefined>;
   readonly paypalClient?: PayPalHttpClient;
+  readonly paystackClient?: PaystackHttpClient;
 }
 
 export type PrepareCheckoutResult =
   | {
       readonly ok: true;
-      readonly providerCode: "paypal";
+      readonly providerCode: "paypal" | "paystack";
       readonly paymentReference: string;
       readonly providerOrderId: string;
       readonly checkoutUrl: string | null;
@@ -44,6 +50,7 @@ export class PaymentCheckoutService {
   private readonly allowLiveCapture: boolean;
   private readonly env: Record<string, string | undefined>;
   private readonly paypalClient?: PayPalHttpClient;
+  private readonly paystackClient?: PaystackHttpClient;
 
   constructor(
     private readonly paymentsRepository: PaymentsRepository,
@@ -54,6 +61,7 @@ export class PaymentCheckoutService {
     this.paymentEnabled = options.paymentEnabled ?? serverEnv.payments.checkoutEnabled;
     this.allowLiveCapture = options.allowLiveCapture ?? serverEnv.payments.allowLiveCapture;
     this.paypalClient = options.paypalClient;
+    this.paystackClient = options.paystackClient;
   }
 
   async prepare(input: PrepareCheckoutInput): Promise<PrepareCheckoutResult> {
@@ -75,7 +83,7 @@ export class PaymentCheckoutService {
 
     const provider = await this.findProvider(payment.providerCode);
     if (!provider) return { ok: false, message: "Payment provider is not configured." };
-    if (provider.providerCode !== "paypal") {
+    if (!["paypal", "paystack"].includes(provider.providerCode)) {
       return { ok: false, message: "This payment provider does not support checkout yet." };
     }
     if (provider.mode === "live" && !this.allowLiveCapture) {
@@ -94,6 +102,17 @@ export class PaymentCheckoutService {
       };
     }
 
+    if (provider.providerCode === "paystack") {
+      return this.preparePaystackCheckout(provider, payment);
+    }
+
+    return this.preparePayPalCheckout(provider, payment);
+  }
+
+  private async preparePayPalCheckout(
+    provider: PaymentProviderSettingsRecord,
+    payment: PaymentRecord,
+  ): Promise<PrepareCheckoutResult> {
     const configuration = resolvePayPalConfiguration(provider, this.env);
     if (!configuration.ok || !configuration.credentials) {
       return {
@@ -108,6 +127,7 @@ export class PaymentCheckoutService {
     await this.paymentsRepository.updateCheckoutPreparation(payment.id, {
       providerTransactionReference: order.id,
       metadataJson: buildCheckoutMetadata(payment, {
+        provider: "paypal",
         providerOrderId: order.id,
         checkoutUrl,
         sandbox: configuration.credentials.environment === "sandbox",
@@ -128,6 +148,51 @@ export class PaymentCheckoutService {
     };
   }
 
+  private async preparePaystackCheckout(
+    provider: PaymentProviderSettingsRecord,
+    payment: PaymentRecord,
+  ): Promise<PrepareCheckoutResult> {
+    const configuration = resolvePaystackConfiguration(provider, this.env);
+    if (!configuration.ok || !configuration.credentials) {
+      return {
+        ok: false,
+        message: "Paystack credentials are incomplete.",
+        missingConfiguration: configuration.missingConfiguration,
+      };
+    }
+
+    const initialized = await initializePaystackTransaction(
+      configuration.credentials,
+      payment,
+      this.paystackClient,
+    );
+    const providerReference = initialized.data?.reference ?? payment.reference;
+    const checkoutUrl = initialized.data?.authorization_url ?? null;
+
+    await this.paymentsRepository.updateCheckoutPreparation(payment.id, {
+      providerTransactionReference: providerReference,
+      metadataJson: buildCheckoutMetadata(payment, {
+        provider: "paystack",
+        providerOrderId: providerReference,
+        checkoutUrl,
+        sandbox: provider.mode !== "live",
+      }),
+    });
+
+    return {
+      ok: true,
+      providerCode: "paystack",
+      paymentReference: payment.reference,
+      providerOrderId: providerReference,
+      checkoutUrl,
+      sandbox: provider.mode !== "live",
+      message:
+        provider.mode === "live"
+          ? "Paystack checkout transaction prepared."
+          : "Paystack test checkout transaction prepared.",
+    };
+  }
+
   private async findProvider(providerCode: string): Promise<PaymentProviderSettingsRecord | null> {
     const providers = await this.paymentsRepository.listProviderSettings();
     return providers.find((provider) => provider.providerCode === providerCode) ?? null;
@@ -141,6 +206,7 @@ function findApprovalUrl(order: PayPalOrderResponse): string | null {
 function buildCheckoutMetadata(
   payment: PaymentRecord,
   checkout: {
+    readonly provider: "paypal" | "paystack";
     readonly providerOrderId: string;
     readonly checkoutUrl: string | null;
     readonly sandbox: boolean;
@@ -155,7 +221,7 @@ function buildCheckoutMetadata(
   return {
     ...existing,
     checkout: {
-      provider: "paypal",
+      provider: checkout.provider,
       providerOrderId: checkout.providerOrderId,
       checkoutUrl: checkout.checkoutUrl,
       sandbox: checkout.sandbox,

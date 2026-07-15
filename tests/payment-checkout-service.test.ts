@@ -93,6 +93,51 @@ describe("payment checkout service", () => {
     });
   });
 
+  test("creates a Paystack test checkout transaction for a pending payment", async () => {
+    const fetchCalls: string[] = [];
+    const repository = makePaymentsRepository({
+      providers: [
+        makeProviderSettings({
+          providerCode: "paystack",
+          displayName: "Paystack",
+          publicKey: "pk_test_paystack",
+          secretReference: "PAYSTACK_SECRET_KEY",
+        }),
+      ],
+      payments: [makePaymentRecord({ providerCode: "paystack" })],
+    });
+    const service = new PaymentCheckoutService(repository, {
+      paymentEnabled: true,
+      env: {
+        PAYSTACK_SECRET_KEY: "secret-value",
+      },
+      paystackClient: makePaystackClient(fetchCalls),
+    });
+
+    const result = await service.prepare({ paymentReference: "YHP-PAY-TEST" });
+    const payment = await repository.findByReference("YHP-PAY-TEST");
+
+    expect(result).toEqual({
+      ok: true,
+      providerCode: "paystack",
+      paymentReference: "YHP-PAY-TEST",
+      providerOrderId: "YHP-PAY-TEST",
+      checkoutUrl: "https://checkout.paystack.com/access-code",
+      sandbox: true,
+      message: "Paystack test checkout transaction prepared.",
+    });
+    expect(fetchCalls).toEqual(["https://api.paystack.co/transaction/initialize"]);
+    expect(payment?.providerTransactionReference).toBe("YHP-PAY-TEST");
+    expect(payment?.metadataJson).toMatchObject({
+      checkout: {
+        provider: "paystack",
+        providerOrderId: "YHP-PAY-TEST",
+        checkoutUrl: "https://checkout.paystack.com/access-code",
+        sandbox: true,
+      },
+    });
+  });
+
   test("blocks live checkout unless live capture is explicitly allowed", async () => {
     const service = new PaymentCheckoutService(
       makePaymentsRepository({
@@ -204,6 +249,24 @@ function makePayPalClient(fetchCalls: string[]) {
             method: "GET",
           },
         ],
+      });
+    },
+  };
+}
+
+function makePaystackClient(fetchCalls: string[]) {
+  return {
+    async fetch(input: string | URL): Promise<Response> {
+      const url = String(input);
+      fetchCalls.push(url);
+      return Response.json({
+        status: true,
+        message: "Authorization URL created",
+        data: {
+          authorization_url: "https://checkout.paystack.com/access-code",
+          access_code: "access-code",
+          reference: "YHP-PAY-TEST",
+        },
       });
     },
   };
