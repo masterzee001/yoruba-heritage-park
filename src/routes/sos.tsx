@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ShieldAlert, MapPin, Phone, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { projectStatus } from "@/config/project-status";
@@ -15,6 +15,9 @@ type SOSState =
   | "failed";
 
 export const Route = createFileRoute("/sos")({
+  beforeLoad: () => {
+    if (!projectStatus.sosLiveEnabled) throw redirect({ to: "/" });
+  },
   head: () => ({
     meta: [
       { title: "Visitor SOS — Yoruba Heritage Park" },

@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
+import { projectStatus } from "@/config/project-status";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
@@ -28,7 +29,10 @@ import { adminService } from "@/admin/services";
 import type { AdminSosAlert, SosStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/sos")({
-  beforeLoad: ({ location }) => requireAdminRouteAccess(location),
+  beforeLoad: ({ location }) => {
+    if (!projectStatus.sosLiveEnabled) throw redirect({ to: "/admin" });
+    return requireAdminRouteAccess(location);
+  },
   head: () => ({
     meta: [{ title: "SOS Console — Administrator" }, { name: "robots", content: "noindex" }],
   }),

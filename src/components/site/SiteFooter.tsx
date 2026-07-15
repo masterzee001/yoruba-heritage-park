@@ -31,10 +31,7 @@ const cols = [
   },
   {
     title: "Safety",
-    links: [
-      { to: "/sos", label: "Visitor SOS" },
-      { to: "/faq", label: "Visitor Guidance" },
-    ],
+    links: [{ to: "/faq", label: "Visitor Guidance" }],
   },
 ] as const;
 

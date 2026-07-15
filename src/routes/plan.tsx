@@ -25,7 +25,10 @@ const cards = [
     body: "Booked shuttle transport from selected pick-up points.",
   },
   { title: "Accessibility", body: "Details of accessible routes and services to be confirmed." },
-  { title: "Visitor safety", body: "Visible staff, clear signage and browser-based Visitor SOS." },
+  {
+    title: "Visitor safety",
+    body: "Visitor safety procedures will be published following operational confirmation.",
+  },
   { title: "Dress guidance", body: "Modest, comfortable attire suited to walking outdoors." },
   { title: "What to bring", body: "Water, comfortable footwear, a light head covering." },
   {

@@ -13,7 +13,6 @@ import {
   LifeBuoy,
   ScrollText,
   Settings,
-  ShieldAlert,
   Ticket,
   Users,
   Wallet,
@@ -76,10 +75,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     id: "safety",
     label: "Safety",
-    items: [
-      { to: "/admin/sos", label: "SOS console", icon: ShieldAlert, danger: true },
-      { to: "/admin/incidents", label: "Incidents", icon: LifeBuoy },
-    ],
+    items: [{ to: "/admin/incidents", label: "Incidents", icon: LifeBuoy }],
   },
   {
     id: "governance",

@@ -21,8 +21,8 @@ const FAQS = [
     a: "Photography guidance will be shared on arrival. Sacred spaces may be restricted.",
   },
   {
-    q: "How does the SOS work?",
-    a: "A browser-based Visitor SOS is available from the main navigation.",
+    q: "How is visitor safety handled?",
+    a: "Visitor safety information will be published following operational confirmation.",
   },
 ];
 

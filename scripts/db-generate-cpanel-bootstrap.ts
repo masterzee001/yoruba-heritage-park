@@ -33,8 +33,10 @@ if (!password || Buffer.byteLength(password, "utf8") < 15) {
 const migrations = [
   migration("001_security_governance_schema.sql"),
   migration("002_authentication_sessions.sql"),
+  migration("003_commercial_operations.sql"),
 ];
 const schema = read("database/latest-schema.sql");
+const commercialOperationsSchema = read("database/migrations/003_commercial_operations.sql");
 const seeds = [
   read("database/seeds/001_roles_permissions.sql"),
   read("database/seeds/002_auth_permissions.sql"),
@@ -61,6 +63,9 @@ START TRANSACTION;
 
 -- Approved consolidated schema.
 ${schema}
+
+-- Approved commercial operations schema.
+${commercialOperationsSchema}
 
 -- Approved role and permission seeds.
 ${seeds.join("\n\n")}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CreditCard, RotateCcw, SearchCheck } from "lucide-react";
 import {
   AdminBreadcrumbs,
@@ -21,6 +21,11 @@ import {
   type AdminColumn,
 } from "@/admin/components";
 import { projectStatus } from "@/config/project-status";
+import {
+  listPaymentProviderSettings,
+  savePaymentProviderSettings,
+  type AdminPaymentProviderSettings,
+} from "@/admin/payment-functions";
 import { adminService } from "@/admin/services";
 import type { AdminPayment, PaymentFilters, PaymentStatus, StatusTone } from "@/admin/types";
 
@@ -72,10 +77,22 @@ const columns: AdminColumn<AdminPayment>[] = [
 
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
+  const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<PaymentFilters>({ status: "all" });
   const [notice, setNotice] = useState<string | null>(null);
+  const [providerForm, setProviderForm] = useState({
+    providerCode: "paystack",
+    displayName: "Paystack",
+    mode: "test" as "test" | "live",
+    enabled: false,
+    publicKey: "",
+    secretReference: "PAYSTACK_SECRET_KEY",
+    currency: "NGN",
+    minimumAmountMinor: 0,
+  });
+  const [savingProvider, setSavingProvider] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,12 +111,41 @@ function AdminPaymentsRoute() {
     };
   }, [filters]);
 
+  useEffect(() => {
+    let cancelled = false;
+    listPaymentProviderSettings()
+      .then((list) => !cancelled && setProviders(list))
+      .catch(() => !cancelled && setError("Payment provider settings could not be loaded."));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const selected = useMemo(
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
   const completePreviewAction = () =>
     setNotice("Preview action completed locally. No production record was created.");
+
+  async function handleSaveProvider(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingProvider(true);
+    setNotice(null);
+    try {
+      const result = await savePaymentProviderSettings({ data: providerForm });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setProviders(await listPaymentProviderSettings());
+      setNotice(result.message);
+    } catch {
+      setError("Payment provider settings could not be saved.");
+    } finally {
+      setSavingProvider(false);
+    }
+  }
 
   return (
     <>
@@ -116,9 +162,136 @@ function AdminPaymentsRoute() {
         reason={
           projectStatus.paymentEnabled
             ? undefined
-            : "Paystack, Flutterwave, Stripe and refund processing are not connected."
+            : "Provider configuration can be prepared here, but live capture remains off until operational approval."
         }
       />
+
+      <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Provider configuration</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">
+              Donation and payment providers
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Configure provider metadata and server-side secret references. Raw secret keys should
+              stay in environment variables, not in browser-visible settings.
+            </p>
+          </div>
+          <AdminStatusBadge tone={projectStatus.paymentEnabled ? "warning" : "preview"}>
+            {projectStatus.paymentEnabled ? "Configuration mode" : "Live capture off"}
+          </AdminStatusBadge>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
+          <form className="grid gap-3" onSubmit={handleSaveProvider}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProviderInput
+                label="Provider code"
+                value={providerForm.providerCode}
+                onChange={(value) =>
+                  setProviderForm((current) => ({ ...current, providerCode: value }))
+                }
+              />
+              <ProviderInput
+                label="Display name"
+                value={providerForm.displayName}
+                onChange={(value) =>
+                  setProviderForm((current) => ({ ...current, displayName: value }))
+                }
+              />
+              <label className="grid gap-1.5 text-sm font-medium">
+                Mode
+                <select
+                  value={providerForm.mode}
+                  onChange={(event) =>
+                    setProviderForm((current) => ({
+                      ...current,
+                      mode: event.currentTarget.value as "test" | "live",
+                    }))
+                  }
+                  className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="test">Test</option>
+                  <option value="live">Live</option>
+                </select>
+              </label>
+              <ProviderInput
+                label="Currency"
+                value={providerForm.currency}
+                onChange={(value) =>
+                  setProviderForm((current) => ({ ...current, currency: value }))
+                }
+              />
+              <ProviderInput
+                label="Public key"
+                value={providerForm.publicKey}
+                onChange={(value) =>
+                  setProviderForm((current) => ({ ...current, publicKey: value }))
+                }
+              />
+              <ProviderInput
+                label="Secret env reference"
+                value={providerForm.secretReference}
+                onChange={(value) =>
+                  setProviderForm((current) => ({ ...current, secretReference: value }))
+                }
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={providerForm.enabled}
+                onChange={(event) =>
+                  setProviderForm((current) => ({
+                    ...current,
+                    enabled: event.currentTarget.checked,
+                  }))
+                }
+              />
+              Enable provider for future payment flows
+            </label>
+            <button
+              type="submit"
+              disabled={savingProvider}
+              className="w-fit rounded-sm bg-forest-deep px-4 py-2 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingProvider ? "Saving provider" : "Save provider settings"}
+            </button>
+          </form>
+
+          <div className="rounded-sm border border-border bg-cream/30 p-4">
+            <h3 className="font-serif text-lg text-forest-deep">Configured providers</h3>
+            {!providers ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading provider settings...</p>
+            ) : providers.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No providers configured.</p>
+            ) : (
+              <ul className="mt-3 grid gap-2 text-sm">
+                {providers.map((provider) => (
+                  <li
+                    key={provider.id}
+                    className="rounded-sm border border-border bg-background p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium">{provider.displayName}</span>
+                      <AdminStatusBadge tone={provider.enabled ? "success" : "muted"}>
+                        {provider.enabled ? "Enabled" : "Disabled"}
+                      </AdminStatusBadge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {provider.providerCode} · {provider.mode} · {provider.currency}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Secret reference: {provider.secretReference ?? "Not set"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
 
       <AdminFilterBar>
         <AdminSearchInput
@@ -264,6 +437,27 @@ function AdminPaymentsRoute() {
         </div>
       )}
     </>
+  );
+}
+
+function ProviderInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-1.5 text-sm font-medium">
+      {label}
+      <input
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
+      />
+    </label>
   );
 }
 

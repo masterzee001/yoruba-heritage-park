@@ -151,20 +151,13 @@ function AdminAuditLogsRoute() {
           aria-label="Module"
         >
           <option value="all">All modules</option>
-          {[
-            "dashboard",
-            "content",
-            "sos",
-            "incidents",
-            "users",
-            "roles",
-            "settings",
-            "audit_logs",
-          ].map((module) => (
-            <option key={module} value={module}>
-              {module}
-            </option>
-          ))}
+          {["dashboard", "content", "incidents", "users", "roles", "settings", "audit_logs"].map(
+            (module) => (
+              <option key={module} value={module}>
+                {module}
+              </option>
+            ),
+          )}
         </select>
         <input
           type="date"

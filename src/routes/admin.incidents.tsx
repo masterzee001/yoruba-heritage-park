@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckCircle2, FileText, ShieldAlert, UserCheck } from "lucide-react";
+import { CheckCircle2, FileText, UserCheck } from "lucide-react";
 import {
   AdminBreadcrumbs,
   AdminConfirmationDialog,
@@ -259,8 +259,8 @@ function AdminIncidentsRoute() {
                 <DetailRow label="Acknowledged">
                   {selected.acknowledgedAt ?? "Not acknowledged"}
                 </DetailRow>
-                <DetailRow label="Related SOS">
-                  {selected.relatedSosReference ?? "No related SOS"}
+                <DetailRow label="Related safety alert">
+                  {selected.relatedSosReference ?? "No related safety alert"}
                 </DetailRow>
                 <DetailRow label="Evidence">{selected.evidencePlaceholder}</DetailRow>
                 <DetailRow label="Response notes">{selected.responseNotes}</DetailRow>
@@ -277,7 +277,7 @@ function AdminIncidentsRoute() {
                   Local assignment preview
                 </PreviewButton>
                 <PreviewButton
-                  icon={<ShieldAlert className="size-3.5" />}
+                  icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
                   Local acknowledgement preview
