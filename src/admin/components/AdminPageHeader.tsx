@@ -24,7 +24,9 @@ export function AdminPageHeader({ eyebrow, title, description, actions, meta }: 
         {meta ? <div className="mt-3 text-xs text-muted-foreground">{meta}</div> : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">{actions}</div>
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+          {actions}
+        </div>
       ) : null}
     </header>
   );

@@ -56,9 +56,7 @@ export function AdminDataTable<T>({
     <>
       <div className="hidden overflow-x-auto rounded-sm border border-border bg-background shadow-[0_1px_0_rgba(0,0,0,0.02)] md:block">
         <table className="w-full text-left text-sm">
-          {caption ? (
-            <caption className="sr-only">{caption}</caption>
-          ) : null}
+          {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead className="bg-cream/50 text-[11px] uppercase tracking-widest text-muted-foreground">
             <tr className="border-b border-border">
               {columns.map((c) => (
