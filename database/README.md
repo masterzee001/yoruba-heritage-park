@@ -11,3 +11,7 @@ only from a trusted local or shell environment with the database variables confi
 If cPanel shell access is unavailable, import `latest-schema.sql` through phpMyAdmin,
 then import the seed SQL file separately if the phpMyAdmin client does not support
 the `SOURCE` directive.
+
+# Authentication Migration
+
+Migration `002_authentication_sessions.sql` adds database-backed administrator sessions and login-attempt tracking. No administrator is seeded. Authentication remains disabled by default until the cPanel MySQL database is created, migrations and seeds are applied, and the first administrator is provisioned securely.

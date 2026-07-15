@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { AdminMobileNavigation } from "./AdminMobileNavigation";
 import { ADMIN_NAV_FLAT } from "../nav";
 
@@ -7,12 +7,16 @@ interface Props {
   operatorName?: string;
   operatorInitials?: string;
   operatorRoleLabel?: string;
+  showLogout?: boolean;
+  onLogout?: () => void;
 }
 
 export function AdminHeader({
   operatorName = "Sample Operator",
   operatorInitials = "SO",
   operatorRoleLabel = "Preview session",
+  showLogout = false,
+  onLogout,
 }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const current =
@@ -53,6 +57,16 @@ export function AdminHeader({
         >
           {operatorInitials}
         </span>
+        {showLogout ? (
+          <button
+            type="button"
+            onClick={onLogout}
+            className="admin-focus inline-flex size-9 items-center justify-center rounded-sm border border-border text-muted-foreground hover:text-forest-deep"
+            aria-label="Log out"
+          >
+            <LogOut className="size-4" aria-hidden />
+          </button>
+        ) : null}
       </div>
     </header>
   );

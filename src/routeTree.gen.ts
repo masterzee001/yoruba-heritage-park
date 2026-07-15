@@ -37,6 +37,7 @@ import { Route as AdminRolesRouteImport } from './routes/admin.roles'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminOrikiRouteImport } from './routes/admin.oriki'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminLearningRouteImport } from './routes/admin.learning'
 import { Route as AdminIncidentsRouteImport } from './routes/admin.incidents'
 import { Route as AdminExperiencesRouteImport } from './routes/admin.experiences'
@@ -189,6 +190,11 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
   path: '/media',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLearningRoute = AdminLearningRouteImport.update({
   id: '/learning',
   path: '/learning',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/admin/experiences': typeof AdminExperiencesRoute
   '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -310,6 +317,7 @@ export interface FileRoutesByTo {
   '/admin/experiences': typeof AdminExperiencesRoute
   '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -352,6 +360,7 @@ export interface FileRoutesById {
   '/admin/experiences': typeof AdminExperiencesRoute
   '/admin/incidents': typeof AdminIncidentsRoute
   '/admin/learning': typeof AdminLearningRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
   '/admin/oriki': typeof AdminOrikiRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -395,6 +404,7 @@ export interface FileRouteTypes {
     | '/admin/experiences'
     | '/admin/incidents'
     | '/admin/learning'
+    | '/admin/login'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/admin/experiences'
     | '/admin/incidents'
     | '/admin/learning'
+    | '/admin/login'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
@@ -476,6 +487,7 @@ export interface FileRouteTypes {
     | '/admin/experiences'
     | '/admin/incidents'
     | '/admin/learning'
+    | '/admin/login'
     | '/admin/media'
     | '/admin/oriki'
     | '/admin/payments'
@@ -711,6 +723,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMediaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/learning': {
       id: '/admin/learning'
       path: '/learning'
@@ -803,6 +822,7 @@ interface AdminRouteChildren {
   AdminExperiencesRoute: typeof AdminExperiencesRoute
   AdminIncidentsRoute: typeof AdminIncidentsRoute
   AdminLearningRoute: typeof AdminLearningRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
   AdminOrikiRoute: typeof AdminOrikiRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -827,6 +847,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExperiencesRoute: AdminExperiencesRoute,
   AdminIncidentsRoute: AdminIncidentsRoute,
   AdminLearningRoute: AdminLearningRoute,
+  AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
   AdminOrikiRoute: AdminOrikiRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,

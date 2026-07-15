@@ -79,6 +79,51 @@ export class MysqlRolesRepository implements RolesRepository {
       throw toDatabaseError(error);
     }
   }
+
+  async listRolesForUser(userId: string): Promise<RoleRecord[]> {
+    try {
+      const [rows] = await this.pool.query<RoleRow[]>(
+        `SELECT r.id, r.role_code, r.display_name, r.description, r.is_system_role, r.created_at, r.updated_at
+         FROM roles r
+         INNER JOIN user_roles ur ON ur.role_id = r.id
+         WHERE ur.user_id = ?
+         ORDER BY r.display_name ASC`,
+        [requireId(userId)],
+      );
+      return rows.map(mapRole);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async listPermissionsForUser(userId: string): Promise<PermissionRecord[]> {
+    try {
+      const [rows] = await this.pool.query<PermissionRow[]>(
+        `SELECT DISTINCT p.id, p.permission_code, p.module_code, p.action_code, p.description, p.created_at
+         FROM permissions p
+         INNER JOIN role_permissions rp ON rp.permission_id = p.id
+         INNER JOIN user_roles ur ON ur.role_id = rp.role_id
+         WHERE ur.user_id = ?
+         ORDER BY p.permission_code ASC`,
+        [requireId(userId)],
+      );
+      return rows.map(mapPermission);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async permissionExists(permissionCode: string): Promise<boolean> {
+    try {
+      const [rows] = await this.pool.query<PermissionRow[]>(
+        "SELECT id, permission_code, module_code, action_code, description, created_at FROM permissions WHERE permission_code = ? LIMIT 1",
+        [requireCode(permissionCode)],
+      );
+      return rows.length > 0;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
 }
 
 function mapRole(row: RoleRow): RoleRecord {

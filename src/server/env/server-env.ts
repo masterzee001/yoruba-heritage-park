@@ -1,11 +1,23 @@
 import { z } from "zod";
 
 export type AdminDataSource = "mock" | "mysql";
+export type AuthMode = "disabled" | "database";
 export type DatabaseSslMode = "disabled" | "preferred" | "required";
 
 export interface ServerEnv {
   readonly nodeEnv: string;
   readonly adminDataSource: AdminDataSource;
+  readonly auth: {
+    readonly mode: AuthMode;
+    readonly sessionCookieName: string;
+    readonly sessionIdleMinutes: number;
+    readonly sessionAbsoluteHours: number;
+    readonly loginWindowMinutes: number;
+    readonly maxLoginAttempts: number;
+    readonly accountLockMinutes: number;
+    readonly passwordMinLength: number;
+    readonly trustProxy: boolean;
+  };
   readonly database: {
     readonly host?: string;
     readonly port: number;
@@ -46,6 +58,11 @@ const integerFromEnv = (defaultValue: number, minimum: number, maximum: number) 
     emptyToUndefined,
     z.coerce.number().int().min(minimum).max(maximum).default(defaultValue),
   );
+const booleanFromEnv = (defaultValue: boolean) =>
+  z.preprocess(emptyToUndefined, z.coerce.boolean().default(defaultValue));
+const cookieNameSchema = z
+  .preprocess(emptyToUndefined, z.string().trim().min(1).max(64).default("yhp_admin"))
+  .refine((value) => /^[A-Za-z0-9_-]+$/.test(value), "Cookie name is invalid.");
 
 const baseEnvSchema = z.object({
   NODE_ENV: z.preprocess(emptyToUndefined, z.string().trim().min(1).default("development")),
@@ -61,6 +78,17 @@ const baseEnvSchema = z.object({
   DATABASE_SSL_MODE: z
     .preprocess(emptyToUndefined, z.enum(["disabled", "preferred", "required"]).default("disabled"))
     .default("disabled"),
+  AUTH_MODE: z
+    .preprocess(emptyToUndefined, z.enum(["disabled", "database"]).default("disabled"))
+    .default("disabled"),
+  AUTH_SESSION_COOKIE_NAME: cookieNameSchema,
+  AUTH_SESSION_IDLE_MINUTES: integerFromEnv(30, 5, 240),
+  AUTH_SESSION_ABSOLUTE_HOURS: integerFromEnv(8, 1, 72),
+  AUTH_LOGIN_WINDOW_MINUTES: integerFromEnv(15, 1, 120),
+  AUTH_MAX_LOGIN_ATTEMPTS: integerFromEnv(5, 3, 20),
+  AUTH_ACCOUNT_LOCK_MINUTES: integerFromEnv(15, 1, 1440),
+  AUTH_PASSWORD_MIN_LENGTH: integerFromEnv(15, 12, 128),
+  AUTH_TRUST_PROXY: booleanFromEnv(true),
 });
 
 const requiredDatabaseVariables = [
@@ -83,7 +111,10 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
   }
 
   const env = parsed.data;
-  const mysqlRequired = options.requireDatabase === true || env.ADMIN_DATA_SOURCE === "mysql";
+  const mysqlRequired =
+    options.requireDatabase === true ||
+    env.ADMIN_DATA_SOURCE === "mysql" ||
+    env.AUTH_MODE === "database";
   const missingVariables = mysqlRequired
     ? requiredDatabaseVariables.filter((name) => !env[name])
     : [];
@@ -97,6 +128,17 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
   return {
     nodeEnv: env.NODE_ENV,
     adminDataSource: env.ADMIN_DATA_SOURCE,
+    auth: {
+      mode: env.AUTH_MODE,
+      sessionCookieName: env.AUTH_SESSION_COOKIE_NAME,
+      sessionIdleMinutes: env.AUTH_SESSION_IDLE_MINUTES,
+      sessionAbsoluteHours: env.AUTH_SESSION_ABSOLUTE_HOURS,
+      loginWindowMinutes: env.AUTH_LOGIN_WINDOW_MINUTES,
+      maxLoginAttempts: env.AUTH_MAX_LOGIN_ATTEMPTS,
+      accountLockMinutes: env.AUTH_ACCOUNT_LOCK_MINUTES,
+      passwordMinLength: env.AUTH_PASSWORD_MIN_LENGTH,
+      trustProxy: env.AUTH_TRUST_PROXY,
+    },
     database: {
       host: env.DATABASE_HOST,
       port: env.DATABASE_PORT,
@@ -116,7 +158,7 @@ export function validateServerEnv(options: ServerEnvOptions = {}): { ok: true } 
 
 function assertNoViteDatabaseVariables(source: NodeJS.ProcessEnv): void {
   const invalidVariables = Object.keys(source).filter(
-    (key) => key.startsWith("VITE_") && key.includes("DATABASE"),
+    (key) => key.startsWith("VITE_") && (key.includes("DATABASE") || key.includes("AUTH")),
   );
 
   if (invalidVariables.length > 0) {

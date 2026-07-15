@@ -239,3 +239,7 @@ Not modified:
 ## Next Task
 
 **Implement administrator authentication, secure sessions and server-enforced role-based authorisation using the approved MySQL repository foundation.**
+
+# Authentication Status
+
+Authentication code is implemented but remains disabled by default. The administrator portal still uses mock operational data. Do not treat preview users, preview roles or preview audit entries as production records.

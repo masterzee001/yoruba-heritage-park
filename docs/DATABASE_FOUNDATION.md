@@ -139,3 +139,7 @@ This phase does not include down migrations. Rollback is by restoring a verified
 ## Next Backend Task
 
 **Implement administrator authentication, secure sessions and server-enforced role-based authorisation using the approved MySQL repository foundation.**
+
+# Authentication Status
+
+Authentication code is implemented but remains disabled by default. The administrator portal still uses mock operational data. The authentication tables are present in migration `002_authentication_sessions.sql`; activation requires a deliberate database deployment and administrator provisioning task.
