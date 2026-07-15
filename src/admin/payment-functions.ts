@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { isSupportedPaymentCurrency, normalisePaymentCurrency } from "../config/payment-currencies";
 import type { AdminPayment, PaymentFilters } from "./types";
 
 export interface AdminPaymentProviderSettings {
@@ -63,6 +64,7 @@ export interface PrepareBookingPaymentRequestInput {
   readonly bookingId?: string;
   readonly providerCode?: string;
   readonly amountMinor?: number;
+  readonly currency?: string;
 }
 
 export const listAdminPayments = createServerFn({ method: "GET" })
@@ -132,7 +134,11 @@ export const savePaymentProviderSettings = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const providerCode = data.providerCode?.trim().toLowerCase();
     const displayName = data.displayName?.trim();
-    const currency = data.currency?.trim().toUpperCase() || "NGN";
+    const requestedCurrency = data.currency?.trim().toUpperCase() || "NGN";
+    if (!isSupportedPaymentCurrency(requestedCurrency)) {
+      return { ok: false, message: "Currency must be NGN or USD." };
+    }
+    const currency = normalisePaymentCurrency(requestedCurrency);
     if (!providerCode || !/^[a-z0-9_]+$/.test(providerCode)) {
       return {
         ok: false,
@@ -140,7 +146,6 @@ export const savePaymentProviderSettings = createServerFn({ method: "POST" })
       };
     }
     if (!displayName) return { ok: false, message: "Provider display name is required." };
-    if (currency.length !== 3) return { ok: false, message: "Currency must be a 3-letter code." };
 
     const { MysqlAuditLogRepository, MysqlPaymentsRepository } =
       await import("../server/repositories/mysql");
@@ -233,9 +238,14 @@ export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
     if (!data.bookingId) return { ok: false, message: "Booking id is required." };
     const providerCode = data.providerCode?.trim().toLowerCase() || "paypal";
     const amountMinor = Math.trunc(data.amountMinor ?? 0);
+    const requestedCurrency = data.currency?.trim().toUpperCase() || "NGN";
+    const currency = normalisePaymentCurrency(requestedCurrency);
     if (!providerCode) return { ok: false, message: "Payment provider is required." };
     if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
       return { ok: false, message: "Approved payment amount must be greater than zero." };
+    }
+    if (!isSupportedPaymentCurrency(requestedCurrency)) {
+      return { ok: false, message: "Payment currency must be NGN or USD." };
     }
 
     const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
@@ -256,7 +266,7 @@ export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
       payerName: booking.visitorName,
       payerEmail: booking.visitorEmail,
       amountMinor,
-      currency: "NGN",
+      currency,
       providerCode,
     });
 
@@ -274,6 +284,7 @@ export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
         bookingReference: booking.reference,
         providerCode,
         amountMinor,
+        currency,
         paymentReference: result.ok ? result.payment.reference : null,
         message: result.message,
       },
@@ -308,7 +319,7 @@ function toAdminPayment(payment: {
     bookingReference: payment.bookingId ?? payment.campaignId ?? "Unlinked record",
     visitorName: payment.payerName,
     amountNgn: payment.amountMinor / 100,
-    currency: "NGN",
+    currency: payment.currency,
     provider: payment.providerCode,
     status: payment.status,
     verificationStatus: payment.verificationStatus,

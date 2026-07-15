@@ -23,6 +23,7 @@ export interface AdminBooking extends DemoRecord {
   durationOfStayDays?: number;
   guests: number;
   amountNgn: number;
+  currency: string;
   paymentState: "unpaid" | "pending" | "paid" | "refunded" | "not_applicable";
   status: BookingStatus;
   checkedIn: boolean;

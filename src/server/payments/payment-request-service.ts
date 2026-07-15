@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 
+import {
+  isSupportedPaymentCurrency,
+  normalisePaymentCurrency,
+} from "../../config/payment-currencies";
 import { projectStatus } from "../../config/project-status";
 import type { PaymentsRepository } from "../repositories/payments-repository";
 import type {
@@ -47,9 +51,10 @@ export class PaymentRequestService {
       return { ok: false, message: "Payment amount must be greater than zero." };
     }
 
-    const currency = (input.currency ?? "NGN").trim().toUpperCase();
-    if (currency !== "NGN")
-      return { ok: false, message: "Only NGN payment requests are supported." };
+    if (!isSupportedPaymentCurrency(input.currency ?? "NGN")) {
+      return { ok: false, message: "Payment currency must be NGN or USD." };
+    }
+    const currency = normalisePaymentCurrency(input.currency);
 
     const providerCode = input.providerCode.trim().toLowerCase();
     const provider = await this.findProvider(providerCode);

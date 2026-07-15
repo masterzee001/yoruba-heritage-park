@@ -23,6 +23,7 @@ import {
 import { prepareBookingPaymentRequest } from "@/admin/payment-functions";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import type { AdminBooking, BookingStatus, StatusTone } from "@/admin/types";
+import { supportedPaymentCurrencies } from "@/config/payment-currencies";
 
 export const Route = createFileRoute("/admin/bookings")({
   beforeLoad: ({ location }) => requireAdminRouteAccess(location),
@@ -83,6 +84,7 @@ function AdminBookingsRoute() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [actioning, setActioning] = useState<"confirm" | "cancel" | "complete" | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCurrency, setPaymentCurrency] = useState("NGN");
   const [paymentProvider, setPaymentProvider] = useState("paypal");
   const [preparingPayment, setPreparingPayment] = useState(false);
 
@@ -113,7 +115,8 @@ function AdminBookingsRoute() {
   useEffect(() => {
     setInternalNotes(selected?.internalNotes ?? "");
     setPaymentAmount(selected?.amountNgn ? String(selected.amountNgn) : "");
-  }, [selected?.id, selected?.internalNotes, selected?.amountNgn]);
+    setPaymentCurrency(selected?.currency ?? "NGN");
+  }, [selected?.id, selected?.internalNotes, selected?.amountNgn, selected?.currency]);
 
   function replaceRecord(booking: AdminBooking) {
     setRecords((current) => current?.map((row) => (row.id === booking.id ? booking : row)) ?? null);
@@ -176,6 +179,7 @@ function AdminBookingsRoute() {
           bookingId: selected.id,
           providerCode: paymentProvider,
           amountMinor,
+          currency: paymentCurrency,
         },
       });
       if (!result.ok) {
@@ -297,9 +301,9 @@ function AdminBookingsRoute() {
                     provider transaction is created.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <label className="grid gap-1.5 text-sm font-medium text-charcoal">
-                    Approved amount NGN
+                    Approved amount
                     <input
                       type="number"
                       min={1}
@@ -309,6 +313,20 @@ function AdminBookingsRoute() {
                       className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder="Enter approved amount"
                     />
+                  </label>
+                  <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                    Currency
+                    <select
+                      value={paymentCurrency}
+                      onChange={(event) => setPaymentCurrency(event.currentTarget.value)}
+                      className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                    >
+                      {supportedPaymentCurrencies.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.code} - {currency.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="grid gap-1.5 text-sm font-medium text-charcoal">
                     Provider

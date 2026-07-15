@@ -15,7 +15,7 @@ export interface AdminPayment extends DemoRecord {
   bookingReference: string;
   visitorName: string;
   amountNgn: number;
-  currency: "NGN";
+  currency: string;
   provider: string;
   status: PaymentStatus;
   verificationStatus: "unverified" | "review_required" | "preview_verified" | "not_applicable";

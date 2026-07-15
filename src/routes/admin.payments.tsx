@@ -21,6 +21,7 @@ import {
   type AdminColumn,
 } from "@/admin/components";
 import { projectStatus } from "@/config/project-status";
+import { supportedPaymentCurrencies } from "@/config/payment-currencies";
 import {
   listAdminPayments,
   listDonationCampaigns,
@@ -279,13 +280,25 @@ function AdminPaymentsRoute() {
                   <option value="live">Live</option>
                 </select>
               </label>
-              <ProviderInput
-                label="Currency"
-                value={providerForm.currency}
-                onChange={(value) =>
-                  setProviderForm((current) => ({ ...current, currency: value }))
-                }
-              />
+              <label className="grid gap-1.5 text-sm font-medium">
+                Currency
+                <select
+                  value={providerForm.currency}
+                  onChange={(event) =>
+                    setProviderForm((current) => ({
+                      ...current,
+                      currency: event.currentTarget.value,
+                    }))
+                  }
+                  className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                >
+                  {supportedPaymentCurrencies.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.code} - {currency.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <ProviderInput
                 label="Public key"
                 value={providerForm.publicKey}

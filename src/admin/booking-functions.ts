@@ -138,6 +138,7 @@ function toAdminBooking(booking: {
   readonly durationOfStayDays: number | null;
   readonly guests: number;
   readonly amountMinor: number;
+  readonly currency: string;
   readonly paymentState: AdminBooking["paymentState"];
   readonly status: AdminBooking["status"];
   readonly checkedInAt: Date | null;
@@ -157,6 +158,7 @@ function toAdminBooking(booking: {
     durationOfStayDays: booking.durationOfStayDays ?? undefined,
     guests: booking.guests,
     amountNgn: booking.amountMinor / 100,
+    currency: booking.currency,
     paymentState: booking.paymentState,
     status: booking.status,
     checkedIn: Boolean(booking.checkedInAt),

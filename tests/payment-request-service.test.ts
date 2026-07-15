@@ -110,6 +110,52 @@ describe("payment request service", () => {
     }
   });
 
+  test("supports USD payment requests for international visitors", async () => {
+    const repository = makePaymentsRepository({
+      providers: [
+        makeProviderSettings({
+          providerCode: "paypal",
+          displayName: "PayPal",
+          enabled: true,
+          publicKey: "paypal-client-id",
+          secretReference: "PAYPAL_SECRET_KEY",
+          currency: "USD",
+        }),
+      ],
+    });
+    const service = new PaymentRequestService(repository, { PAYPAL_SECRET_KEY: "secret-value" });
+
+    const result = await service.prepare({
+      campaignId: "campaign_1",
+      payerName: "International Visitor",
+      payerEmail: "visitor@example.test",
+      amountMinor: 2500,
+      currency: "USD",
+      providerCode: "paypal",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.payment.currency).toBe("USD");
+      expect(result.payment.amountMinor).toBe(2500);
+      expect(result.checkoutAvailable).toBe(false);
+    }
+  });
+
+  test("rejects unsupported currencies", async () => {
+    const service = new PaymentRequestService(makePaymentsRepository(), {});
+
+    expect(
+      await service.prepare({
+        bookingId: "booking_1",
+        payerName: "Visitor",
+        amountMinor: 500000,
+        currency: "EUR",
+        providerCode: "paypal",
+      }),
+    ).toMatchObject({ ok: false, message: "Payment currency must be NGN or USD." });
+  });
+
   test("prevents duplicate open booking payment requests", async () => {
     const existingPayment = makePaymentRecord({
       reference: "YHP-PAY-EXISTING",
