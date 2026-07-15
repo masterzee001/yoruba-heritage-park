@@ -87,6 +87,98 @@ describe("payment webhook service", () => {
       verificationStatus: "unverified",
     });
   });
+
+  test("records verified Paystack webhook events for manual review", async () => {
+    const payment = makePaymentRecord({
+      providerCode: "paystack",
+      providerTransactionReference: "YHP-PAY-TEST",
+    });
+    const repository = makePaymentsRepository({ payments: [payment] });
+    const service = new PaymentWebhookService(repository);
+
+    const result = await service.record({
+      providerCode: "paystack",
+      signatureVerification: {
+        ok: true,
+        providerCode: "paystack",
+        scheme: "hmac-sha512",
+      },
+      payload: {
+        event: "charge.success",
+        data: {
+          id: 123456,
+          reference: "YHP-PAY-TEST",
+          metadata: { paymentReference: "YHP-PAY-TEST" },
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      matchedPayment: { reference: "YHP-PAY-TEST", status: "pending" },
+    });
+    expect(repository.events[0]).toMatchObject({
+      providerCode: "paystack",
+      providerEventId: "YHP-PAY-TEST",
+      eventType: "charge.success",
+      paymentId: "pay_test",
+      paymentReference: "YHP-PAY-TEST",
+      processingStatus: "review_required",
+      verificationStatus: "verified",
+    });
+    expect(repository.events[0].payloadJson).toMatchObject({
+      yhpProcessing: {
+        signatureVerification: { ok: true, providerCode: "paystack" },
+        statusMutationApplied: false,
+      },
+    });
+    expect(payment.status).toBe("pending");
+  });
+
+  test("records failed Stripe signature verification without changing payment status", async () => {
+    const payment = makePaymentRecord({
+      providerCode: "stripe",
+      providerTransactionReference: "cs_test_123",
+    });
+    const repository = makePaymentsRepository({ payments: [payment] });
+    const service = new PaymentWebhookService(repository);
+
+    const result = await service.record({
+      providerCode: "stripe",
+      signatureVerification: {
+        ok: false,
+        providerCode: "stripe",
+        scheme: "stripe-v1",
+        reason: "Stripe webhook signature mismatch.",
+      },
+      payload: {
+        id: "evt_123",
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: "cs_test_123",
+            client_reference_id: "YHP-PAY-TEST",
+            metadata: { paymentReference: "YHP-PAY-TEST" },
+          },
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      matchedPayment: { reference: "YHP-PAY-TEST", status: "pending" },
+    });
+    expect(repository.events[0]).toMatchObject({
+      providerCode: "stripe",
+      providerEventId: "evt_123",
+      eventType: "checkout.session.completed",
+      paymentId: "pay_test",
+      paymentReference: "YHP-PAY-TEST",
+      processingStatus: "review_required",
+      verificationStatus: "failed",
+    });
+    expect(payment.status).toBe("pending");
+  });
 });
 
 interface TestPaymentsRepository extends PaymentsRepository {
