@@ -10,15 +10,16 @@ export function AdminMobileNavigation() {
       <SheetTrigger asChild>
         <button
           type="button"
-          className="grid size-9 place-items-center rounded-sm border border-border bg-background text-charcoal lg:hidden"
+          className="admin-focus grid size-10 place-items-center rounded-sm border border-border bg-background text-charcoal transition hover:border-forest lg:hidden"
           aria-label="Open admin navigation"
+          aria-expanded={open}
         >
-          <Menu className="size-4" aria-hidden />
+          <Menu className="size-5" aria-hidden />
         </button>
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-[280px] border-r border-ivory/10 bg-forest-deep p-0 text-ivory"
+        className="w-[280px] max-w-[85vw] border-r border-ivory/10 bg-forest-deep p-0 text-ivory"
       >
         <SheetTitle className="sr-only">Admin navigation</SheetTitle>
         <AdminSidebar compact onNavigate={() => setOpen(false)} />
