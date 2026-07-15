@@ -13,6 +13,7 @@
     "db:check": "bun scripts/db-check.ts",
     "db:status": "bun scripts/db-status.ts",
     "db:migrate": "bun scripts/db-migrate.ts",
+    "db:generate-cpanel-bootstrap": "bun scripts/db-generate-cpanel-bootstrap.ts",
     "auth:hash-password": "bun scripts/auth-hash-password.ts",
     "auth:create-admin": "bun scripts/auth-create-admin.ts",
     "auth:generate-bootstrap-sql": "bun scripts/auth-generate-bootstrap-sql.ts",

@@ -1,16 +1,19 @@
 import { Outlet, createFileRoute, redirect, useRouterState } from "@tanstack/react-router";
 import { AdminShell } from "@/admin/components";
-import { getAdminAuthState } from "@/admin/auth-functions";
+import { getAdminRouteAccess } from "@/admin/auth-functions";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
     if (location.pathname === "/admin/login") return;
-    const auth = await getAdminAuthState();
-    if (auth.mode === "database") {
+    const auth = await getAdminRouteAccess({ data: { pathname: location.pathname } });
+    if (auth.authenticationActive && !auth.authenticated) {
       throw redirect({
         to: "/admin/login",
         search: { returnTo: location.href },
       });
+    }
+    if (auth.forbidden) {
+      throw new Error("Forbidden");
     }
   },
   head: () => ({

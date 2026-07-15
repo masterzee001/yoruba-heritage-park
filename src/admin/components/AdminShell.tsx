@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { getAdminAuthState, submitAdminLogout } from "@/admin/auth-functions";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 
@@ -14,6 +16,19 @@ interface Props {
  * `__root.tsx` already skips them when the pathname starts with `/admin`.
  */
 export function AdminShell({ children }: Props) {
+  const navigate = useNavigate();
+  const [auth, setAuth] = useState<Awaited<ReturnType<typeof getAdminAuthState>> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAdminAuthState().then((state) => {
+      if (!cancelled) setAuth(state);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-dvh bg-[oklch(0.97_0.005_150)] text-charcoal">
       <div className="grid min-h-dvh lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -24,7 +39,16 @@ export function AdminShell({ children }: Props) {
         </aside>
 
         <div className="flex min-w-0 flex-col">
-          <AdminHeader />
+          <AdminHeader
+            operatorName={auth?.principal?.displayName}
+            operatorInitials={auth?.principal?.initials}
+            operatorRoleLabel={auth?.principal?.roleLabels[0]}
+            showLogout={auth?.authenticationActive === true}
+            onLogout={async () => {
+              const result = await submitAdminLogout();
+              if (result.redirectTo) await navigate({ to: result.redirectTo });
+            }}
+          />
           <main
             id="admin-main"
             className="min-w-0 flex-1 space-y-6 overflow-x-hidden p-4 md:p-8 lg:p-10"

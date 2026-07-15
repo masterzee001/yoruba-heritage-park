@@ -1,6 +1,6 @@
 # Authentication and Authorization
 
-Authentication implementation is complete, secure-session implementation is complete, and server authorization implementation is complete. Authentication activation is pending. First administrator provisioning is pending. Operational database integration is pending.
+Authentication implementation is complete, secure-session implementation is complete, and server authorization implementation is complete. cPanel preview authentication is prepared but not activated. First administrator provisioning is pending. Operational database integration is pending.
 
 ## Architecture
 
@@ -94,6 +94,14 @@ bun run auth:generate-bootstrap-sql --email admin@example.com --display-name "Ad
 ```
 
 The bootstrap SQL workflow supports phpMyAdmin. Generated `auth-bootstrap-*.sql` files are ignored by Git and must be deleted securely after use.
+
+For a full cPanel preview import, prefer:
+
+```bash
+bun run db:generate-cpanel-bootstrap --email admin@example.com --display-name "Admin Name"
+```
+
+That bundle includes schema, seeds, migration tracking records and one deliberate administrator insert in `.local/cpanel-auth-bootstrap.sql`.
 
 ## cPanel and HTTPS
 

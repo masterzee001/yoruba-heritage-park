@@ -142,4 +142,4 @@ This phase does not include down migrations. Rollback is by restoring a verified
 
 # Authentication Status
 
-Authentication code is implemented but remains disabled by default. The administrator portal still uses mock operational data. The authentication tables are present in migration `002_authentication_sessions.sql`; activation requires a deliberate database deployment and administrator provisioning task.
+Authentication code is implemented and cPanel preview activation is prepared but not activated. The administrator portal still uses mock operational data. The authentication tables are present in migration `002_authentication_sessions.sql`; activation requires cPanel database creation, phpMyAdmin bootstrap import, environment configuration, Passenger restart and smoke testing.

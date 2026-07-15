@@ -61,7 +61,7 @@ function AdminLoginRoute() {
             setSubmitting(false);
             if (result.ok) {
               await navigate({
-                to: search.returnTo.startsWith("/admin") ? search.returnTo : "/admin",
+                to: result.returnTo.startsWith("/admin") ? result.returnTo : "/admin",
               });
             } else {
               setMessage(result.message);

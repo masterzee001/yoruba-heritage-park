@@ -242,4 +242,4 @@ Not modified:
 
 # Authentication Status
 
-Authentication code is implemented but remains disabled by default. The administrator portal still uses mock operational data. Do not treat preview users, preview roles or preview audit entries as production records.
+Authentication code is implemented and cPanel preview activation is prepared but not activated. The administrator portal still uses mock operational data. Do not treat preview users, preview roles or preview audit entries as production records.
