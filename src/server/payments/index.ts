@@ -48,6 +48,18 @@ export type {
   PaystackTransactionInitializeDraft,
   PaystackTransactionInitializeResponse,
 } from "./paystack-client";
+export {
+  buildStripeCheckoutSessionDraft,
+  createStripeCheckoutSession,
+  resolveStripeConfiguration,
+} from "./stripe-client";
+export type {
+  StripeCheckoutSessionDraft,
+  StripeCheckoutSessionResponse,
+  StripeConfigurationResult,
+  StripeCredentials,
+  StripeHttpClient,
+} from "./stripe-client";
 
 const adapters = new Map<string, PaymentProviderAdapter>(
   [pendingPaymentAdapter, paypalPaymentAdapter, paystackPaymentAdapter, stripePaymentAdapter].map(

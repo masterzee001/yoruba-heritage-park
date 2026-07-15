@@ -138,6 +138,56 @@ describe("payment checkout service", () => {
     });
   });
 
+  test("creates a Stripe test checkout session for a pending payment", async () => {
+    const fetchCalls: string[] = [];
+    const repository = makePaymentsRepository({
+      providers: [
+        makeProviderSettings({
+          providerCode: "stripe",
+          displayName: "Stripe",
+          publicKey: "pk_test_stripe",
+          secretReference: "STRIPE_SECRET_KEY",
+          currency: "USD",
+          configurationJson: {
+            successUrl: "https://example.test/payments/success",
+            cancelUrl: "https://example.test/payments/cancel",
+          },
+        }),
+      ],
+      payments: [makePaymentRecord({ providerCode: "stripe", currency: "USD" })],
+    });
+    const service = new PaymentCheckoutService(repository, {
+      paymentEnabled: true,
+      env: {
+        STRIPE_SECRET_KEY: "secret-value",
+      },
+      stripeClient: makeStripeClient(fetchCalls),
+    });
+
+    const result = await service.prepare({ paymentReference: "YHP-PAY-TEST" });
+    const payment = await repository.findByReference("YHP-PAY-TEST");
+
+    expect(result).toEqual({
+      ok: true,
+      providerCode: "stripe",
+      paymentReference: "YHP-PAY-TEST",
+      providerOrderId: "cs_test_123",
+      checkoutUrl: "https://checkout.stripe.com/c/pay/cs_test_123",
+      sandbox: true,
+      message: "Stripe test checkout session prepared.",
+    });
+    expect(fetchCalls).toEqual(["https://api.stripe.com/v1/checkout/sessions"]);
+    expect(payment?.providerTransactionReference).toBe("cs_test_123");
+    expect(payment?.metadataJson).toMatchObject({
+      checkout: {
+        provider: "stripe",
+        providerOrderId: "cs_test_123",
+        checkoutUrl: "https://checkout.stripe.com/c/pay/cs_test_123",
+        sandbox: true,
+      },
+    });
+  });
+
   test("blocks live checkout unless live capture is explicitly allowed", async () => {
     const service = new PaymentCheckoutService(
       makePaymentsRepository({
@@ -267,6 +317,21 @@ function makePaystackClient(fetchCalls: string[]) {
           access_code: "access-code",
           reference: "YHP-PAY-TEST",
         },
+      });
+    },
+  };
+}
+
+function makeStripeClient(fetchCalls: string[]) {
+  return {
+    async fetch(input: string | URL): Promise<Response> {
+      const url = String(input);
+      fetchCalls.push(url);
+      return Response.json({
+        id: "cs_test_123",
+        object: "checkout.session",
+        url: "https://checkout.stripe.com/c/pay/cs_test_123",
+        livemode: false,
       });
     },
   };
