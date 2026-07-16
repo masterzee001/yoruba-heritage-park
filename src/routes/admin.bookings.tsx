@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, ClipboardCheck, RotateCw, Save, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Copy, Mail, RotateCw, Save, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -20,7 +20,11 @@ import {
   saveAdminBookingNotes,
   updateAdminBookingWorkflow,
 } from "@/admin/booking-functions";
-import { prepareBookingPaymentRequest } from "@/admin/payment-functions";
+import {
+  prepareBookingPaymentLink,
+  prepareBookingPaymentRequest,
+  type PrepareBookingPaymentLinkResult,
+} from "@/admin/payment-functions";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import type { AdminBooking, BookingStatus, StatusTone } from "@/admin/types";
 import { supportedPaymentCurrencies } from "@/config/payment-currencies";
@@ -87,6 +91,9 @@ function AdminBookingsRoute() {
   const [paymentCurrency, setPaymentCurrency] = useState("NGN");
   const [paymentProvider, setPaymentProvider] = useState("paypal");
   const [preparingPayment, setPreparingPayment] = useState(false);
+  const [preparingPaymentLink, setPreparingPaymentLink] = useState(false);
+  const [paymentLinkResult, setPaymentLinkResult] =
+    useState<PrepareBookingPaymentLinkResult | null>(null);
 
   const loadBookings = useCallback(async () => {
     setError(null);
@@ -116,6 +123,7 @@ function AdminBookingsRoute() {
     setInternalNotes(selected?.internalNotes ?? "");
     setPaymentAmount(selected?.amountNgn ? String(selected.amountNgn) : "");
     setPaymentCurrency(selected?.currency ?? "NGN");
+    setPaymentLinkResult(null);
   }, [selected?.id, selected?.internalNotes, selected?.amountNgn, selected?.currency]);
 
   function replaceRecord(booking: AdminBooking) {
@@ -192,6 +200,50 @@ function AdminBookingsRoute() {
       setError("Payment request could not be prepared.");
     } finally {
       setPreparingPayment(false);
+    }
+  }
+
+  async function handlePreparePaymentLink() {
+    if (!selected) return;
+    const amountMinor = Math.round(Number(paymentAmount) * 100);
+    setPreparingPaymentLink(true);
+    setError(null);
+    setNotice(null);
+    setPaymentLinkResult(null);
+    try {
+      const result = await prepareBookingPaymentLink({
+        data: {
+          bookingId: selected.id,
+          providerCode: paymentProvider,
+          amountMinor,
+          currency: paymentCurrency,
+        },
+      });
+      setPaymentLinkResult(result);
+      if (!result.ok) {
+        setError(
+          result.missingConfiguration?.length
+            ? `${result.message} Missing: ${result.missingConfiguration.join(", ")}.`
+            : result.message,
+        );
+        return;
+      }
+      setNotice(result.message);
+      await loadBookings();
+    } catch {
+      setError("Payment link could not be prepared.");
+    } finally {
+      setPreparingPaymentLink(false);
+    }
+  }
+
+  async function handleCopyPaymentLink() {
+    if (!paymentLinkResult?.checkoutUrl) return;
+    try {
+      await navigator.clipboard.writeText(paymentLinkResult.checkoutUrl);
+      setNotice("Payment link copied.");
+    } catch {
+      setError("Payment link could not be copied by this browser.");
     }
   }
 
@@ -297,8 +349,9 @@ function AdminBookingsRoute() {
                     Prepare admin-reviewed payment
                   </h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Creates a pending internal payment record only. No checkout link, charge, or
-                    provider transaction is created.
+                    Prepare the approved request first, or prepare a provider checkout link for
+                    manual sending after review. Payment is confirmed only by verified webhook
+                    reconciliation.
                   </p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -355,6 +408,52 @@ function AdminBookingsRoute() {
                 >
                   {preparingPayment ? "Preparing request" : "Prepare payment request"}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void handlePreparePaymentLink()}
+                  disabled={
+                    preparingPaymentLink ||
+                    Boolean(actioning) ||
+                    selected.status === "cancelled" ||
+                    selected.status === "refunded"
+                  }
+                  className="inline-flex w-fit items-center gap-2 rounded-sm bg-forest-deep px-4 py-2 text-xs font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {preparingPaymentLink ? "Preparing link" : "Prepare checkout link"}
+                </button>
+                {paymentLinkResult?.ok && paymentLinkResult.checkoutUrl ? (
+                  <div className="grid gap-3 rounded-sm border border-forest/20 bg-forest/10 p-3 text-xs">
+                    <div>
+                      <p className="font-medium text-forest-deep">Visitor payment link</p>
+                      <code className="mt-1 block break-all rounded-sm border border-border bg-background px-2 py-1.5 text-muted-foreground">
+                        {paymentLinkResult.checkoutUrl}
+                      </code>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyPaymentLink()}
+                        className="inline-flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-1.5 text-xs font-medium hover:border-forest"
+                      >
+                        <Copy className="size-3.5" aria-hidden />
+                        Copy link
+                      </button>
+                      {paymentLinkResult.visitorEmail ? (
+                        <a
+                          href={buildPaymentLinkMailto(paymentLinkResult)}
+                          className="inline-flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-1.5 text-xs font-medium hover:border-forest"
+                        >
+                          <Mail className="size-3.5" aria-hidden />
+                          Open email draft
+                        </a>
+                      ) : null}
+                    </div>
+                    <p className="text-muted-foreground">
+                      Payment reference: {paymentLinkResult.paymentReference}. Do not mark payment
+                      as received until provider verification is reconciled.
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-6 grid gap-3">
@@ -420,4 +519,25 @@ function AdminBookingsRoute() {
       )}
     </>
   );
+}
+
+function buildPaymentLinkMailto(result: PrepareBookingPaymentLinkResult): string {
+  const subject = `Yoruba Heritage Park payment link ${result.paymentReference ?? ""}`.trim();
+  const body = [
+    result.visitorName ? `Hello ${result.visitorName},` : "Hello,",
+    "",
+    "Your Yoruba Heritage Park payment link is ready:",
+    result.checkoutUrl ?? "",
+    "",
+    result.bookingReference ? `Booking reference: ${result.bookingReference}` : null,
+    result.paymentReference ? `Payment reference: ${result.paymentReference}` : null,
+    "",
+    "Payment is confirmed only after provider verification. Keep your reference for status checks.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `mailto:${encodeURIComponent(result.visitorEmail ?? "")}?subject=${encodeURIComponent(
+    subject,
+  )}&body=${encodeURIComponent(body)}`;
 }

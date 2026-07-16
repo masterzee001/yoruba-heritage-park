@@ -95,6 +95,22 @@ export interface PrepareBookingPaymentRequestInput {
   readonly currency?: string;
 }
 
+export type PrepareBookingPaymentLinkInput = PrepareBookingPaymentRequestInput;
+
+export interface PrepareBookingPaymentLinkResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly paymentReference?: string;
+  readonly checkoutUrl?: string | null;
+  readonly providerCode?: string;
+  readonly providerOrderId?: string;
+  readonly sandbox?: boolean;
+  readonly visitorName?: string;
+  readonly visitorEmail?: string | null;
+  readonly bookingReference?: string;
+  readonly missingConfiguration?: string[];
+}
+
 export interface PreparePaymentCheckoutInput {
   readonly paymentReference?: string;
 }
@@ -343,6 +359,132 @@ export const prepareBookingPaymentRequest = createServerFn({ method: "POST" })
       ok: true,
       paymentReference: result.payment.reference,
       message: `Payment request ${result.payment.reference} prepared. Checkout remains inactive.`,
+    };
+  });
+
+export const prepareBookingPaymentLink = createServerFn({ method: "POST" })
+  .validator((data: PrepareBookingPaymentLinkInput) => data)
+  .handler(async ({ data }): Promise<PrepareBookingPaymentLinkResult> => {
+    if (!data.bookingId) return { ok: false, message: "Booking id is required." };
+    const providerCode = data.providerCode?.trim().toLowerCase() || "paypal";
+    const amountMinor = Math.trunc(data.amountMinor ?? 0);
+    const requestedCurrency = data.currency?.trim().toUpperCase() || "NGN";
+    const currency = normalisePaymentCurrency(requestedCurrency);
+    if (!providerCode) return { ok: false, message: "Payment provider is required." };
+    if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+      return { ok: false, message: "Approved payment amount must be greater than zero." };
+    }
+    if (!isSupportedPaymentCurrency(requestedCurrency)) {
+      return { ok: false, message: "Payment currency must be NGN or USD." };
+    }
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { PaymentCheckoutService, PaymentRequestService } = await import("../server/payments");
+    const { MysqlAuditLogRepository, MysqlBookingsRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("payments.manage");
+    const booking = await new MysqlBookingsRepository().findById(data.bookingId);
+    if (!booking || booking.deletedAt) return { ok: false, message: "Booking was not found." };
+    if (booking.status === "cancelled" || booking.status === "refunded") {
+      return { ok: false, message: "Payment link cannot be prepared for this booking status." };
+    }
+
+    const repository = new MysqlPaymentsRepository();
+    const existingPayments = await repository.listForBooking(booking.id);
+    const reusablePayment = existingPayments.find(
+      (payment) =>
+        payment.status === "pending" &&
+        payment.amountMinor === amountMinor &&
+        payment.currency === currency &&
+        payment.providerCode === providerCode &&
+        !payment.deletedAt,
+    );
+    const blockingPayment = existingPayments.find(
+      (payment) =>
+        ["pending", "successful", "refund_pending"].includes(payment.status) &&
+        payment.id !== reusablePayment?.id &&
+        !payment.deletedAt,
+    );
+
+    if (blockingPayment) {
+      return {
+        ok: false,
+        paymentReference: blockingPayment.reference,
+        message: `Booking already has an open payment request: ${blockingPayment.reference}.`,
+      };
+    }
+
+    const requestResult =
+      reusablePayment ??
+      (await new PaymentRequestService(repository).prepare({
+        bookingId: booking.id,
+        payerName: booking.visitorName,
+        payerEmail: booking.visitorEmail,
+        amountMinor,
+        currency,
+        providerCode,
+      }));
+
+    const payment =
+      "ok" in requestResult ? (requestResult.ok ? requestResult.payment : null) : requestResult;
+    if (!payment) {
+      const failure = requestResult as { message: string; missingConfiguration?: string[] };
+      return {
+        ok: false,
+        message: failure.message,
+        missingConfiguration: failure.missingConfiguration,
+      };
+    }
+
+    const checkoutResult = await new PaymentCheckoutService(repository).prepare({
+      paymentReference: payment.reference,
+    });
+    const requestContext = getRuntimeRequestContext();
+
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "payments.booking_link.prepare",
+      moduleCode: "payments",
+      recordType: "booking",
+      recordId: booking.id,
+      outcome: checkoutResult.ok ? "success" : "failed",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        bookingReference: booking.reference,
+        paymentReference: payment.reference,
+        providerCode,
+        amountMinor,
+        currency,
+        checkoutUrlPrepared: checkoutResult.ok ? Boolean(checkoutResult.checkoutUrl) : false,
+        providerOrderId: checkoutResult.ok ? checkoutResult.providerOrderId : null,
+        message: checkoutResult.message,
+      },
+    });
+
+    if (!checkoutResult.ok) {
+      return {
+        ok: false,
+        paymentReference: payment.reference,
+        message: checkoutResult.message,
+        missingConfiguration: checkoutResult.missingConfiguration,
+      };
+    }
+
+    return {
+      ok: true,
+      paymentReference: checkoutResult.paymentReference,
+      checkoutUrl: checkoutResult.checkoutUrl,
+      providerCode: checkoutResult.providerCode,
+      providerOrderId: checkoutResult.providerOrderId,
+      sandbox: checkoutResult.sandbox,
+      visitorName: booking.visitorName,
+      visitorEmail: booking.visitorEmail,
+      bookingReference: booking.reference,
+      message: checkoutResult.checkoutUrl
+        ? `Payment link prepared for ${booking.reference}.`
+        : `Checkout was prepared for ${booking.reference}, but the provider did not return a link.`,
     };
   });
 
