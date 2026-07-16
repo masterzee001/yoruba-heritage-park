@@ -32,14 +32,17 @@ import {
   getPaymentLaunchStatus,
   listAdminPayments,
   listDonationCampaigns,
+  listPaymentAuditTrail,
   listPaymentWebhookEvents,
   listPaymentProviderReadiness,
   listPaymentProviderSettings,
   preparePaymentCheckout,
+  recordPaymentReviewNote,
   reconcilePaymentWebhookEvent,
   saveDonationCampaign,
   savePaymentProviderSettings,
   type AdminDonationCampaign,
+  type AdminPaymentAuditEntry,
   type AdminPaymentLaunchStatus,
   type AdminPaymentProviderReadiness,
   type AdminPaymentProviderSettings,
@@ -205,6 +208,13 @@ function AdminPaymentsRoute() {
   const [savingCampaign, setSavingCampaign] = useState(false);
   const [preparingCheckout, setPreparingCheckout] = useState(false);
   const [reconcilingWebhookId, setReconcilingWebhookId] = useState<string | null>(null);
+  const [paymentAuditTrail, setPaymentAuditTrail] = useState<AdminPaymentAuditEntry[] | null>(null);
+  const [paymentAuditError, setPaymentAuditError] = useState<string | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<
+    "accepted" | "rejected" | "pending" | "follow_up"
+  >("pending");
+  const [reviewNote, setReviewNote] = useState("");
+  const [savingReviewNote, setSavingReviewNote] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -269,6 +279,35 @@ function AdminPaymentsRoute() {
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
+
+  async function loadPaymentAuditTrail(paymentReference: string) {
+    setPaymentAuditError(null);
+    try {
+      const result = await listPaymentAuditTrail({ data: { paymentReference } });
+      if (!result.ok) {
+        setPaymentAuditTrail([]);
+        setPaymentAuditError(result.message);
+        return;
+      }
+      setPaymentAuditTrail(result.entries);
+    } catch {
+      setPaymentAuditTrail([]);
+      setPaymentAuditError("Payment audit trail could not be loaded.");
+    }
+  }
+
+  useEffect(() => {
+    if (!selected?.reference) {
+      setPaymentAuditTrail(null);
+      setPaymentAuditError(null);
+      return;
+    }
+    setReviewDecision("pending");
+    setReviewNote("");
+    setPaymentAuditTrail(null);
+    void loadPaymentAuditTrail(selected.reference);
+  }, [selected?.reference]);
+
   const webhookSetupGuide = useMemo(
     () => getPaymentProviderLaunchGuides(adminOrigin),
     [adminOrigin],
@@ -401,6 +440,7 @@ function AdminPaymentsRoute() {
       );
       if (result.ok) {
         setRows(await listAdminPayments({ data: filters }));
+        await loadPaymentAuditTrail(payment.reference);
       }
     } catch {
       setError("Checkout preparation could not be completed.");
@@ -427,11 +467,40 @@ function AdminPaymentsRoute() {
       ]);
       setRows(paymentList);
       setWebhookEvents(eventList);
+      if (result.paymentReference) await loadPaymentAuditTrail(result.paymentReference);
       setNotice(result.message);
     } catch {
       setError("Webhook event could not be reconciled.");
     } finally {
       setReconcilingWebhookId(null);
+    }
+  }
+
+  async function handleSavePaymentReviewNote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setSavingReviewNote(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await recordPaymentReviewNote({
+        data: {
+          paymentReference: selected.reference,
+          reviewDecision,
+          reviewNote,
+        },
+      });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setReviewNote("");
+      await loadPaymentAuditTrail(selected.reference);
+      setNotice(result.message);
+    } catch {
+      setError("Payment review note could not be saved.");
+    } finally {
+      setSavingReviewNote(false);
     }
   }
 
@@ -1154,6 +1223,118 @@ function AdminPaymentsRoute() {
                   }))}
                 />
               </div>
+
+              <form
+                onSubmit={(event) => void handleSavePaymentReviewNote(event)}
+                className="mt-6 grid gap-3 rounded-sm border border-border bg-cream/20 p-4"
+              >
+                <div>
+                  <p className="eyebrow">Internal review</p>
+                  <h3 className="mt-1 font-serif text-lg text-forest-deep">Payment review note</h3>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Notes are saved to the audit trail only. They do not change payment status,
+                    refund status, or provider reconciliation.
+                  </p>
+                </div>
+                <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                  Review decision
+                  <select
+                    value={reviewDecision}
+                    onChange={(event) =>
+                      setReviewDecision(
+                        event.currentTarget.value as
+                          | "accepted"
+                          | "rejected"
+                          | "pending"
+                          | "follow_up",
+                      )
+                    }
+                    className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted for follow-up</option>
+                    <option value="rejected">Rejected / issue found</option>
+                    <option value="follow_up">Needs follow-up</option>
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                  Review note
+                  <textarea
+                    value={reviewNote}
+                    onChange={(event) => setReviewNote(event.currentTarget.value)}
+                    rows={4}
+                    className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                    placeholder="Record why this payment was accepted, rejected, or left pending."
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={savingReviewNote || reviewNote.trim().length < 10}
+                  className="inline-flex w-fit items-center gap-2 rounded-sm border border-border px-4 py-2 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingReviewNote ? "Saving review" : "Save review note"}
+                </button>
+              </form>
+
+              <div className="mt-6 grid gap-3 rounded-sm border border-border bg-background p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="eyebrow">Audit trail</p>
+                    <h3 className="mt-1 font-serif text-lg text-forest-deep">Payment actions</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadPaymentAuditTrail(selected.reference)}
+                    className="rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {paymentAuditError ? (
+                  <p className="rounded-sm border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {paymentAuditError}
+                  </p>
+                ) : !paymentAuditTrail ? (
+                  <p className="text-sm text-muted-foreground">Loading audit trail.</p>
+                ) : !paymentAuditTrail.length ? (
+                  <p className="rounded-sm border border-border bg-cream/30 px-3 py-2 text-xs text-muted-foreground">
+                    No audit actions have been recorded for this payment yet.
+                  </p>
+                ) : (
+                  <div className="grid gap-2">
+                    {paymentAuditTrail.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="grid gap-2 rounded-sm border border-border bg-cream/20 p-3 text-xs"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-charcoal">{entry.actionLabel}</p>
+                            <p className="mt-1 text-muted-foreground">
+                              {formatPaymentAuditDate(entry.createdAt)}
+                              {entry.actorUserId ? ` by ${entry.actorUserId}` : ""}
+                            </p>
+                          </div>
+                          <AdminStatusBadge tone={auditOutcomeTone(entry.outcome)}>
+                            {formatToken(entry.outcome)}
+                          </AdminStatusBadge>
+                        </div>
+                        {entry.reviewDecision ? (
+                          <AdminStatusBadge tone={reviewDecisionTone(entry.reviewDecision)}>
+                            {formatToken(entry.reviewDecision)}
+                          </AdminStatusBadge>
+                        ) : null}
+                        {entry.reviewNote ? (
+                          <p className="rounded-sm border border-border bg-background px-3 py-2 text-charcoal">
+                            {entry.reviewNote}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="mt-6 grid gap-2 sm:grid-cols-3">
                 <PreviewButton
                   icon={<SearchCheck className="size-3.5" />}
@@ -1200,6 +1381,36 @@ function formatToken(value: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function auditOutcomeTone(outcome: AdminPaymentAuditEntry["outcome"]): StatusTone {
+  const tones: Record<AdminPaymentAuditEntry["outcome"], StatusTone> = {
+    success: "success",
+    denied: "warning",
+    failed: "danger",
+    informational: "info",
+  };
+  return tones[outcome];
+}
+
+function reviewDecisionTone(
+  decision: NonNullable<AdminPaymentAuditEntry["reviewDecision"]>,
+): StatusTone {
+  const tones: Record<NonNullable<AdminPaymentAuditEntry["reviewDecision"]>, StatusTone> = {
+    accepted: "success",
+    rejected: "danger",
+    pending: "warning",
+    follow_up: "info",
+  };
+  return tones[decision];
+}
+
+function formatPaymentAuditDate(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Lagos",
+  }).format(new Date(value));
 }
 
 function ProviderInput({

@@ -73,6 +73,20 @@ export interface AdminPaymentWebhookEvent {
   readonly statusMutationApplied: boolean;
 }
 
+export interface AdminPaymentAuditEntry {
+  readonly id: string;
+  readonly actionCode: string;
+  readonly actionLabel: string;
+  readonly outcome: "success" | "denied" | "failed" | "informational";
+  readonly recordType: string | null;
+  readonly recordId: string | null;
+  readonly paymentReference: string | null;
+  readonly reviewNote: string | null;
+  readonly reviewDecision: "accepted" | "rejected" | "pending" | "follow_up" | null;
+  readonly actorUserId: string | null;
+  readonly createdAt: string;
+}
+
 export interface SavePaymentProviderSettingsInput {
   readonly providerCode?: string;
   readonly displayName?: string;
@@ -126,6 +140,16 @@ export interface PreparePaymentCheckoutInput {
 
 export interface ReconcilePaymentWebhookEventInput {
   readonly webhookEventId?: string;
+}
+
+export interface PaymentAuditTrailInput {
+  readonly paymentReference?: string;
+}
+
+export interface RecordPaymentReviewNoteInput {
+  readonly paymentReference?: string;
+  readonly reviewNote?: string;
+  readonly reviewDecision?: "accepted" | "rejected" | "pending" | "follow_up";
 }
 
 export const listAdminPayments = createServerFn({ method: "GET" })
@@ -211,6 +235,74 @@ export const listPaymentWebhookEvents = createServerFn({ method: "GET" }).handle
   const events = await new MysqlPaymentsRepository().listWebhookEvents(25);
   return events.map(toAdminPaymentWebhookEvent);
 });
+
+export const listPaymentAuditTrail = createServerFn({ method: "GET" })
+  .validator((data: PaymentAuditTrailInput = {}) => data)
+  .handler(async ({ data }) => {
+    const reference = data.paymentReference?.trim().toUpperCase();
+    if (!reference) return { ok: false, message: "Payment reference is required.", entries: [] };
+
+    const { MysqlAuditLogRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    await requireAdminServerPermission("payments.view");
+
+    const payment = await new MysqlPaymentsRepository().findByReference(reference);
+    if (!payment) return { ok: false, message: "Payment record was not found.", entries: [] };
+
+    const auditLogs = await new MysqlAuditLogRepository().listRecent(100);
+    return {
+      ok: true,
+      entries: auditLogs
+        .filter((entry) => isPaymentAuditEntry(entry, payment.id, payment.reference))
+        .map((entry) => toAdminPaymentAuditEntry(entry, payment.reference)),
+    };
+  });
+
+export const recordPaymentReviewNote = createServerFn({ method: "POST" })
+  .validator((data: RecordPaymentReviewNoteInput) => data)
+  .handler(async ({ data }) => {
+    const reference = data.paymentReference?.trim().toUpperCase();
+    const reviewNote = data.reviewNote?.trim();
+    const reviewDecision = data.reviewDecision ?? "pending";
+    if (!reference) return { ok: false, message: "Payment reference is required." };
+    if (!reviewNote || reviewNote.length < 10) {
+      return { ok: false, message: "Review note must be at least 10 characters." };
+    }
+    if (reviewNote.length > 1000) {
+      return { ok: false, message: "Review note must be 1000 characters or fewer." };
+    }
+
+    const { MysqlAuditLogRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("payments.manage");
+    const payment = await new MysqlPaymentsRepository().findByReference(reference);
+    if (!payment) return { ok: false, message: "Payment record was not found." };
+
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "payments.payment.review_note.saved",
+      moduleCode: "payments",
+      recordType: "payment",
+      recordId: payment.id,
+      outcome: "informational",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        paymentReference: payment.reference,
+        providerCode: payment.providerCode,
+        paymentStatus: payment.status,
+        verificationStatus: payment.verificationStatus,
+        reviewDecision,
+        reviewNote,
+      },
+    });
+
+    return { ok: true, message: "Payment review note saved to the audit trail." };
+  });
 
 export const savePaymentProviderSettings = createServerFn({ method: "POST" })
   .validator((data: SavePaymentProviderSettingsInput) => data)
@@ -726,6 +818,69 @@ function toAdminPaymentWebhookEvent(event: {
   };
 }
 
+function toAdminPaymentAuditEntry(
+  entry: {
+    readonly id: string;
+    readonly actionCode: string;
+    readonly outcome: AdminPaymentAuditEntry["outcome"];
+    readonly recordType: string | null;
+    readonly recordId: string | null;
+    readonly actorUserId: string | null;
+    readonly metadataJson: unknown;
+    readonly createdAt: Date;
+  },
+  paymentReference: string,
+): AdminPaymentAuditEntry {
+  const metadata = asRecord(entry.metadataJson);
+  return {
+    id: entry.id,
+    actionCode: entry.actionCode,
+    actionLabel: formatAuditAction(entry.actionCode),
+    outcome: entry.outcome,
+    recordType: entry.recordType,
+    recordId: entry.recordId,
+    paymentReference: readString(metadata?.paymentReference) ?? paymentReference,
+    reviewNote: readString(metadata?.reviewNote),
+    reviewDecision: readReviewDecision(metadata?.reviewDecision),
+    actorUserId: entry.actorUserId,
+    createdAt: entry.createdAt.toISOString(),
+  };
+}
+
+function isPaymentAuditEntry(
+  entry: {
+    readonly moduleCode: string;
+    readonly recordType: string | null;
+    readonly recordId: string | null;
+    readonly metadataJson: unknown;
+  },
+  paymentId: string,
+  paymentReference: string,
+): boolean {
+  if (entry.moduleCode !== "payments") return false;
+  if (entry.recordId === paymentId || entry.recordId === paymentReference) return true;
+  const metadata = asRecord(entry.metadataJson);
+  return readString(metadata?.paymentReference)?.toUpperCase() === paymentReference;
+}
+
+function readReviewDecision(value: unknown): AdminPaymentAuditEntry["reviewDecision"] {
+  return value === "accepted" ||
+    value === "rejected" ||
+    value === "pending" ||
+    value === "follow_up"
+    ? value
+    : null;
+}
+
+function formatAuditAction(actionCode: string): string {
+  return actionCode
+    .replace(/^payments\./, "")
+    .split(".")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).replace(/_/g, " "))
+    .join(" / ");
+}
+
 function normaliseEnvReference(value: string | null | undefined): string | undefined {
   const trimmed = normalisePlainText(value);
   if (!trimmed) return undefined;
@@ -739,6 +894,12 @@ function normalisePlainText(value: string | null | undefined): string | undefine
 
 function readString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function readWebhookProcessingMetadata(payload: unknown): {
