@@ -67,3 +67,12 @@ export type LoginResult =
       readonly reason: LoginFailureReason;
       readonly message: string;
     };
+
+export type LogoutResult =
+  | {
+      readonly ok: true;
+    }
+  | {
+      readonly ok: false;
+      readonly message: string;
+    };

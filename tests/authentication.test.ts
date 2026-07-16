@@ -179,6 +179,36 @@ describe("login flow and authorisation", () => {
     expect(deps.users.lastLoginUserId).toBe("user_admin");
   });
 
+  test("logout requires the session CSRF token before revoking", async () => {
+    const passwordHash = await hashPassword("correct secure password");
+    const deps = makeDeps({ user: makeAuthUser(passwordHash) });
+    const service = new AuthService(deps);
+    const login = await service.login({
+      email: "admin@example.test",
+      password: "correct secure password",
+      requestContext: {},
+    });
+    expect(login.ok).toBe(true);
+    if (!login.ok) return;
+
+    const sessionToken = getSessionTokenFromCookie(login.cookieHeader, config.sessionCookieName);
+    const denied = await service.logout({
+      sessionToken,
+      csrfToken: "wrong-token",
+      requestContext: {},
+    });
+    expect(denied.ok).toBe(false);
+    expect(deps.sessions.revokedTokenHashes).toHaveLength(0);
+
+    const allowed = await service.logout({
+      sessionToken,
+      csrfToken: login.csrfToken,
+      requestContext: {},
+    });
+    expect(allowed.ok).toBe(true);
+    expect(deps.sessions.revokedTokenHashes).toEqual([deps.sessions.created[0].tokenHash]);
+  });
+
   test("lockout and rate limit apply", async () => {
     const passwordHash = await hashPassword("correct secure password");
     const deps = makeDeps({ user: makeAuthUser(passwordHash, { failedLoginCount: 4 }) });
@@ -369,9 +399,13 @@ function makeRolesRepository(): RolesRepository {
   };
 }
 
-function makeSessionsRepository(): SessionsRepository & { created: CreateSessionInput[] } {
+function makeSessionsRepository(): SessionsRepository & {
+  created: CreateSessionInput[];
+  revokedTokenHashes: string[];
+} {
   return {
     created: [],
+    revokedTokenHashes: [],
     async create(input) {
       this.created.push(input);
       return {
@@ -387,11 +421,34 @@ function makeSessionsRepository(): SessionsRepository & { created: CreateSession
         revokedReason: null,
       };
     },
-    async findActiveByTokenHash(): Promise<SessionAuthenticationRecord | null> {
-      return null;
+    async findActiveByTokenHash(tokenHash): Promise<SessionAuthenticationRecord | null> {
+      const input = this.created.find((session) => session.tokenHash === tokenHash);
+      if (!input || this.revokedTokenHashes.includes(tokenHash)) return null;
+      return {
+        id: "session_1",
+        userId: input.userId,
+        tokenHash: input.tokenHash,
+        csrfTokenHash: input.csrfTokenHash,
+        createdAt: input.createdAt,
+        lastSeenAt: input.lastSeenAt,
+        idleExpiresAt: input.idleExpiresAt,
+        absoluteExpiresAt: input.absoluteExpiresAt,
+        revokedAt: null,
+        revokedReason: null,
+        principal: {
+          userId: input.userId,
+          email: "admin@example.test",
+          displayName: "Admin User",
+          accountStatus: "active",
+          roleCodes: ["super_administrator"],
+          roleLabels: ["Super Administrator"],
+          permissionCodes: ["admin.access", "users.manage"],
+        },
+      };
     },
     async updateLastSeen() {},
-    async revokeByTokenHash() {
+    async revokeByTokenHash(tokenHash) {
+      this.revokedTokenHashes.push(tokenHash);
       return true;
     },
     async revokeBySessionId() {

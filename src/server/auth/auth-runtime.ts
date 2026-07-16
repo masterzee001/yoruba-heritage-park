@@ -22,12 +22,14 @@ import { getAuthConfig } from "./auth-config";
 import { AuthService } from "./auth-service";
 import type { AuthenticatedPrincipal, RequestContext } from "./auth-types";
 import { getRequiredPermissionForPath, hasPermission } from "./permissions";
+import { shouldUseSecureCookie } from "./session-cookie";
 
 export interface AdminAuthState {
   readonly mode: "disabled" | "database";
   readonly authenticationActive: boolean;
   readonly authenticated: boolean;
   readonly forbidden: boolean;
+  readonly csrfCookieName: string | null;
   readonly previewMessage: string | null;
   readonly principal: {
     readonly displayName: string;
@@ -55,6 +57,7 @@ export async function getCurrentAdminAuthState(pathname = "/admin"): Promise<Adm
       authenticationActive: false,
       authenticated: false,
       forbidden: false,
+      csrfCookieName: null,
       previewMessage: "Administrator authentication is not active in this preview environment.",
       principal: null,
     };
@@ -68,6 +71,7 @@ export async function getCurrentAdminAuthState(pathname = "/admin"): Promise<Adm
       authenticationActive: true,
       authenticated: false,
       forbidden: false,
+      csrfCookieName: getAdminCsrfCookieName(config.sessionCookieName),
       previewMessage: null,
       principal: null,
     };
@@ -80,6 +84,7 @@ export async function getCurrentAdminAuthState(pathname = "/admin"): Promise<Adm
     authenticationActive: true,
     authenticated: true,
     forbidden,
+    csrfCookieName: getAdminCsrfCookieName(config.sessionCookieName),
     previewMessage: null,
     principal: toPublicPrincipal(principal),
   };
@@ -112,6 +117,30 @@ export function setAdminSessionCookie(cookieHeader: string): void {
 export function clearAdminSessionCookie(): void {
   const config = getAuthConfig();
   deleteCookie(config.sessionCookieName, { path: "/admin" });
+}
+
+export function getAdminCsrfCookieName(sessionCookieName: string): string {
+  return `${sessionCookieName}_csrf`;
+}
+
+export function setAdminCsrfCookie(
+  csrfToken: string,
+  absoluteExpiresAt: Date,
+  requestContext: RequestContext,
+): void {
+  const config = getAuthConfig();
+  setCookie(getAdminCsrfCookieName(config.sessionCookieName), csrfToken, {
+    path: "/admin",
+    expires: absoluteExpiresAt,
+    httpOnly: false,
+    secure: shouldUseSecureCookie(config, requestContext),
+    sameSite: "lax",
+  });
+}
+
+export function clearAdminCsrfCookie(): void {
+  const config = getAuthConfig();
+  deleteCookie(getAdminCsrfCookieName(config.sessionCookieName), { path: "/admin" });
 }
 
 function toPublicPrincipal(principal: AuthenticatedPrincipal): AdminAuthState["principal"] {

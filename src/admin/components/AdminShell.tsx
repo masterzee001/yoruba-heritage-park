@@ -18,6 +18,7 @@ interface Props {
 export function AdminShell({ children }: Props) {
   const navigate = useNavigate();
   const [auth, setAuth] = useState<Awaited<ReturnType<typeof getAdminAuthState>> | null>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +46,14 @@ export function AdminShell({ children }: Props) {
             operatorRoleLabel={auth?.principal?.roleLabels[0]}
             showLogout={auth?.authenticationActive === true}
             onLogout={async () => {
-              const result = await submitAdminLogout();
+              setLogoutError(null);
+              const result = await submitAdminLogout({
+                data: { csrfToken: readCookie(auth?.csrfCookieName) },
+              });
+              if (!result.ok) {
+                setLogoutError(result.message);
+                return;
+              }
               if (result.redirectTo) await navigate({ to: result.redirectTo });
             }}
           />
@@ -53,10 +61,26 @@ export function AdminShell({ children }: Props) {
             id="admin-main"
             className="min-w-0 flex-1 space-y-6 overflow-x-hidden p-4 md:p-8 lg:p-10"
           >
+            {logoutError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                {logoutError}
+              </div>
+            ) : null}
             {children}
           </main>
         </div>
       </div>
     </div>
+  );
+}
+
+function readCookie(name: string | null | undefined): string | null {
+  if (!name || typeof document === "undefined") return null;
+  return (
+    document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name}=`))
+      ?.slice(name.length + 1) ?? null
   );
 }

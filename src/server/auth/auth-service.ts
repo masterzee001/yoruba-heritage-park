@@ -15,9 +15,10 @@ import type {
   AuthenticatedPrincipal,
   LoginFailureReason,
   LoginResult,
+  LogoutResult,
   RequestContext,
 } from "./auth-types";
-import { generateCsrfToken, hashToken, isSameOriginRequest } from "./csrf";
+import { generateCsrfToken, hashToken, isSameOriginRequest, verifyCsrfToken } from "./csrf";
 import { hashLoginIdentifier, getRequestIpHash, isLoginRateLimited } from "./login-throttle";
 import { performDefensivePasswordHash, verifyPassword } from "./password";
 import {
@@ -148,13 +149,36 @@ export class AuthService {
     };
   }
 
-  async logout(
-    sessionToken: string | null | undefined,
-    requestContext?: RequestContext,
-  ): Promise<void> {
-    if (!sessionToken) return;
-    await this.deps.sessionsRepository.revokeByTokenHash(hashSessionToken(sessionToken), "logout");
-    await this.recordAudit(null, "auth.logout", "success", requestContext);
+  async logout(input: {
+    readonly sessionToken: string | null | undefined;
+    readonly csrfToken: string | null | undefined;
+    readonly requestContext?: RequestContext;
+  }): Promise<LogoutResult> {
+    if (!input.sessionToken) return { ok: true };
+
+    const tokenHash = hashSessionToken(input.sessionToken);
+    const session = await this.deps.sessionsRepository.findActiveByTokenHash(tokenHash);
+    if (!session) return { ok: true };
+
+    if (
+      !isSameOriginRequest(input.requestContext ?? {}) ||
+      !verifyCsrfToken(input.csrfToken, session.csrfTokenHash)
+    ) {
+      await this.recordAudit(
+        session.userId,
+        "auth.logout.csrf_denied",
+        "denied",
+        input.requestContext,
+      );
+      return {
+        ok: false,
+        message: "The logout request could not be verified. Refresh the admin page and try again.",
+      };
+    }
+
+    await this.deps.sessionsRepository.revokeByTokenHash(tokenHash, "logout");
+    await this.recordAudit(session.userId, "auth.logout", "success", input.requestContext);
+    return { ok: true };
   }
 
   async getSession(
