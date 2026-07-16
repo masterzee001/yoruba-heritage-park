@@ -20,7 +20,12 @@ import {
   type AdminColumn,
 } from "@/admin/components";
 import { ADMIN_ROLE_LABELS } from "@/admin/types";
-import { listAdminUsers, saveAdminUser, updateAdminUserStatus } from "@/admin/governance-functions";
+import {
+  listAdminUsers,
+  saveAdminUser,
+  setAdminUserPassword,
+  updateAdminUserStatus,
+} from "@/admin/governance-functions";
 import type {
   AdminRole,
   AdminUser,
@@ -76,7 +81,7 @@ function AdminUsersRoute() {
     invitationState: "all",
   });
   const [notice, setNotice] = useState<string | null>(null);
-  const [modal, setModal] = useState<"new" | "edit" | null>(null);
+  const [modal, setModal] = useState<"new" | "edit" | "password" | null>(null);
   const [suspendOpen, setSuspendOpen] = useState(false);
 
   useEffect(() => {
@@ -215,9 +220,9 @@ function AdminUsersRoute() {
                 </PreviewButton>
                 <PreviewButton
                   icon={<KeyRound className="size-3.5" />}
-                  onClick={() => setModal("edit")}
+                  onClick={() => setModal("password")}
                 >
-                  Change role
+                  Set password
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
@@ -250,20 +255,44 @@ function AdminUsersRoute() {
       <AdminModal
         open={modal !== null}
         onOpenChange={(open) => !open && setModal(null)}
-        title={modal === "edit" ? "Edit administrator" : "New administrator"}
-        description="New users are created without a password until credentials are issued separately."
+        title={
+          modal === "password"
+            ? "Set administrator password"
+            : modal === "edit"
+              ? "Edit administrator"
+              : "New administrator"
+        }
+        description={
+          modal === "password"
+            ? "The password is hashed server-side. Existing sessions for this user will be revoked."
+            : "New users are created without a password until credentials are issued separately."
+        }
       >
-        <UserForm
-          user={modal === "edit" ? selected : null}
-          onSubmit={async (input) => {
-            const result = await saveAdminUser({ data: input });
-            setNotice(result.message);
-            if (result.ok) {
-              setModal(null);
-              refreshUsers();
-            }
-          }}
-        />
+        {modal === "password" ? (
+          <PasswordForm
+            user={selected}
+            onSubmit={async (input) => {
+              const result = await setAdminUserPassword({ data: input });
+              setNotice(result.message);
+              if (result.ok) {
+                setModal(null);
+                refreshUsers();
+              }
+            }}
+          />
+        ) : (
+          <UserForm
+            user={modal === "edit" ? selected : null}
+            onSubmit={async (input) => {
+              const result = await saveAdminUser({ data: input });
+              setNotice(result.message);
+              if (result.ok) {
+                setModal(null);
+                refreshUsers();
+              }
+            }}
+          />
+        )}
       </AdminModal>
       <AdminConfirmationDialog
         open={suspendOpen}
@@ -357,6 +386,61 @@ function UserForm({
         className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory disabled:opacity-60"
       >
         {saving ? "Saving..." : "Save user"}
+      </button>
+    </form>
+  );
+}
+
+function PasswordForm({
+  user,
+  onSubmit,
+}: {
+  user: AdminUser | null;
+  onSubmit: (input: { id?: string; password: string; confirmPassword: string }) => Promise<void>;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <form
+      className="grid gap-3"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        if (!user) return;
+        setSaving(true);
+        try {
+          await onSubmit({ id: user.id, password, confirmPassword });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <div className="rounded-sm border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        {user ? `${user.name} (${user.email})` : "No administrator selected."}
+      </div>
+      <input
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        type="password"
+        autoComplete="new-password"
+        placeholder="New password"
+        value={password}
+        onChange={(event) => setPassword(event.currentTarget.value)}
+      />
+      <input
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        type="password"
+        autoComplete="new-password"
+        placeholder="Confirm new password"
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.currentTarget.value)}
+      />
+      <button
+        type="submit"
+        disabled={saving || !user}
+        className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory disabled:opacity-60"
+      >
+        {saving ? "Saving..." : "Save password"}
       </button>
     </form>
   );

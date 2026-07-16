@@ -23,6 +23,12 @@ interface UpdateAdminUserStatusInput {
   readonly status?: AdminUser["status"];
 }
 
+interface SetAdminUserPasswordInput {
+  readonly id?: string;
+  readonly password?: string;
+  readonly confirmPassword?: string;
+}
+
 interface SaveAdminSettingInput {
   readonly group?: string;
   readonly key?: string;
@@ -158,6 +164,66 @@ export const updateAdminUserStatus = createServerFn({ method: "POST" })
       ok: true,
       message: "Administrator status updated.",
       user: toAdminUser(updated, roles[0]?.roleCode),
+    };
+  });
+
+export const setAdminUserPassword = createServerFn({ method: "POST" })
+  .validator((data: SetAdminUserPasswordInput) => data)
+  .handler(async ({ data }) => {
+    if (!data.id) return { ok: false, message: "User id is required." };
+    const password = data.password ?? "";
+    if (password !== data.confirmPassword) {
+      return { ok: false, message: "Password confirmation does not match." };
+    }
+
+    const { getAuthConfig } = await import("../server/auth/auth-config");
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { hashPassword } = await import("../server/auth/password");
+    const { MysqlAuditLogRepository, MysqlSessionsRepository, MysqlUsersRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("users.manage");
+    const config = getAuthConfig();
+
+    if (password.length < config.passwordMinLength) {
+      return {
+        ok: false,
+        message: `Password must be at least ${config.passwordMinLength} characters.`,
+      };
+    }
+
+    const usersRepository = new MysqlUsersRepository();
+    const user = await usersRepository.findById(data.id);
+    if (!user || user.archivedAt) return { ok: false, message: "User was not found." };
+
+    await usersRepository.setPasswordHash(user.id, await hashPassword(password));
+    await new MysqlSessionsRepository().revokeAllForUser(user.id, "password_reset");
+    const updated =
+      user.accountStatus === "invited"
+        ? await usersRepository.update({ userId: user.id, accountStatus: "active" })
+        : user;
+
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "users.user.password.set",
+      moduleCode: "users",
+      recordType: "user",
+      recordId: user.id,
+      outcome: "success",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        email: user.email,
+        selfReset: principal.userId === user.id,
+        sessionsRevoked: true,
+        activatedFromInvitation: user.accountStatus === "invited",
+      },
+    });
+
+    return {
+      ok: true,
+      message: updated?.accountStatus === "active" ? "Password saved." : "Password reset saved.",
     };
   });
 
