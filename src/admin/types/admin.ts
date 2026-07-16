@@ -6,8 +6,8 @@
  */
 
 export interface DemoRecord {
-  /** Must be true for every mock operational record shown in the portal. */
-  readonly isDemo: true;
+  /** True only for demonstration records; false for database-backed records. */
+  readonly isDemo: boolean;
 }
 
 export type AdminRole =

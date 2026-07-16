@@ -25,6 +25,11 @@ interface PermissionRow extends RowDataPacket {
   created_at: Date;
 }
 
+interface RoleCountRow extends RowDataPacket {
+  role_code: string;
+  assigned_count: number;
+}
+
 export class MysqlRolesRepository implements RolesRepository {
   constructor(private readonly pool: Pool = getDatabasePool()) {}
 
@@ -58,6 +63,23 @@ export class MysqlRolesRepository implements RolesRepository {
         "SELECT id, role_code, display_name, description, is_system_role, created_at, updated_at FROM roles ORDER BY display_name ASC",
       );
       return rows.map(mapRole);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async countUsersByRole(): Promise<Record<string, number>> {
+    try {
+      const [rows] = await this.pool.query<RoleCountRow[]>(
+        `SELECT r.role_code, COUNT(u.id) AS assigned_count
+         FROM roles r
+         LEFT JOIN user_roles ur ON ur.role_id = r.id
+         LEFT JOIN users u ON u.id = ur.user_id AND u.archived_at IS NULL
+         GROUP BY r.role_code`,
+      );
+      return Object.fromEntries(
+        rows.map((row) => [row.role_code, Number(row.assigned_count) || 0]),
+      );
     } catch (error) {
       throw toDatabaseError(error);
     }
@@ -110,6 +132,37 @@ export class MysqlRolesRepository implements RolesRepository {
       return rows.map(mapPermission);
     } catch (error) {
       throw toDatabaseError(error);
+    }
+  }
+
+  async setUserRoles(userId: string, roleCodes: string[], assignedByUserId: string): Promise<void> {
+    const safeRoleCodes = [...new Set(roleCodes.map(requireCode))];
+    if (!safeRoleCodes.length) throw new Error("At least one role is required.");
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [roles] = await connection.query<RoleRow[]>(
+        `SELECT id, role_code, display_name, description, is_system_role, created_at, updated_at
+         FROM roles
+         WHERE role_code IN (?)`,
+        [safeRoleCodes],
+      );
+      if (roles.length !== safeRoleCodes.length)
+        throw new Error("One or more roles were not found.");
+      await connection.query("DELETE FROM user_roles WHERE user_id = ?", [requireId(userId)]);
+      for (const role of roles) {
+        await connection.query(
+          `INSERT INTO user_roles (user_id, role_id, assigned_by_user_id)
+           VALUES (?, ?, ?)`,
+          [requireId(userId), role.id, requireId(assignedByUserId)],
+        );
+      }
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw toDatabaseError(error);
+    } finally {
+      connection.release();
     }
   }
 

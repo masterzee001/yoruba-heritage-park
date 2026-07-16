@@ -4,7 +4,7 @@ import type { Pool } from "mysql2/promise";
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type { AppSettingRecord } from "../repository-types";
 import type { SettingsRepository } from "../settings-repository";
-import { parseJsonValue, requireCode } from "./mysql-helpers";
+import { createRepositoryId, parseJsonValue, requireCode } from "./mysql-helpers";
 
 interface SettingRow extends RowDataPacket {
   id: string;
@@ -47,6 +47,54 @@ export class MysqlSettingsRepository implements SettingsRepository {
         [requireCode(settingGroup)],
       );
       return rows.map(mapSetting);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async listAll(): Promise<AppSettingRecord[]> {
+    try {
+      const [rows] = await this.pool.query<SettingRow[]>(
+        `SELECT id, setting_group, setting_key, value_json, is_public, updated_by_user_id,
+          created_at, updated_at
+         FROM app_settings
+         ORDER BY setting_group ASC, setting_key ASC`,
+      );
+      return rows.map(mapSetting);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async upsert(input: {
+    readonly settingGroup: string;
+    readonly settingKey: string;
+    readonly valueJson: unknown;
+    readonly isPublic?: boolean;
+    readonly updatedByUserId: string;
+  }): Promise<AppSettingRecord> {
+    try {
+      await this.pool.query(
+        `INSERT INTO app_settings (
+          id, setting_group, setting_key, value_json, is_public, updated_by_user_id
+         )
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          value_json = VALUES(value_json),
+          is_public = VALUES(is_public),
+          updated_by_user_id = VALUES(updated_by_user_id)`,
+        [
+          createRepositoryId("setting"),
+          requireCode(input.settingGroup),
+          requireCode(input.settingKey),
+          JSON.stringify(input.valueJson),
+          input.isPublic ? 1 : 0,
+          input.updatedByUserId,
+        ],
+      );
+      const saved = await this.get(input.settingGroup, input.settingKey);
+      if (!saved) throw new Error("Setting was not saved.");
+      return saved;
     } catch (error) {
       throw toDatabaseError(error);
     }

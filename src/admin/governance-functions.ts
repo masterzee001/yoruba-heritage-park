@@ -1,0 +1,416 @@
+import { createServerFn } from "@tanstack/react-start";
+
+import type {
+  AdminRole,
+  AdminRoleDefinition,
+  AdminSettingsSnapshot,
+  AdminUser,
+  AdminUserFilters,
+  PermissionAction,
+  PermissionArea,
+} from "./types";
+
+interface SaveAdminUserInput {
+  readonly id?: string | null;
+  readonly name?: string;
+  readonly email?: string;
+  readonly role?: AdminRole;
+  readonly status?: AdminUser["status"];
+}
+
+interface UpdateAdminUserStatusInput {
+  readonly id?: string;
+  readonly status?: AdminUser["status"];
+}
+
+interface SaveAdminSettingInput {
+  readonly group?: string;
+  readonly key?: string;
+  readonly value?: string;
+  readonly isPublic?: boolean;
+}
+
+const roleCodeToAdminRole: Record<string, AdminRole> = {
+  super_administrator: "super_admin",
+  content_manager: "content_manager",
+  booking_officer: "booking_officer",
+  safety_officer: "safety_officer",
+  viewer_auditor: "viewer",
+};
+
+const adminRoleToRoleCode: Record<AdminRole, string> = {
+  super_admin: "super_administrator",
+  content_manager: "content_manager",
+  booking_officer: "booking_officer",
+  safety_officer: "safety_officer",
+  viewer: "viewer_auditor",
+};
+
+export const listAdminUsers = createServerFn({ method: "GET" })
+  .validator((data: AdminUserFilters = {}) => data)
+  .handler(async ({ data }) => {
+    const { MysqlRolesRepository, MysqlUsersRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    await requireAdminServerPermission("users.manage");
+
+    const usersRepository = new MysqlUsersRepository();
+    const rolesRepository = new MysqlRolesRepository();
+    const users = await usersRepository.list(100);
+    const rows = await Promise.all(
+      users.map(async (user) => {
+        const roles = await rolesRepository.listRolesForUser(user.id);
+        return toAdminUser(user, roles[0]?.roleCode);
+      }),
+    );
+    return rows.filter((row) => matchesUserFilters(row, data));
+  });
+
+export const saveAdminUser = createServerFn({ method: "POST" })
+  .validator((data: SaveAdminUserInput) => data)
+  .handler(async ({ data }) => {
+    const name = data.name?.trim();
+    const email = data.email?.trim();
+    const role = data.role ?? "viewer";
+    const status = data.status ?? "invited";
+    if (!name) return { ok: false, message: "Display name is required." };
+    if (!email) return { ok: false, message: "Email address is required." };
+    if (!adminRoleToRoleCode[role]) return { ok: false, message: "Role is required." };
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { MysqlAuditLogRepository, MysqlRolesRepository, MysqlUsersRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("users.manage");
+    const usersRepository = new MysqlUsersRepository();
+    const rolesRepository = new MysqlRolesRepository();
+
+    const existing = data.id ? await usersRepository.findById(data.id) : null;
+    const user = existing
+      ? await usersRepository.update({
+          userId: existing.id,
+          displayName: name,
+          accountStatus: status,
+        })
+      : await usersRepository.create({ email, displayName: name, accountStatus: status });
+    if (!user) return { ok: false, message: "User record could not be saved." };
+
+    await rolesRepository.setUserRoles(user.id, [adminRoleToRoleCode[role]], principal.userId);
+    const roles = await rolesRepository.listRolesForUser(user.id);
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: existing ? "users.user.updated" : "users.user.created",
+      moduleCode: "users",
+      recordType: "user",
+      recordId: user.id,
+      outcome: "success",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        email: user.email,
+        roleCode: roles[0]?.roleCode ?? null,
+        accountStatus: user.accountStatus,
+      },
+    });
+
+    return {
+      ok: true,
+      message: "Administrator user saved.",
+      user: toAdminUser(user, roles[0]?.roleCode),
+    };
+  });
+
+export const updateAdminUserStatus = createServerFn({ method: "POST" })
+  .validator((data: UpdateAdminUserStatusInput) => data)
+  .handler(async ({ data }) => {
+    if (!data.id) return { ok: false, message: "User id is required." };
+    if (!data.status) return { ok: false, message: "User status is required." };
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { MysqlAuditLogRepository, MysqlRolesRepository, MysqlUsersRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("users.manage");
+    const usersRepository = new MysqlUsersRepository();
+    const existing = await usersRepository.findById(data.id);
+    if (!existing) return { ok: false, message: "User was not found." };
+    if (existing.id === principal.userId && data.status !== "active") {
+      return { ok: false, message: "You cannot suspend your own active administrator account." };
+    }
+
+    const updated = await usersRepository.update({ userId: data.id, accountStatus: data.status });
+    if (!updated) return { ok: false, message: "User status could not be updated." };
+    const roles = await new MysqlRolesRepository().listRolesForUser(updated.id);
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "users.user.status.updated",
+      moduleCode: "users",
+      recordType: "user",
+      recordId: updated.id,
+      outcome: "success",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: { previousStatus: existing.accountStatus, nextStatus: updated.accountStatus },
+    });
+    return {
+      ok: true,
+      message: "Administrator status updated.",
+      user: toAdminUser(updated, roles[0]?.roleCode),
+    };
+  });
+
+export const listAdminRoles = createServerFn({ method: "GET" }).handler(async () => {
+  const { MysqlRolesRepository } = await import("../server/repositories/mysql");
+  const { requireAdminServerPermission } = await import("./server-permissions");
+  await requireAdminServerPermission("roles.manage");
+  const repository = new MysqlRolesRepository();
+  const roles = await repository.listRoles();
+  const counts = await repository.countUsersByRole();
+  const rows = await Promise.all(
+    roles.map(async (role) =>
+      toAdminRoleDefinition(
+        role,
+        await repository.listPermissionsForRole(role.roleCode),
+        counts[role.roleCode] ?? 0,
+      ),
+    ),
+  );
+  return rows;
+});
+
+export const getAdminSettingsSnapshot = createServerFn({ method: "GET" }).handler(async () => {
+  const { MysqlSettingsRepository } = await import("../server/repositories/mysql");
+  const { requireAdminServerPermission } = await import("./server-permissions");
+  await requireAdminServerPermission("settings.manage");
+  const settings = await new MysqlSettingsRepository().listAll();
+  return toSettingsSnapshot(settings);
+});
+
+export const saveAdminSetting = createServerFn({ method: "POST" })
+  .validator((data: SaveAdminSettingInput) => data)
+  .handler(async ({ data }) => {
+    const group = data.group?.trim().toLowerCase();
+    const key = data.key?.trim().toLowerCase();
+    const value = data.value?.trim();
+    if (!group || !/^[a-z0-9_-]+$/.test(group)) {
+      return {
+        ok: false,
+        message: "Setting group must use lowercase letters, numbers, hyphens or underscores.",
+      };
+    }
+    if (!key || !/^[a-z0-9_-]+$/.test(key)) {
+      return {
+        ok: false,
+        message: "Setting key must use lowercase letters, numbers, hyphens or underscores.",
+      };
+    }
+    if (!value) return { ok: false, message: "Setting value is required." };
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { MysqlAuditLogRepository, MysqlSettingsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("settings.manage");
+    const saved = await new MysqlSettingsRepository().upsert({
+      settingGroup: group,
+      settingKey: key,
+      valueJson: value,
+      isPublic: Boolean(data.isPublic),
+      updatedByUserId: principal.userId,
+    });
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "settings.setting.saved",
+      moduleCode: "settings",
+      recordType: "app_setting",
+      recordId: saved.id,
+      outcome: "success",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        settingGroup: saved.settingGroup,
+        settingKey: saved.settingKey,
+        isPublic: saved.isPublic,
+      },
+    });
+    return { ok: true, message: "Setting saved." };
+  });
+
+function toAdminUser(
+  user: {
+    readonly id: string;
+    readonly email: string;
+    readonly displayName: string;
+    readonly accountStatus: string;
+    readonly createdAt: Date;
+    readonly lastLoginAt: Date | null;
+  },
+  roleCode: string | undefined,
+): AdminUser {
+  const status = toAdminUserStatus(user.accountStatus);
+  return {
+    isDemo: false,
+    id: user.id,
+    reference: user.id,
+    name: user.displayName,
+    email: user.email,
+    role: roleCodeToAdminRole[roleCode ?? ""] ?? "viewer",
+    status,
+    invitationState: status === "invited" ? "not_sent" : "accepted_preview",
+    readOnly: false,
+    suspensionState: status === "suspended" ? "restore_available_preview" : "none",
+    createdAt: user.createdAt.toISOString(),
+    lastActiveAt: user.lastLoginAt?.toISOString() ?? "No login recorded",
+  };
+}
+
+function toAdminUserStatus(status: string): AdminUser["status"] {
+  if (status === "suspended" || status === "disabled") return "suspended";
+  if (status === "invited") return "invited";
+  return "active";
+}
+
+function matchesUserFilters(user: AdminUser, filters: AdminUserFilters): boolean {
+  const search = filters.search?.trim().toLowerCase();
+  return Boolean(
+    (!search ||
+      [user.reference, user.name, user.email].some((value) =>
+        value.toLowerCase().includes(search),
+      )) &&
+    (!filters.role || filters.role === "all" || user.role === filters.role) &&
+    (!filters.status || filters.status === "all" || user.status === filters.status),
+  );
+}
+
+function toAdminRoleDefinition(
+  role: {
+    readonly roleCode: string;
+    readonly displayName: string;
+    readonly description: string | null;
+    readonly isSystemRole: boolean;
+  },
+  permissions: Array<{
+    readonly permissionCode: string;
+    readonly moduleCode: string;
+    readonly actionCode: string;
+  }>,
+  assignedUserCount: number,
+): AdminRoleDefinition {
+  return {
+    isDemo: false,
+    id: roleCodeToAdminRole[role.roleCode] ?? "viewer",
+    label: role.displayName,
+    description: role.description ?? "No description recorded.",
+    assignedUserCount,
+    readOnly: true,
+    permissions: permissions.reduce<Partial<Record<PermissionArea, PermissionAction[]>>>(
+      (matrix, permission) => {
+        const area = toPermissionArea(permission.moduleCode);
+        const action = toPermissionAction(permission.actionCode);
+        if (!area || !action) return matrix;
+        matrix[area] = [...(matrix[area] ?? []), action];
+        return matrix;
+      },
+      {},
+    ),
+  };
+}
+
+function toPermissionArea(moduleCode: string): PermissionArea | null {
+  const allowed = new Set<PermissionArea>([
+    "dashboard",
+    "content",
+    "events",
+    "bookings",
+    "payments",
+    "sos",
+    "users",
+    "roles",
+    "settings",
+    "audit_logs",
+  ]);
+  const mapped = moduleCode === "audit" ? "audit_logs" : moduleCode;
+  return allowed.has(mapped as PermissionArea) ? (mapped as PermissionArea) : null;
+}
+
+function toPermissionAction(actionCode: string): PermissionAction | null {
+  if (actionCode === "manage") return "manage_users";
+  if (actionCode === "access") return "view";
+  const allowed = new Set<PermissionAction>([
+    "view",
+    "create",
+    "edit",
+    "publish",
+    "archive",
+    "acknowledge",
+    "resolve",
+  ]);
+  return allowed.has(actionCode as PermissionAction) ? (actionCode as PermissionAction) : null;
+}
+
+function toSettingsSnapshot(
+  settings: Array<{
+    readonly settingGroup: string;
+    readonly settingKey: string;
+    readonly valueJson: unknown;
+  }>,
+): AdminSettingsSnapshot {
+  const values = new Map(
+    settings.map((setting) => [
+      `${setting.settingGroup}.${setting.settingKey}`,
+      formatSettingValue(setting.valueJson),
+    ]),
+  );
+  return {
+    isDemo: false,
+    id: "settings-operational",
+    general: {
+      "Park name": values.get("general.park_name") ?? "Yorùbá Heritage Park",
+      "Operational status":
+        values.get("general.operational_status") ?? "Pending operational confirmation",
+    },
+    visitorInformation: {
+      "Opening information":
+        values.get("visitor.opening_information") ?? "Pending operational confirmation",
+      "Visitor guidance": values.get("visitor.guidance") ?? "Pending operational confirmation",
+    },
+    booking: {
+      "Booking mode": values.get("booking.mode") ?? "MySQL-backed request intake",
+      Availability: values.get("booking.availability") ?? "Pending operational confirmation",
+    },
+    payments: {
+      "Payment provider": values.get("payments.provider") ?? "Sandbox configuration pending",
+      "Refund policy": values.get("payments.refund_policy") ?? "Awaiting authorised content",
+    },
+    notifications: {
+      Email: values.get("notifications.email") ?? "Disabled",
+      SMS: values.get("notifications.sms") ?? "Disabled",
+      WhatsApp: values.get("notifications.whatsapp") ?? "Disabled",
+    },
+    safety: {
+      "SOS mode": values.get("safety.sos_mode") ?? "Hidden until client approval",
+      "Emergency contacts":
+        values.get("safety.emergency_contacts") ?? "Awaiting authorised content",
+    },
+    media: {
+      "Upload mode": values.get("media.upload_mode") ?? "Disabled",
+      "Storage provider": values.get("media.storage_provider") ?? "Not connected",
+    },
+    seo: {
+      "Meta review": values.get("seo.meta_review") ?? "Pending operational confirmation",
+    },
+    legalPrivacy: {
+      "Legal terms": values.get("legal.terms") ?? "Awaiting authorised content",
+      "Privacy information": values.get("legal.privacy") ?? "Awaiting authorised content",
+    },
+  };
+}
+
+function formatSettingValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}

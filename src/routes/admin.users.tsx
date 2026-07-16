@@ -14,16 +14,13 @@ import {
   AdminPageHeader,
   AdminSearchInput,
   AdminStatusBadge,
-  DemoBadge,
   DetailRow,
-  FeatureDisabledNotice,
   FilterChip,
   PermissionNotice,
-  PreviewModeBanner,
   type AdminColumn,
 } from "@/admin/components";
 import { ADMIN_ROLE_LABELS } from "@/admin/types";
-import { adminService } from "@/admin/services";
+import { listAdminUsers, saveAdminUser, updateAdminUserStatus } from "@/admin/governance-functions";
 import type {
   AdminRole,
   AdminUser,
@@ -41,9 +38,9 @@ export const Route = createFileRoute("/admin/users")({
 });
 
 const STATUS_LABEL: Record<AdminUserStatus, string> = {
-  invited: "Invitation Preview",
-  active: "Active Preview",
-  suspended: "Suspended Preview",
+  invited: "Invited",
+  active: "Active",
+  suspended: "Suspended",
 };
 
 const STATUS_TONE: Record<AdminUserStatus, StatusTone> = {
@@ -84,8 +81,9 @@ function AdminUsersRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    adminService.users
-      .list(filters)
+    setRows(null);
+    setError(null);
+    listAdminUsers({ data: filters })
       .then((list) => {
         if (cancelled) return;
         setRows(list);
@@ -103,8 +101,19 @@ function AdminUsersRoute() {
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
-  const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+
+  const refreshUsers = () => {
+    setRows(null);
+    setError(null);
+    listAdminUsers({ data: filters })
+      .then((list) => {
+        setRows(list);
+        setSelectedId((current) =>
+          current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
+        );
+      })
+      .catch(() => setError("User records could not be loaded."));
+  };
 
   return (
     <>
@@ -112,19 +121,14 @@ function AdminUsersRoute() {
       <AdminPageHeader
         eyebrow="Governance"
         title="Users"
-        description="User management is operating in preview mode. Authentication and account changes are not connected."
+        description="Create administrator accounts, assign roles and control account status from MySQL-backed records."
         actions={
           <PreviewButton icon={<UserPlus className="size-3.5" />} onClick={() => setModal("new")}>
-            New-user invitation preview
+            New administrator
           </PreviewButton>
         }
       />
-      <PreviewModeBanner message="User management is operating in preview mode. Authentication and account changes are not connected." />
       <PermissionNotice />
-      <FeatureDisabledNotice
-        feature="Authentication, invitations and password resets"
-        reason="No real users, sessions, invitations, passwords or resets are created."
-      />
 
       <AdminFilterBar>
         <AdminSearchInput
@@ -174,9 +178,9 @@ function AdminUsersRoute() {
             columns={columns}
             rows={rows}
             rowKey={(row) => row.id}
-            caption="User preview records"
+            caption="Administrator users"
             emptyTitle="No users"
-            emptyDescription="No preview users match the selected filters."
+            emptyDescription="No administrator users match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -188,7 +192,6 @@ function AdminUsersRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
                 </>
               }
             >
@@ -197,7 +200,7 @@ function AdminUsersRoute() {
                 <DetailRow label="Role">{ADMIN_ROLE_LABELS[selected.role]}</DetailRow>
                 <DetailRow label="Invitation state">{selected.invitationState}</DetailRow>
                 <DetailRow label="Last activity">
-                  {selected.lastActiveAt ?? "No preview activity"}
+                  {selected.lastActiveAt ?? "No login recorded"}
                 </DetailRow>
                 <DetailRow label="Created">{selected.createdAt}</DetailRow>
                 <DetailRow label="Read-only">{selected.readOnly ? "Yes" : "No"}</DetailRow>
@@ -208,37 +211,37 @@ function AdminUsersRoute() {
                   icon={<UserPlus className="size-3.5" />}
                   onClick={() => setModal("edit")}
                 >
-                  Edit-user preview form
+                  Edit user
                 </PreviewButton>
                 <PreviewButton
                   icon={<KeyRound className="size-3.5" />}
-                  onClick={completePreviewAction}
+                  onClick={() => setModal("edit")}
                 >
-                  Role-assignment preview
-                </PreviewButton>
-                <PreviewButton
-                  icon={<KeyRound className="size-3.5" />}
-                  onClick={completePreviewAction}
-                >
-                  Password-reset preview notice
+                  Change role
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
-                  onClick={completePreviewAction}
+                  onClick={async () => {
+                    const result = await updateAdminUserStatus({
+                      data: { id: selected.id, status: "active" },
+                    });
+                    setNotice(result.message);
+                    refreshUsers();
+                  }}
                 >
-                  Restore preview
+                  Restore active
                 </PreviewButton>
                 <PreviewButton
                   icon={<UserX className="size-3.5" />}
                   onClick={() => setSuspendOpen(true)}
                 >
-                  Suspend confirmation preview
+                  Suspend user
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No user selected">
-              <p className="text-sm text-muted-foreground">Select a preview user.</p>
+              <p className="text-sm text-muted-foreground">Select an administrator user.</p>
             </AdminDetailPanel>
           )}
         </div>
@@ -247,43 +250,115 @@ function AdminUsersRoute() {
       <AdminModal
         open={modal !== null}
         onOpenChange={(open) => !open && setModal(null)}
-        title={modal === "edit" ? "Edit-user preview" : "New-user invitation preview"}
-        description="No invitation, account or session is created."
+        title={modal === "edit" ? "Edit administrator" : "New administrator"}
+        description="New users are created without a password until credentials are issued separately."
       >
-        <div className="grid gap-3">
-          <input
-            className="rounded-sm border border-border px-3 py-2 text-sm"
-            placeholder="Display name placeholder"
-          />
-          <input
-            className="rounded-sm border border-border px-3 py-2 text-sm"
-            placeholder="email@example.test"
-          />
-          <button
-            type="button"
-            onClick={() => {
+        <UserForm
+          user={modal === "edit" ? selected : null}
+          onSubmit={async (input) => {
+            const result = await saveAdminUser({ data: input });
+            setNotice(result.message);
+            if (result.ok) {
               setModal(null);
-              completePreviewAction();
-            }}
-            className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory"
-          >
-            Save preview locally
-          </button>
-        </div>
+              refreshUsers();
+            }
+          }}
+        />
       </AdminModal>
       <AdminConfirmationDialog
         open={suspendOpen}
         onOpenChange={setSuspendOpen}
-        title="Suspend preview user?"
-        description="This does not change a real account."
-        confirmLabel="Suspend locally"
+        title="Suspend administrator?"
+        description="The account will remain in the database but will no longer be an active administrator."
+        confirmLabel="Suspend user"
         destructive
-        onConfirm={() => {
+        onConfirm={async () => {
+          if (!selected) return;
+          const result = await updateAdminUserStatus({
+            data: { id: selected.id, status: "suspended" },
+          });
           setSuspendOpen(false);
-          completePreviewAction();
+          setNotice(result.message);
+          refreshUsers();
         }}
       />
     </>
+  );
+}
+
+function UserForm({
+  user,
+  onSubmit,
+}: {
+  user: AdminUser | null;
+  onSubmit: (input: {
+    id?: string;
+    name: string;
+    email: string;
+    role: AdminRole;
+    status: AdminUserStatus;
+  }) => Promise<void>;
+}) {
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [role, setRole] = useState<AdminRole>(user?.role ?? "viewer");
+  const [status, setStatus] = useState<AdminUserStatus>(user?.status ?? "invited");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <form
+      className="grid gap-3"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setSaving(true);
+        try {
+          await onSubmit({ id: user?.id, name, email, role, status });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <input
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        placeholder="Display name"
+        value={name}
+        onChange={(event) => setName(event.currentTarget.value)}
+      />
+      <input
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        placeholder="email@example.com"
+        value={email}
+        disabled={Boolean(user)}
+        onChange={(event) => setEmail(event.currentTarget.value)}
+      />
+      <select
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        value={role}
+        onChange={(event) => setRole(event.currentTarget.value as AdminRole)}
+      >
+        {Object.entries(ADMIN_ROLE_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <select
+        className="rounded-sm border border-border px-3 py-2 text-sm"
+        value={status}
+        onChange={(event) => setStatus(event.currentTarget.value as AdminUserStatus)}
+      >
+        <option value="invited">Invited</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+      </select>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory disabled:opacity-60"
+      >
+        {saving ? "Saving..." : "Save user"}
+      </button>
+    </form>
   );
 }
 

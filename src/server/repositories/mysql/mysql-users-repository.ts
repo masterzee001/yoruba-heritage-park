@@ -4,8 +4,13 @@ import type { Pool } from "mysql2/promise";
 import { getDatabasePool, toDatabaseError } from "../../db";
 import type { AuthenticationRecord } from "../../auth/auth-types";
 import type { UserRecord } from "../repository-types";
-import type { FailedLoginStateInput, UsersRepository } from "../users-repository";
-import { normaliseEmail, requireId } from "./mysql-helpers";
+import type {
+  CreateUserInput,
+  FailedLoginStateInput,
+  UpdateUserInput,
+  UsersRepository,
+} from "../users-repository";
+import { createRepositoryId, normaliseEmail, requireId, requireLimit } from "./mysql-helpers";
 
 interface UserRow extends RowDataPacket {
   id: string;
@@ -24,6 +29,23 @@ interface UserRow extends RowDataPacket {
 
 export class MysqlUsersRepository implements UsersRepository {
   constructor(private readonly pool: Pool = getDatabasePool()) {}
+
+  async list(limit = 100): Promise<UserRecord[]> {
+    try {
+      const [rows] = await this.pool.query<UserRow[]>(
+        `SELECT id, email, display_name, account_status, email_verified_at, last_login_at,
+          failed_login_count, locked_until, created_at, updated_at, archived_at
+         FROM users
+         WHERE archived_at IS NULL
+         ORDER BY created_at DESC
+         LIMIT ?`,
+        [requireLimit(limit)],
+      );
+      return rows.map(mapUser);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
 
   async findById(id: string): Promise<UserRecord | null> {
     try {
@@ -88,6 +110,49 @@ export class MysqlUsersRepository implements UsersRepository {
     }
   }
 
+  async create(input: CreateUserInput): Promise<UserRecord> {
+    const id = createRepositoryId("user");
+    try {
+      await this.pool.query(
+        `INSERT INTO users (id, email, display_name, account_status)
+         VALUES (?, ?, ?, ?)`,
+        [
+          id,
+          normaliseEmail(input.email),
+          requireDisplayName(input.displayName),
+          input.accountStatus ?? "invited",
+        ],
+      );
+      const created = await this.findById(id);
+      if (!created) throw new Error("User was not created.");
+      return created;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async update(input: UpdateUserInput): Promise<UserRecord | null> {
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    if (input.displayName !== undefined) {
+      updates.push("display_name = ?");
+      values.push(requireDisplayName(input.displayName));
+    }
+    if (input.accountStatus !== undefined) {
+      updates.push("account_status = ?");
+      values.push(input.accountStatus);
+    }
+    if (!updates.length) return this.findById(input.userId);
+
+    try {
+      values.push(requireId(input.userId));
+      await this.pool.query(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, values);
+      return this.findById(input.userId);
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
   async updateLastLogin(userId: string, lastLoginAt: Date): Promise<void> {
     try {
       await this.pool.query(
@@ -109,6 +174,12 @@ export class MysqlUsersRepository implements UsersRepository {
       throw toDatabaseError(error);
     }
   }
+}
+
+function requireDisplayName(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 191) throw new Error("Display name is required.");
+  return trimmed;
 }
 
 function mapUser(row: UserRow): UserRecord {
