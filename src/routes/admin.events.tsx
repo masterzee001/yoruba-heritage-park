@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RotateCw, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArchiveRestore, Pencil, Plus, RotateCw, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
   AdminConfirmationDialog,
@@ -9,6 +9,7 @@ import {
   AdminErrorState,
   AdminFilterBar,
   AdminLoadingState,
+  AdminModal,
   AdminPageHeader,
   AdminSearchInput,
   AdminStatusBadge,
@@ -16,7 +17,12 @@ import {
   FilterChip,
   type AdminColumn,
 } from "@/admin/components";
-import { deleteAdminEvent, listAdminEvents } from "@/admin/event-functions";
+import {
+  deleteAdminEvent,
+  listAdminEvents,
+  restoreAdminEvent,
+  saveAdminEvent,
+} from "@/admin/event-functions";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import type { AdminEvent, EventStatus, StatusTone } from "@/admin/types";
 
@@ -69,19 +75,23 @@ function AdminEventsRoute() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<EventStatus | "all">("all");
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [modal, setModal] = useState<"new" | "edit" | null>(null);
 
   const loadEvents = useCallback(async () => {
     setError(null);
-    const list = await listAdminEvents({ data: { search, status } });
+    const list = await listAdminEvents({
+      data: { search, status, includeDeleted: includeArchived },
+    });
     setRecords(list);
     setSelectedId((current) =>
       current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
     );
-  }, [search, status]);
+  }, [includeArchived, search, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +108,7 @@ function AdminEventsRoute() {
     [records, selectedId],
   );
 
-  async function handleDelete() {
+  async function handleArchive() {
     if (!selected) return;
     setDeleting(true);
     setNotice(null);
@@ -110,14 +120,22 @@ function AdminEventsRoute() {
       }
       setConfirmDelete(false);
       setNotice(
-        "Event deleted. The record is hidden from active event lists and retained in audit history.",
+        "Event archived. The record is hidden from active event lists and retained for audit and recovery.",
       );
       await loadEvents();
     } catch {
-      setError("Event could not be deleted.");
+      setError("Event could not be archived.");
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleRestore() {
+    if (!selected) return;
+    setNotice(null);
+    const result = await restoreAdminEvent({ data: { id: selected.id } });
+    setNotice(result.message);
+    await loadEvents();
   }
 
   return (
@@ -126,7 +144,19 @@ function AdminEventsRoute() {
         eyebrow="Programme operations"
         title="Events"
         description="Review database-backed event records, including the initial past event archive."
-        actions={<AdminStatusBadge tone="success">Database-backed</AdminStatusBadge>}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminStatusBadge tone="success">Database-backed</AdminStatusBadge>
+            <button
+              type="button"
+              onClick={() => setModal("new")}
+              className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest"
+            >
+              <Plus className="size-3.5" aria-hidden />
+              New event
+            </button>
+          </div>
+        }
       />
 
       <AdminFilterBar>
@@ -148,6 +178,14 @@ function AdminEventsRoute() {
           <RotateCw className="size-3.5" aria-hidden />
           Refresh
         </button>
+        <label className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={includeArchived}
+            onChange={(event) => setIncludeArchived(event.currentTarget.checked)}
+          />
+          Include archived
+        </label>
       </AdminFilterBar>
 
       {notice ? (
@@ -184,6 +222,9 @@ function AdminEventsRoute() {
             >
               <dl>
                 <DetailRow label="Slug">{selected.slug}</DetailRow>
+                <DetailRow label="Archive state">
+                  {selected.deletedAt ? `Archived ${selected.deletedAt}` : "Active"}
+                </DetailRow>
                 <DetailRow label="Starts">{selected.startsAt}</DetailRow>
                 <DetailRow label="Ends">
                   {selected.endsAt ??
@@ -201,19 +242,41 @@ function AdminEventsRoute() {
               </dl>
 
               <div className="mt-6 rounded-sm border border-border bg-cream/30 px-4 py-3 text-xs text-muted-foreground">
-                Deleting an event performs a soft delete. The record is removed from active admin
-                lists but retained for audit and recovery workflows.
+                Archiving an event hides it from active admin lists but retains the record for audit
+                and recovery workflows.
               </div>
 
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                disabled={deleting}
-                className="mt-5 inline-flex items-center gap-2 rounded-sm border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-                Delete event
-              </button>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModal("edit")}
+                  disabled={Boolean(selected.deletedAt)}
+                  className="inline-flex items-center gap-2 rounded-sm border border-border px-4 py-2 text-xs font-medium hover:border-forest disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Pencil className="size-3.5" aria-hidden />
+                  Edit event
+                </button>
+                {selected.deletedAt ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleRestore()}
+                    className="inline-flex items-center gap-2 rounded-sm border border-forest/40 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-forest/10"
+                  >
+                    <ArchiveRestore className="size-3.5" aria-hidden />
+                    Restore event
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={deleting}
+                    className="inline-flex items-center gap-2 rounded-sm border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                    Archive event
+                  </button>
+                )}
+              </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No event selected">
@@ -226,12 +289,187 @@ function AdminEventsRoute() {
       <AdminConfirmationDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this event?"
+        title="Archive this event?"
         description="The event will be hidden from active event lists. Audit history will be retained."
-        confirmLabel={deleting ? "Deleting" : "Delete event"}
+        confirmLabel={deleting ? "Archiving" : "Archive event"}
         destructive
-        onConfirm={() => void handleDelete()}
+        onConfirm={() => void handleArchive()}
       />
+      <AdminModal
+        open={modal !== null}
+        onOpenChange={(open) => !open && setModal(null)}
+        title={modal === "edit" ? "Edit event" : "New event"}
+        description="Event information can stay pending where operations are not confirmed."
+      >
+        <EventForm
+          key={modal === "edit" ? (selected?.id ?? "edit") : "new"}
+          event={modal === "edit" ? selected : null}
+          onSubmit={async (input) => {
+            const result = await saveAdminEvent({ data: input });
+            setNotice(result.message);
+            if (result.ok) {
+              setModal(null);
+              await loadEvents();
+            }
+          }}
+        />
+      </AdminModal>
     </>
+  );
+}
+
+function EventForm({
+  event,
+  onSubmit,
+}: {
+  event: AdminEvent | null;
+  onSubmit: (input: {
+    id?: string;
+    title: string;
+    slug: string;
+    category: string;
+    startsAt: string;
+    endsAt?: string | null;
+    capacity?: number | null;
+    status: EventStatus;
+    featured: boolean;
+    repeating: boolean;
+    notes?: string | null;
+  }) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(event?.title ?? "");
+  const [slug, setSlug] = useState(event?.slug ?? "");
+  const [category, setCategory] = useState(event?.category ?? "");
+  const [startsAt, setStartsAt] = useState(event?.startsAtInput ?? "");
+  const [endsAt, setEndsAt] = useState(event?.endsAtInput ?? "");
+  const [capacity, setCapacity] = useState(event?.capacity?.toString() ?? "");
+  const [status, setStatus] = useState<EventStatus>(event?.status ?? "draft");
+  const [featured, setFeatured] = useState(Boolean(event?.featured));
+  const [repeating, setRepeating] = useState(Boolean(event?.repeating));
+  const [notes, setNotes] = useState(event?.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <form
+      className="grid gap-3"
+      onSubmit={async (submitEvent) => {
+        submitEvent.preventDefault();
+        setSaving(true);
+        try {
+          await onSubmit({
+            id: event?.id,
+            title,
+            slug,
+            category,
+            startsAt,
+            endsAt: endsAt || null,
+            capacity: capacity ? Number(capacity) : null,
+            status,
+            featured,
+            repeating,
+            notes,
+          });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <EventInput label="Title" value={title} onChange={setTitle} />
+      <EventInput
+        label="Slug"
+        value={slug}
+        onChange={setSlug}
+        placeholder="Generated from title if blank"
+      />
+      <EventInput label="Category" value={category} onChange={setCategory} />
+      <EventInput label="Starts" type="datetime-local" value={startsAt} onChange={setStartsAt} />
+      <EventInput label="Ends" type="datetime-local" value={endsAt} onChange={setEndsAt} />
+      <EventInput label="Capacity" type="number" value={capacity} onChange={setCapacity} />
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+        Status
+        <select
+          className="rounded-sm border border-border px-3 py-2 text-sm text-foreground"
+          value={status}
+          onChange={(changeEvent) => setStatus(changeEvent.currentTarget.value as EventStatus)}
+        >
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <EventCheckbox checked={featured} onChange={setFeatured}>
+          Featured
+        </EventCheckbox>
+        <EventCheckbox checked={repeating} onChange={setRepeating}>
+          Repeating
+        </EventCheckbox>
+      </div>
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+        Notes
+        <textarea
+          className="min-h-24 rounded-sm border border-border px-3 py-2 text-sm text-foreground"
+          value={notes}
+          onChange={(changeEvent) => setNotes(changeEvent.currentTarget.value)}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory disabled:opacity-60"
+      >
+        {saving ? "Saving..." : "Save event"}
+      </button>
+    </form>
+  );
+}
+
+function EventInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+      {label}
+      <input
+        className="rounded-sm border border-border px-3 py-2 text-sm text-foreground"
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      />
+    </label>
+  );
+}
+
+function EventCheckbox({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+      />
+      {children}
+    </label>
   );
 }

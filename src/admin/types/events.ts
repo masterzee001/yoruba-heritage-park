@@ -8,19 +8,23 @@ export interface AdminEvent extends DemoRecord {
   slug: string;
   category: string;
   startsAt: string;
+  startsAtInput: string;
   endsAt?: string;
+  endsAtInput?: string;
   capacity: number | null;
   booked: number;
   status: EventStatus;
   featured: boolean;
   repeating: boolean;
   notes?: string;
+  deletedAt?: string;
 }
 
 export interface EventFilters {
   search?: string;
   status?: EventStatus | "all";
   category?: string;
+  includeDeleted?: boolean;
 }
 
 export interface AdminExperience extends DemoRecord {

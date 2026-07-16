@@ -2,9 +2,9 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import type { Pool } from "mysql2/promise";
 
 import { getDatabasePool, toDatabaseError } from "../../db";
-import type { EventsRepository } from "../events-repository";
+import type { EventsRepository, SaveEventInput } from "../events-repository";
 import type { EventListFilters, EventRecord } from "../repository-types";
-import { requireId, requireLimit } from "./mysql-helpers";
+import { createRepositoryId, requireCode, requireId, requireLimit } from "./mysql-helpers";
 
 interface EventRow extends RowDataPacket {
   id: string;
@@ -78,10 +78,80 @@ export class MysqlEventsRepository implements EventsRepository {
     }
   }
 
+  async create(input: SaveEventInput): Promise<EventRecord> {
+    try {
+      const eventId = createRepositoryId("evt");
+      await this.pool.query<ResultSetHeader>(
+        `INSERT INTO events (
+          id, title, slug, category, starts_at, ends_at, capacity, booked_count, status,
+          featured, repeating, notes
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+        [
+          eventId,
+          requireCode(input.title),
+          requireCode(input.slug),
+          requireCode(input.category),
+          requireDateTime(input.startsAt),
+          optionalDateTime(input.endsAt),
+          optionalCapacity(input.capacity),
+          input.status ?? "draft",
+          input.featured ? 1 : 0,
+          input.repeating ? 1 : 0,
+          input.notes?.trim() || null,
+        ],
+      );
+      const created = await this.findById(eventId);
+      if (!created) throw new Error("Created event could not be loaded.");
+      return created;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async update(input: SaveEventInput & { readonly id: string }): Promise<EventRecord | null> {
+    try {
+      const [result] = await this.pool.query<ResultSetHeader>(
+        `UPDATE events
+         SET title = ?, slug = ?, category = ?, starts_at = ?, ends_at = ?, capacity = ?,
+          status = ?, featured = ?, repeating = ?, notes = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        [
+          requireCode(input.title),
+          requireCode(input.slug),
+          requireCode(input.category),
+          requireDateTime(input.startsAt),
+          optionalDateTime(input.endsAt),
+          optionalCapacity(input.capacity),
+          input.status ?? "draft",
+          input.featured ? 1 : 0,
+          input.repeating ? 1 : 0,
+          input.notes?.trim() || null,
+          requireId(input.id),
+        ],
+      );
+      return result.affectedRows > 0 ? this.findById(input.id) : null;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
   async softDelete(id: string): Promise<boolean> {
     try {
       const [result] = await this.pool.query<ResultSetHeader>(
         "UPDATE events SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+        [requireId(id)],
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async restore(id: string): Promise<boolean> {
+    try {
+      const [result] = await this.pool.query<ResultSetHeader>(
+        "UPDATE events SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL",
         [requireId(id)],
       );
       return result.affectedRows > 0;
@@ -109,4 +179,27 @@ function mapEvent(row: EventRow): EventRecord {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
   };
+}
+
+function requireDateTime(value: string): string {
+  const trimmed = value.trim();
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed) &&
+    !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(trimmed)
+  ) {
+    throw new Error("Event date must include date and time.");
+  }
+  return trimmed.replace("T", " ").slice(0, 19);
+}
+
+function optionalDateTime(value: string | null | undefined): string | null {
+  return value?.trim() ? requireDateTime(value) : null;
+}
+
+function optionalCapacity(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  if (!Number.isInteger(value) || value < 0 || value > 100000) {
+    throw new Error("Event capacity is invalid.");
+  }
+  return value;
 }
