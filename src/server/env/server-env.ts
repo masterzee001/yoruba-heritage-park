@@ -3,6 +3,7 @@ import { z } from "zod";
 export type AdminDataSource = "mock" | "mysql";
 export type AuthMode = "disabled" | "database";
 export type DatabaseSslMode = "disabled" | "preferred" | "required";
+export type EmailDeliveryMode = "disabled" | "smtp";
 export type PayPalEnvironment = "sandbox" | "live";
 
 export interface ServerEnv {
@@ -38,6 +39,19 @@ export interface ServerEnv {
       readonly webhookId?: string;
     };
   };
+  readonly email: {
+    readonly deliveryMode: EmailDeliveryMode;
+    readonly fromAddress?: string;
+    readonly fromName?: string;
+    readonly publicBaseUrl?: string;
+    readonly smtp: {
+      readonly host?: string;
+      readonly port: number;
+      readonly secure: boolean;
+      readonly user?: string;
+      readonly password?: string;
+    };
+  };
 }
 
 export interface ServerEnvOptions {
@@ -71,6 +85,7 @@ const integerFromEnv = (defaultValue: number, minimum: number, maximum: number) 
   );
 const booleanFromEnv = (defaultValue: boolean) =>
   z.preprocess(emptyToUndefined, z.coerce.boolean().default(defaultValue));
+const urlText = z.preprocess(emptyToUndefined, z.string().trim().url().optional());
 const cookieNameSchema = z
   .preprocess(emptyToUndefined, z.string().trim().min(1).max(64).default("yhp_admin"))
   .refine((value) => /^[A-Za-z0-9_-]+$/.test(value), "Cookie name is invalid.");
@@ -108,6 +123,17 @@ const baseEnvSchema = z.object({
   PAYPAL_CLIENT_ID: optionalText,
   PAYPAL_SECRET_KEY: optionalText,
   PAYPAL_WEBHOOK_ID: optionalText,
+  EMAIL_DELIVERY_MODE: z
+    .preprocess(emptyToUndefined, z.enum(["disabled", "smtp"]).default("disabled"))
+    .default("disabled"),
+  EMAIL_FROM_ADDRESS: z.preprocess(emptyToUndefined, z.string().trim().email().optional()),
+  EMAIL_FROM_NAME: optionalText,
+  EMAIL_PUBLIC_BASE_URL: urlText,
+  SMTP_HOST: optionalText,
+  SMTP_PORT: integerFromEnv(587, 1, 65535),
+  SMTP_SECURE: booleanFromEnv(false),
+  SMTP_USER: optionalText,
+  SMTP_PASSWORD: optionalText,
 });
 
 const requiredDatabaseVariables = [
@@ -115,6 +141,13 @@ const requiredDatabaseVariables = [
   "DATABASE_NAME",
   "DATABASE_USER",
   "DATABASE_PASSWORD",
+] as const;
+
+const requiredSmtpVariables = [
+  "EMAIL_FROM_ADDRESS",
+  "SMTP_HOST",
+  "SMTP_USER",
+  "SMTP_PASSWORD",
 ] as const;
 
 export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
@@ -137,10 +170,12 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
   const missingVariables = mysqlRequired
     ? requiredDatabaseVariables.filter((name) => !env[name])
     : [];
+  const missingSmtpVariables =
+    env.EMAIL_DELIVERY_MODE === "smtp" ? requiredSmtpVariables.filter((name) => !env[name]) : [];
 
-  if (missingVariables.length > 0) {
-    throw new ServerEnvError("Database environment variables are required for MySQL mode.", {
-      missingVariables,
+  if (missingVariables.length > 0 || missingSmtpVariables.length > 0) {
+    throw new ServerEnvError("Required server environment variables are missing.", {
+      missingVariables: [...missingVariables, ...missingSmtpVariables],
     });
   }
 
@@ -177,6 +212,19 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
         webhookId: env.PAYPAL_WEBHOOK_ID,
       },
     },
+    email: {
+      deliveryMode: env.EMAIL_DELIVERY_MODE,
+      fromAddress: env.EMAIL_FROM_ADDRESS,
+      fromName: env.EMAIL_FROM_NAME,
+      publicBaseUrl: env.EMAIL_PUBLIC_BASE_URL,
+      smtp: {
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_SECURE,
+        user: env.SMTP_USER,
+        password: env.SMTP_PASSWORD,
+      },
+    },
   };
 }
 
@@ -194,7 +242,9 @@ function assertNoViteDatabaseVariables(source: NodeJS.ProcessEnv): void {
         key.includes("PAYMENT") ||
         key.includes("PAYPAL") ||
         key.includes("PAYSTACK") ||
-        key.includes("STRIPE")),
+        key.includes("STRIPE") ||
+        key.includes("EMAIL") ||
+        key.includes("SMTP")),
   );
 
   if (invalidVariables.length > 0) {

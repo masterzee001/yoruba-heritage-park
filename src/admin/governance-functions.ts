@@ -29,6 +29,11 @@ interface SetAdminUserPasswordInput {
   readonly confirmPassword?: string;
 }
 
+interface SendAdminCredentialNoticeInput {
+  readonly id?: string;
+  readonly purpose?: "invitation" | "password_reset";
+}
+
 interface SaveAdminSettingInput {
   readonly group?: string;
   readonly key?: string;
@@ -224,6 +229,56 @@ export const setAdminUserPassword = createServerFn({ method: "POST" })
     return {
       ok: true,
       message: updated?.accountStatus === "active" ? "Password saved." : "Password reset saved.",
+    };
+  });
+
+export const sendAdminCredentialNotice = createServerFn({ method: "POST" })
+  .validator((data: SendAdminCredentialNoticeInput) => data)
+  .handler(async ({ data }) => {
+    if (!data.id) return { ok: false, message: "User id is required." };
+    if (data.purpose !== "invitation" && data.purpose !== "password_reset") {
+      return { ok: false, message: "Credential notice purpose is required." };
+    }
+
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { sendAdminCredentialNotice: sendNotice } =
+      await import("../server/notifications/email-service");
+    const { MysqlAuditLogRepository, MysqlUsersRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("users.manage");
+
+    const user = await new MysqlUsersRepository().findById(data.id);
+    if (!user || user.archivedAt) return { ok: false, message: "User was not found." };
+
+    const delivery = await sendNotice({
+      toEmail: user.email,
+      displayName: user.displayName,
+      purpose: data.purpose,
+    });
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode:
+        data.purpose === "invitation"
+          ? "users.user.invitation_notice.sent"
+          : "users.user.password_notice.sent",
+      moduleCode: "users",
+      recordType: "user",
+      recordId: user.id,
+      outcome: delivery.status === "sent" ? "success" : "informational",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        email: user.email,
+        deliveryStatus: delivery.status,
+        providerMessageId: delivery.providerMessageId ?? null,
+      },
+    });
+
+    return {
+      ok: delivery.status === "sent",
+      message: delivery.message,
     };
   });
 

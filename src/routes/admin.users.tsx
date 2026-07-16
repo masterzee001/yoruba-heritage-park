@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckCircle2, KeyRound, UserPlus, UserX } from "lucide-react";
+import { CheckCircle2, KeyRound, Mail, UserPlus, UserX } from "lucide-react";
 import {
   AdminBreadcrumbs,
   AdminConfirmationDialog,
@@ -23,6 +23,7 @@ import { ADMIN_ROLE_LABELS } from "@/admin/types";
 import {
   listAdminUsers,
   saveAdminUser,
+  sendAdminCredentialNotice,
   setAdminUserPassword,
   updateAdminUserStatus,
 } from "@/admin/governance-functions";
@@ -133,7 +134,7 @@ function AdminUsersRoute() {
           </PreviewButton>
         }
       />
-      <PermissionNotice />
+      <PermissionNotice message="User and role changes are enforced server-side. Email notices only send when SMTP delivery is configured; passwords are never emailed." />
 
       <AdminFilterBar>
         <AdminSearchInput
@@ -223,6 +224,28 @@ function AdminUsersRoute() {
                   onClick={() => setModal("password")}
                 >
                   Set password
+                </PreviewButton>
+                <PreviewButton
+                  icon={<Mail className="size-3.5" />}
+                  onClick={async () => {
+                    const result = await sendAdminCredentialNotice({
+                      data: { id: selected.id, purpose: "invitation" },
+                    });
+                    setNotice(result.message);
+                  }}
+                >
+                  Send invite notice
+                </PreviewButton>
+                <PreviewButton
+                  icon={<Mail className="size-3.5" />}
+                  onClick={async () => {
+                    const result = await sendAdminCredentialNotice({
+                      data: { id: selected.id, purpose: "password_reset" },
+                    });
+                    setNotice(result.message);
+                  }}
+                >
+                  Send reset notice
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}

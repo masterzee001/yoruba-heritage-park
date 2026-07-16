@@ -29,6 +29,7 @@ describe("server environment validation", () => {
     expect(env.payments.checkoutEnabled).toBe(false);
     expect(env.payments.allowLiveCapture).toBe(false);
     expect(env.payments.paypal.environment).toBe("sandbox");
+    expect(env.email.deliveryMode).toBe("disabled");
   });
 
   test("requires database variables when mysql mode is selected", () => {
@@ -98,6 +99,34 @@ describe("server environment validation", () => {
     expect(() => getServerEnv({ source: { VITE_STRIPE_SECRET_KEY: "secret" } })).toThrow(
       ServerEnvError,
     );
+  });
+
+  test("validates server-only email configuration", () => {
+    const env = getServerEnv({
+      source: {
+        EMAIL_DELIVERY_MODE: "smtp",
+        EMAIL_FROM_ADDRESS: "admin@example.test",
+        EMAIL_FROM_NAME: "Yoruba Heritage Park",
+        EMAIL_PUBLIC_BASE_URL: "https://preview.example.test",
+        SMTP_HOST: "smtp.example.test",
+        SMTP_PORT: "465",
+        SMTP_SECURE: "true",
+        SMTP_USER: "smtp-user",
+        SMTP_PASSWORD: "smtp-password",
+      },
+    });
+
+    expect(env.email.deliveryMode).toBe("smtp");
+    expect(env.email.fromAddress).toBe("admin@example.test");
+    expect(env.email.publicBaseUrl).toBe("https://preview.example.test");
+    expect(env.email.smtp.secure).toBe(true);
+    expect(() => getServerEnv({ source: { EMAIL_DELIVERY_MODE: "smtp" } })).toThrow(ServerEnvError);
+    expect(() => getServerEnv({ source: { VITE_SMTP_PASSWORD: "secret" } })).toThrow(
+      ServerEnvError,
+    );
+    expect(() =>
+      getServerEnv({ source: { VITE_EMAIL_FROM_ADDRESS: "admin@example.test" } }),
+    ).toThrow(ServerEnvError);
   });
 });
 
