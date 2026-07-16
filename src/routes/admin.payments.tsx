@@ -22,6 +22,11 @@ import {
 } from "@/admin/components";
 import { projectStatus } from "@/config/project-status";
 import { supportedPaymentCurrencies } from "@/config/payment-currencies";
+import {
+  buildPaymentLaunchChecklist,
+  type PaymentLaunchChecklistItem,
+  type PaymentLaunchChecklistState,
+} from "@/config/payment-launch-checklist";
 import { getPaymentProviderLaunchGuides } from "@/config/payment-provider-launch";
 import {
   getPaymentLaunchStatus,
@@ -268,6 +273,16 @@ function AdminPaymentsRoute() {
     () => getPaymentProviderLaunchGuides(adminOrigin),
     [adminOrigin],
   );
+  const launchChecklist = useMemo(
+    () =>
+      buildPaymentLaunchChecklist({
+        launchStatus,
+        providerReadiness,
+        webhookGuides: webhookSetupGuide,
+        adminOrigin,
+      }),
+    [adminOrigin, launchStatus, providerReadiness, webhookSetupGuide],
+  );
   const reconciliationColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
     ...webhookColumns,
     {
@@ -482,6 +497,32 @@ function AdminPaymentsRoute() {
             enabledText="Live"
             disabledText={launchStatus?.paypalEnvironment ?? "Sandbox"}
           />
+        </div>
+      </section>
+
+      <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Launch checklist</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">
+              Payment operations checklist
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Track the remaining payment setup work without exposing provider secrets or activating
+              live capture before the final domain is ready.
+            </p>
+          </div>
+          <AdminStatusBadge
+            tone={launchChecklist.some((item) => item.state === "blocked") ? "danger" : "warning"}
+          >
+            {launchChecklist.filter((item) => item.state === "ready").length} /{" "}
+            {launchChecklist.length} ready
+          </AdminStatusBadge>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {launchChecklist.map((item) => (
+            <ChecklistItem key={item.id} item={item} />
+          ))}
         </div>
       </section>
 
@@ -1201,6 +1242,35 @@ function LaunchFlag({
       </AdminStatusBadge>
     </div>
   );
+}
+
+function ChecklistItem({ item }: { item: PaymentLaunchChecklistItem }) {
+  return (
+    <div className="rounded-sm border border-border bg-cream/30 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="size-4 text-forest" aria-hidden="true" />
+          <p className="text-sm font-medium text-foreground">{item.label}</p>
+        </div>
+        <AdminStatusBadge tone={checklistStateTone(item.state)}>
+          {checklistStateLabel(item.state)}
+        </AdminStatusBadge>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.detail}</p>
+    </div>
+  );
+}
+
+function checklistStateTone(state: PaymentLaunchChecklistState): StatusTone {
+  if (state === "ready") return "success";
+  if (state === "blocked") return "danger";
+  return "warning";
+}
+
+function checklistStateLabel(state: PaymentLaunchChecklistState): string {
+  if (state === "ready") return "Ready";
+  if (state === "blocked") return "Blocked";
+  return "Pending";
 }
 
 function PreviewButton({
