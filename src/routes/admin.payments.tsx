@@ -22,7 +22,9 @@ import {
 } from "@/admin/components";
 import { projectStatus } from "@/config/project-status";
 import { supportedPaymentCurrencies } from "@/config/payment-currencies";
+import { getPaymentProviderLaunchGuides } from "@/config/payment-provider-launch";
 import {
+  getPaymentLaunchStatus,
   listAdminPayments,
   listDonationCampaigns,
   listPaymentWebhookEvents,
@@ -33,6 +35,7 @@ import {
   saveDonationCampaign,
   savePaymentProviderSettings,
   type AdminDonationCampaign,
+  type AdminPaymentLaunchStatus,
   type AdminPaymentProviderReadiness,
   type AdminPaymentProviderSettings,
   type AdminPaymentWebhookEvent,
@@ -123,36 +126,6 @@ const webhookColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
   },
 ];
 
-const webhookSetupGuide = [
-  {
-    providerCode: "paypal",
-    displayName: "PayPal",
-    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/paypal",
-    secretReferences: ["PAYPAL_CLIENT_ID", "PAYPAL_SECRET_KEY", "PAYPAL_WEBHOOK_ID"],
-    status: "Ready for test webhook",
-    notes:
-      "Use this URL in PayPal dashboard webhook settings. The server verifies PayPal transmission headers with PAYPAL_WEBHOOK_ID before reconciliation.",
-  },
-  {
-    providerCode: "paystack",
-    displayName: "Paystack",
-    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/paystack",
-    secretReferences: ["PAYSTACK_PUBLIC_KEY", "PAYSTACK_SECRET_KEY"],
-    status: "Ready for test webhook",
-    notes:
-      "Use this URL in Paystack dashboard webhook settings. The server verifies x-paystack-signature before reconciliation.",
-  },
-  {
-    providerCode: "stripe",
-    displayName: "Stripe",
-    callbackUrl: "https://yhp-preview.deedoc.org/api/payments/webhooks/stripe",
-    secretReferences: ["STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
-    status: "Ready for test webhook",
-    notes:
-      "Use this URL as the Stripe endpoint and store its signing secret in STRIPE_WEBHOOK_SECRET. Checkout return URLs stay in Stripe configuration.",
-  },
-] as const;
-
 const providerDefaults = {
   paypal: {
     providerCode: "paypal",
@@ -192,6 +165,8 @@ function AdminPaymentsRoute() {
   const [providerReadiness, setProviderReadiness] = useState<
     AdminPaymentProviderReadiness[] | null
   >(null);
+  const [launchStatus, setLaunchStatus] = useState<AdminPaymentLaunchStatus | null>(null);
+  const [adminOrigin, setAdminOrigin] = useState<string | undefined>(undefined);
   const [campaigns, setCampaigns] = useState<AdminDonationCampaign[] | null>(null);
   const [webhookEvents, setWebhookEvents] = useState<AdminPaymentWebhookEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -244,16 +219,25 @@ function AdminPaymentsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listPaymentProviderSettings(), listPaymentProviderReadiness()])
-      .then(([providerList, readinessList]) => {
+    Promise.all([
+      listPaymentProviderSettings(),
+      listPaymentProviderReadiness(),
+      getPaymentLaunchStatus(),
+    ])
+      .then(([providerList, readinessList, status]) => {
         if (cancelled) return;
         setProviders(providerList);
         setProviderReadiness(readinessList);
+        setLaunchStatus(status);
       })
       .catch(() => !cancelled && setError("Payment provider settings could not be loaded."));
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    setAdminOrigin(window.location.origin);
   }, []);
 
   useEffect(() => {
@@ -279,6 +263,10 @@ function AdminPaymentsRoute() {
   const selected = useMemo(
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
+  );
+  const webhookSetupGuide = useMemo(
+    () => getPaymentProviderLaunchGuides(adminOrigin),
+    [adminOrigin],
   );
   const reconciliationColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
     ...webhookColumns,
@@ -438,10 +426,14 @@ function AdminPaymentsRoute() {
       <AdminPageHeader
         eyebrow="Commercial operations"
         title="Payments"
-        description="Preview payment review records. Payment processing is not enabled in preview mode."
-        actions={<AdminStatusBadge tone="preview">Payments disabled</AdminStatusBadge>}
+        description="Configure provider readiness, checkout preparation, and webhook reconciliation. Live capture remains controlled by server launch flags."
+        actions={
+          <AdminStatusBadge tone={launchStatus?.checkoutEnabled ? "warning" : "preview"}>
+            {launchStatus?.checkoutEnabled ? "Checkout enabled" : "Checkout gated"}
+          </AdminStatusBadge>
+        }
       />
-      <PreviewModeBanner message="Payment processing is not enabled in preview mode. No provider, verification endpoint, refund processor or card storage is connected." />
+      <PreviewModeBanner message="Payment checkout and live capture are controlled by server environment flags. Raw provider secrets must remain server-side." />
       <FeatureDisabledNotice
         feature="Payment processing"
         reason={
@@ -450,6 +442,48 @@ function AdminPaymentsRoute() {
             : "Provider configuration can be prepared here, but live capture remains off until operational approval."
         }
       />
+
+      <section className="grid gap-3 rounded-sm border border-border bg-background p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="eyebrow">Launch controls</p>
+            <h2 className="mt-1 font-serif text-xl text-forest-deep">Payment activation status</h2>
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              Provider settings can be prepared in admin, but checkout and live capture require
+              explicit server-side launch flags before customers can complete payments.
+            </p>
+          </div>
+          <AdminStatusBadge tone={launchStatus?.allowLiveCapture ? "danger" : "preview"}>
+            {launchStatus?.allowLiveCapture ? "Live capture allowed" : "Live capture locked"}
+          </AdminStatusBadge>
+        </div>
+        <div className="grid gap-2 text-sm sm:grid-cols-4">
+          <LaunchFlag
+            label="Project payment flag"
+            enabled={launchStatus?.projectPaymentEnabled}
+            enabledText="Approved"
+            disabledText="Off"
+          />
+          <LaunchFlag
+            label="Checkout links"
+            enabled={launchStatus?.checkoutEnabled}
+            enabledText="Enabled"
+            disabledText="Disabled"
+          />
+          <LaunchFlag
+            label="Live capture"
+            enabled={launchStatus?.allowLiveCapture}
+            enabledText="Allowed"
+            disabledText="Locked"
+          />
+          <LaunchFlag
+            label="PayPal environment"
+            enabled={launchStatus?.paypalEnvironment === "live"}
+            enabledText="Live"
+            disabledText={launchStatus?.paypalEnvironment ?? "Sandbox"}
+          />
+        </div>
+      </section>
 
       <section className="grid gap-4 rounded-sm border border-border bg-background p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -553,8 +587,8 @@ function AdminPaymentsRoute() {
                   Webhook and checkout references
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Store environment variable names and internal return paths only. API secrets stay
-                  in cPanel environment variables.
+                  Store environment variable names and checkout return URLs. API secrets stay in
+                  cPanel environment variables.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -586,14 +620,14 @@ function AdminPaymentsRoute() {
                   }
                 />
                 <ProviderInput
-                  label="Success return path"
+                  label="Success return URL"
                   value={providerForm.successUrl}
                   onChange={(value) =>
                     setProviderForm((current) => ({ ...current, successUrl: value }))
                   }
                 />
                 <ProviderInput
-                  label="Cancel return path"
+                  label="Cancel return URL"
                   value={providerForm.cancelUrl}
                   onChange={(value) =>
                     setProviderForm((current) => ({ ...current, cancelUrl: value }))
@@ -660,9 +694,9 @@ function AdminPaymentsRoute() {
                           "Not configured"}
                       </p>
                       <p>
-                        Return paths:{" "}
+                        Return URLs:{" "}
                         {provider.configuration.successUrl || provider.configuration.cancelUrl
-                          ? `${provider.configuration.successUrl ?? "No success path"} / ${provider.configuration.cancelUrl ?? "No cancel path"}`
+                          ? `${provider.configuration.successUrl ?? "No success URL"} / ${provider.configuration.cancelUrl ?? "No cancel URL"}`
                           : "Not configured"}
                       </p>
                     </div>
@@ -740,6 +774,12 @@ function AdminPaymentsRoute() {
                   <code className="mt-1 block break-all rounded-sm border border-border bg-cream/40 px-2 py-1.5 text-muted-foreground">
                     {provider.callbackUrl}
                   </code>
+                  {!provider.callbackUrl.startsWith("https://") ? (
+                    <p className="mt-1 text-muted-foreground">
+                      Open this page from the preview or production domain to display the absolute
+                      provider callback URL.
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Environment references</p>
@@ -1139,6 +1179,27 @@ function ProviderInput({
         className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
       />
     </label>
+  );
+}
+
+function LaunchFlag({
+  label,
+  enabled,
+  enabledText,
+  disabledText,
+}: {
+  label: string;
+  enabled: boolean | undefined;
+  enabledText: string;
+  disabledText: string;
+}) {
+  return (
+    <div className="rounded-sm border border-border bg-cream/30 p-3">
+      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">{label}</p>
+      <AdminStatusBadge tone={enabled ? "success" : "preview"}>
+        {enabled ? enabledText : disabledText}
+      </AdminStatusBadge>
+    </div>
   );
 }
 

@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { isSupportedPaymentCurrency, normalisePaymentCurrency } from "../config/payment-currencies";
+import { normalisePaymentReturnUrl } from "../config/payment-provider-launch";
+import { projectStatus } from "../config/project-status";
 import type { AdminPayment, PaymentFilters } from "./types";
 
 export interface AdminPaymentProviderSettings {
@@ -34,10 +36,17 @@ export interface AdminPaymentProviderReadiness {
   readonly mode: "test" | "live";
   readonly currency: string;
   readonly integrationReady: boolean;
-  readonly liveCaptureEnabled: false;
+  readonly liveCaptureEnabled: boolean;
   readonly capabilities: string[];
   readonly missingConfiguration: string[];
   readonly warnings: string[];
+}
+
+export interface AdminPaymentLaunchStatus {
+  readonly projectPaymentEnabled: boolean;
+  readonly checkoutEnabled: boolean;
+  readonly allowLiveCapture: boolean;
+  readonly paypalEnvironment: "sandbox" | "live";
 }
 
 export interface AdminDonationCampaign {
@@ -172,6 +181,19 @@ export const listPaymentProviderReadiness = createServerFn({ method: "GET" }).ha
       warnings: readiness.warnings,
     };
   });
+});
+
+export const getPaymentLaunchStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireAdminServerPermission } = await import("./server-permissions");
+  const { getServerEnv } = await import("../server/env/server-env");
+  await requireAdminServerPermission("payments.view");
+  const serverEnv = getServerEnv();
+  return {
+    projectPaymentEnabled: projectStatus.paymentEnabled,
+    checkoutEnabled: serverEnv.payments.checkoutEnabled,
+    allowLiveCapture: serverEnv.payments.allowLiveCapture,
+    paypalEnvironment: serverEnv.payments.paypal.environment,
+  } satisfies AdminPaymentLaunchStatus;
 });
 
 export const listDonationCampaigns = createServerFn({ method: "GET" }).handler(async () => {
@@ -652,8 +674,8 @@ function buildProviderConfiguration(
   const webhookSecretReference = normaliseEnvReference(input.webhookSecretReference);
   const webhookIdReference = normaliseEnvReference(input.webhookIdReference);
   const webhookId = normalisePlainText(input.webhookId);
-  const successUrl = normaliseInternalUrl(input.successUrl);
-  const cancelUrl = normaliseInternalUrl(input.cancelUrl);
+  const successUrl = normalisePaymentReturnUrl(input.successUrl);
+  const cancelUrl = normalisePaymentReturnUrl(input.cancelUrl);
 
   if (webhookSecretReference) configuration.webhookSecretReference = webhookSecretReference;
   if (webhookIdReference) configuration.webhookIdReference = webhookIdReference;
@@ -708,13 +730,6 @@ function normaliseEnvReference(value: string | null | undefined): string | undef
   const trimmed = normalisePlainText(value);
   if (!trimmed) return undefined;
   return /^[A-Z][A-Z0-9_]{1,63}$/.test(trimmed) ? trimmed : undefined;
-}
-
-function normaliseInternalUrl(value: string | null | undefined): string | undefined {
-  const trimmed = normalisePlainText(value);
-  if (!trimmed) return undefined;
-  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return undefined;
-  return trimmed.length <= 200 ? trimmed : undefined;
 }
 
 function normalisePlainText(value: string | null | undefined): string | undefined {
