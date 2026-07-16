@@ -1,6 +1,6 @@
 // Demonstration content for preview mode. Final operational details remain pending.
 
-import cultureArchitectureImg from "@/assets/culture-architecture.jpg";
+import orikiHeritagePresentationImg from "@/assets/oriki-heritage-presentation.png";
 import prayerWalkProcessionImg from "@/assets/prayer-walk-procession.png";
 
 export const SITE = {
@@ -80,7 +80,7 @@ export const EXPERIENCES = [
     availability: "Enquiry only",
     summary:
       "Personal and family Oríkì consultations, written or recorded, with heritage guidance.",
-    image: cultureArchitectureImg,
+    image: orikiHeritagePresentationImg,
   },
 ];
 
