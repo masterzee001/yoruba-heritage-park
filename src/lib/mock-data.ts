@@ -1,7 +1,7 @@
 // Demonstration content for preview mode. Final operational details remain pending.
 
 import cultureArchitectureImg from "@/assets/culture-architecture.jpg";
-import waterReflectionImg from "@/assets/water-reflection.jpg";
+import prayerWalkProcessionImg from "@/assets/prayer-walk-procession.png";
 
 export const SITE = {
   name: "Yoruba Heritage Park",
@@ -39,7 +39,7 @@ export const EXPERIENCES = [
     duration: "Duration pending",
     availability: "Pending confirmation",
     summary: "Quiet, guided walks through the forest for reflection, prayer and stillness.",
-    image: waterReflectionImg,
+    image: prayerWalkProcessionImg,
   },
   {
     slug: "purification",
