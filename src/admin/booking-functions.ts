@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import type { AdminBooking, BookingFilters } from "./types";
+import type { AdminBooking, BookingFilters, PaymentStatus } from "./types";
 
 interface BookingListInput {
   readonly search?: string;
@@ -19,6 +19,54 @@ interface BookingWorkflowInput {
 interface BookingNotesInput {
   readonly id?: string;
   readonly internalNotes?: string;
+}
+
+interface BookingPaymentHistoryInput {
+  readonly bookingId?: string;
+}
+
+export interface AdminBookingPaymentHistoryPayment {
+  readonly id: string;
+  readonly reference: string;
+  readonly providerCode: string;
+  readonly providerTransactionReference: string | null;
+  readonly amountMinor: number;
+  readonly amountDisplay: string;
+  readonly currency: string;
+  readonly status: PaymentStatus;
+  readonly verificationStatus:
+    | "unverified"
+    | "review_required"
+    | "preview_verified"
+    | "not_applicable";
+  readonly refundStatus: "none" | "review_requested" | "preview_pending" | "preview_refunded";
+  readonly checkoutUrl: string | null;
+  readonly providerOrderId: string | null;
+  readonly sandbox: boolean;
+  readonly reconciliationApplied: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface AdminBookingPaymentHistoryWebhookEvent {
+  readonly id: string;
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentReference: string | null;
+  readonly processingStatus: "received" | "ignored" | "review_required" | "processed" | "failed";
+  readonly verificationStatus: "unverified" | "verified" | "failed" | "not_applicable";
+  readonly statusMutationApplied: boolean;
+  readonly receivedAt: string;
+  readonly processedAt: string | null;
+}
+
+export interface AdminBookingPaymentHistory {
+  readonly ok: boolean;
+  readonly message?: string;
+  readonly bookingId?: string;
+  readonly payments: AdminBookingPaymentHistoryPayment[];
+  readonly webhookEvents: AdminBookingPaymentHistoryWebhookEvent[];
 }
 
 export const listAdminBookings = createServerFn({ method: "GET" })
@@ -125,6 +173,40 @@ export const saveAdminBookingNotes = createServerFn({ method: "POST" })
     };
   });
 
+export const getAdminBookingPaymentHistory = createServerFn({ method: "GET" })
+  .validator((data: BookingPaymentHistoryInput = {}) => data)
+  .handler(async ({ data }): Promise<AdminBookingPaymentHistory> => {
+    if (!data.bookingId) {
+      return { ok: false, message: "Booking id is required.", payments: [], webhookEvents: [] };
+    }
+
+    const { MysqlBookingsRepository, MysqlPaymentsRepository } =
+      await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    await requireAdminServerPermission("bookings.view");
+
+    const booking = await new MysqlBookingsRepository().findById(data.bookingId);
+    if (!booking || booking.deletedAt) {
+      return { ok: false, message: "Booking was not found.", payments: [], webhookEvents: [] };
+    }
+
+    const paymentsRepository = new MysqlPaymentsRepository();
+    const payments = await paymentsRepository.listForBooking(booking.id);
+    const paymentReferences = new Set(payments.map((payment) => payment.reference));
+    const webhookEvents = paymentReferences.size
+      ? (await paymentsRepository.listWebhookEvents(100)).filter(
+          (event) => event.paymentReference && paymentReferences.has(event.paymentReference),
+        )
+      : [];
+
+    return {
+      ok: true,
+      bookingId: booking.id,
+      payments: payments.map(toAdminBookingPaymentHistoryPayment),
+      webhookEvents: webhookEvents.map(toAdminBookingPaymentHistoryWebhookEvent),
+    };
+  });
+
 export type AdminBookingListFilters = BookingFilters;
 
 function toAdminBooking(booking: {
@@ -216,4 +298,106 @@ function formatDateTime(date: Date): string {
     timeStyle: "short",
     timeZone: "Africa/Lagos",
   }).format(date);
+}
+
+function toAdminBookingPaymentHistoryPayment(payment: {
+  readonly id: string;
+  readonly reference: string;
+  readonly amountMinor: number;
+  readonly currency: string;
+  readonly providerCode: string;
+  readonly providerTransactionReference: string | null;
+  readonly status: PaymentStatus;
+  readonly verificationStatus: AdminBookingPaymentHistoryPayment["verificationStatus"];
+  readonly refundStatus: AdminBookingPaymentHistoryPayment["refundStatus"];
+  readonly metadataJson: unknown;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}): AdminBookingPaymentHistoryPayment {
+  const checkout = readCheckoutMetadata(payment.metadataJson);
+  return {
+    id: payment.id,
+    reference: payment.reference,
+    providerCode: payment.providerCode,
+    providerTransactionReference: payment.providerTransactionReference,
+    amountMinor: payment.amountMinor,
+    amountDisplay: formatMinorAmount(payment.amountMinor, payment.currency),
+    currency: payment.currency,
+    status: payment.status,
+    verificationStatus: payment.verificationStatus,
+    refundStatus: payment.refundStatus,
+    checkoutUrl: checkout.checkoutUrl,
+    providerOrderId: checkout.providerOrderId,
+    sandbox: checkout.sandbox,
+    reconciliationApplied: readReconciliationApplied(payment.metadataJson),
+    createdAt: payment.createdAt.toISOString(),
+    updatedAt: payment.updatedAt.toISOString(),
+  };
+}
+
+function toAdminBookingPaymentHistoryWebhookEvent(event: {
+  readonly id: string;
+  readonly providerCode: string;
+  readonly providerEventId: string;
+  readonly eventType: string;
+  readonly paymentReference: string | null;
+  readonly processingStatus: AdminBookingPaymentHistoryWebhookEvent["processingStatus"];
+  readonly verificationStatus: AdminBookingPaymentHistoryWebhookEvent["verificationStatus"];
+  readonly payloadJson: unknown;
+  readonly receivedAt: Date;
+  readonly processedAt: Date | null;
+}): AdminBookingPaymentHistoryWebhookEvent {
+  return {
+    id: event.id,
+    providerCode: event.providerCode,
+    providerEventId: event.providerEventId,
+    eventType: event.eventType,
+    paymentReference: event.paymentReference,
+    processingStatus: event.processingStatus,
+    verificationStatus: event.verificationStatus,
+    statusMutationApplied: readWebhookStatusMutationApplied(event.payloadJson),
+    receivedAt: event.receivedAt.toISOString(),
+    processedAt: event.processedAt?.toISOString() ?? null,
+  };
+}
+
+function readCheckoutMetadata(metadata: unknown): {
+  readonly checkoutUrl: string | null;
+  readonly providerOrderId: string | null;
+  readonly sandbox: boolean;
+} {
+  const checkout = readNestedRecord(metadata, "checkout");
+  return {
+    checkoutUrl: readString(checkout?.checkoutUrl),
+    providerOrderId: readString(checkout?.providerOrderId),
+    sandbox: checkout?.sandbox === true,
+  };
+}
+
+function readReconciliationApplied(metadata: unknown): boolean {
+  return Boolean(readNestedRecord(metadata, "reconciliation")?.webhookEventId);
+}
+
+function readWebhookStatusMutationApplied(payload: unknown): boolean {
+  return readNestedRecord(payload, "yhpProcessing")?.statusMutationApplied === true;
+}
+
+function readNestedRecord(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const nested = (value as Record<string, unknown>)[key];
+  return nested && typeof nested === "object" && !Array.isArray(nested)
+    ? (nested as Record<string, unknown>)
+    : null;
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function formatMinorAmount(amountMinor: number, currency: string): string {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(amountMinor / 100);
 }

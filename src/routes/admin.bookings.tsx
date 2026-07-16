@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, ClipboardCheck, Copy, Mail, RotateCw, Save, XCircle } from "lucide-react";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -16,8 +17,11 @@ import {
   type AdminColumn,
 } from "@/admin/components";
 import {
+  getAdminBookingPaymentHistory,
   listAdminBookings,
   saveAdminBookingNotes,
+  type AdminBookingPaymentHistory,
+  type AdminBookingPaymentHistoryPayment,
   updateAdminBookingWorkflow,
 } from "@/admin/booking-functions";
 import {
@@ -94,6 +98,9 @@ function AdminBookingsRoute() {
   const [preparingPaymentLink, setPreparingPaymentLink] = useState(false);
   const [paymentLinkResult, setPaymentLinkResult] =
     useState<PrepareBookingPaymentLinkResult | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<AdminBookingPaymentHistory | null>(null);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
+  const [paymentHistoryError, setPaymentHistoryError] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
     setError(null);
@@ -103,6 +110,25 @@ function AdminBookingsRoute() {
       current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
     );
   }, [search, status]);
+
+  const loadPaymentHistory = useCallback(async (bookingId: string) => {
+    setPaymentHistoryLoading(true);
+    setPaymentHistoryError(null);
+    try {
+      const history = await getAdminBookingPaymentHistory({ data: { bookingId } });
+      if (!history.ok) {
+        setPaymentHistory(null);
+        setPaymentHistoryError(history.message ?? "Payment history could not be loaded.");
+        return;
+      }
+      setPaymentHistory(history);
+    } catch {
+      setPaymentHistory(null);
+      setPaymentHistoryError("Payment history could not be loaded.");
+    } finally {
+      setPaymentHistoryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +151,15 @@ function AdminBookingsRoute() {
     setPaymentCurrency(selected?.currency ?? "NGN");
     setPaymentLinkResult(null);
   }, [selected?.id, selected?.internalNotes, selected?.amountNgn, selected?.currency]);
+
+  useEffect(() => {
+    if (!selected?.id) {
+      setPaymentHistory(null);
+      setPaymentHistoryError(null);
+      return;
+    }
+    void loadPaymentHistory(selected.id);
+  }, [loadPaymentHistory, selected?.id]);
 
   function replaceRecord(booking: AdminBooking) {
     setRecords((current) => current?.map((row) => (row.id === booking.id ? booking : row)) ?? null);
@@ -196,6 +231,7 @@ function AdminBookingsRoute() {
       }
       setNotice(result.message);
       await loadBookings();
+      await loadPaymentHistory(selected.id);
     } catch {
       setError("Payment request could not be prepared.");
     } finally {
@@ -230,6 +266,7 @@ function AdminBookingsRoute() {
       }
       setNotice(result.message);
       await loadBookings();
+      await loadPaymentHistory(selected.id);
     } catch {
       setError("Payment link could not be prepared.");
     } finally {
@@ -456,6 +493,134 @@ function AdminBookingsRoute() {
                 ) : null}
               </div>
 
+              <div className="mt-6 grid gap-3 rounded-sm border border-border bg-background p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="eyebrow">Payment history</p>
+                    <h3 className="mt-1 font-serif text-lg text-forest-deep">
+                      Requests and reconciliation
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadPaymentHistory(selected.id)}
+                    className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
+                  >
+                    <RotateCw className="size-3.5" aria-hidden />
+                    Refresh
+                  </button>
+                </div>
+
+                {paymentHistoryLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading payment history.</p>
+                ) : paymentHistoryError ? (
+                  <p className="rounded-sm border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {paymentHistoryError}
+                  </p>
+                ) : !paymentHistory?.payments.length ? (
+                  <p className="rounded-sm border border-border bg-cream/30 px-3 py-2 text-xs text-muted-foreground">
+                    No payment request has been prepared for this booking yet.
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {paymentHistory.payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="grid gap-3 rounded-sm border border-border bg-cream/20 p-3 text-xs"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-medium text-charcoal">{payment.reference}</p>
+                            <p className="mt-1 text-muted-foreground">
+                              {payment.amountDisplay} via {formatToken(payment.providerCode)}
+                            </p>
+                          </div>
+                          <AdminStatusBadge tone={paymentStatusTone(payment.status)}>
+                            {paymentStatusLabel(payment.status)}
+                          </AdminStatusBadge>
+                        </div>
+                        <dl className="grid gap-2 sm:grid-cols-2">
+                          <PaymentHistoryDetail label="Provider reference">
+                            {payment.providerTransactionReference ?? "Not captured"}
+                          </PaymentHistoryDetail>
+                          <PaymentHistoryDetail label="Verification">
+                            {formatToken(payment.verificationStatus)}
+                          </PaymentHistoryDetail>
+                          <PaymentHistoryDetail label="Refund">
+                            {formatToken(payment.refundStatus)}
+                          </PaymentHistoryDetail>
+                          <PaymentHistoryDetail label="Reconciled">
+                            {payment.reconciliationApplied ? "Yes" : "No"}
+                          </PaymentHistoryDetail>
+                          <PaymentHistoryDetail label="Created">
+                            {formatHistoryDate(payment.createdAt)}
+                          </PaymentHistoryDetail>
+                          <PaymentHistoryDetail label="Checkout mode">
+                            {payment.checkoutUrl
+                              ? payment.sandbox
+                                ? "Sandbox link prepared"
+                                : "Provider link prepared"
+                              : "No checkout link"}
+                          </PaymentHistoryDetail>
+                        </dl>
+                        {payment.checkoutUrl ? (
+                          <a
+                            href={payment.checkoutUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="break-all rounded-sm border border-border bg-background px-2 py-1.5 font-medium text-forest-deep hover:border-forest"
+                          >
+                            {payment.checkoutUrl}
+                          </a>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {paymentHistory?.webhookEvents.length ? (
+                  <div className="mt-2 grid gap-2 border-t border-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Webhook events
+                    </p>
+                    {paymentHistory.webhookEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="grid gap-2 rounded-sm border border-border bg-background p-3 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium text-charcoal">{event.eventType}</p>
+                          <AdminStatusBadge
+                            tone={event.statusMutationApplied ? "success" : "preview"}
+                          >
+                            {event.statusMutationApplied ? "Applied" : "No status change"}
+                          </AdminStatusBadge>
+                        </div>
+                        <p className="text-muted-foreground">
+                          {formatToken(event.providerCode)} event {event.providerEventId} for{" "}
+                          {event.paymentReference ?? "unmatched payment"}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <AdminStatusBadge
+                            tone={event.processingStatus === "processed" ? "success" : "muted"}
+                          >
+                            {formatToken(event.processingStatus)}
+                          </AdminStatusBadge>
+                          <AdminStatusBadge
+                            tone={event.verificationStatus === "verified" ? "success" : "preview"}
+                          >
+                            {formatToken(event.verificationStatus)}
+                          </AdminStatusBadge>
+                          <span className="text-muted-foreground">
+                            Received {formatHistoryDate(event.receivedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-6 grid gap-3">
                 <label className="grid gap-1.5 text-sm font-medium text-charcoal">
                   Internal admin notes
@@ -540,4 +705,57 @@ function buildPaymentLinkMailto(result: PrepareBookingPaymentLinkResult): string
   return `mailto:${encodeURIComponent(result.visitorEmail ?? "")}?subject=${encodeURIComponent(
     subject,
   )}&body=${encodeURIComponent(body)}`;
+}
+
+function PaymentHistoryDetail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 text-charcoal">{children}</dd>
+    </div>
+  );
+}
+
+function paymentStatusLabel(status: AdminBookingPaymentHistoryPayment["status"]): string {
+  const labels: Record<AdminBookingPaymentHistoryPayment["status"], string> = {
+    pending: "Pending",
+    successful: "Successful Preview",
+    failed: "Failed",
+    abandoned: "Abandoned",
+    reversed: "Reversed",
+    refund_pending: "Refund Pending Preview",
+    refunded: "Refunded Preview",
+  };
+  return labels[status];
+}
+
+function paymentStatusTone(status: AdminBookingPaymentHistoryPayment["status"]): StatusTone {
+  const tones: Record<AdminBookingPaymentHistoryPayment["status"], StatusTone> = {
+    pending: "warning",
+    successful: "success",
+    failed: "danger",
+    abandoned: "muted",
+    reversed: "neutral",
+    refund_pending: "warning",
+    refunded: "info",
+  };
+  return tones[status];
+}
+
+function formatToken(value: string): string {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatHistoryDate(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Lagos",
+  }).format(new Date(value));
 }
