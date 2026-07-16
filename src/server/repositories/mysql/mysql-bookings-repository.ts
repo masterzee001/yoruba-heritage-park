@@ -8,7 +8,13 @@ import type {
   CreateBookingInput,
   UpdateBookingWorkflowInput,
 } from "../repository-types";
-import { createRepositoryId, normaliseEmail, requireId, requireLimit } from "./mysql-helpers";
+import {
+  createRepositoryId,
+  normaliseEmail,
+  requireCode,
+  requireId,
+  requireLimit,
+} from "./mysql-helpers";
 
 interface BookingRow extends RowDataPacket {
   id: string;
@@ -64,6 +70,23 @@ export class MysqlBookingsRepository implements BookingsRepository {
          WHERE id = ?
          LIMIT 1`,
         [requireId(id)],
+      );
+      return rows[0] ? mapBooking(rows[0]) : null;
+    } catch (error) {
+      throw toDatabaseError(error);
+    }
+  }
+
+  async findByReference(reference: string): Promise<BookingRecord | null> {
+    try {
+      const [rows] = await this.pool.query<BookingRow[]>(
+        `SELECT id, reference, visitor_name, visitor_email, country_of_origin, booking_type,
+          visit_date, duration_of_stay_days, guests, amount_minor, currency, payment_state,
+          status, checked_in_at, source, notes, internal_notes, created_at, updated_at, deleted_at
+         FROM bookings
+         WHERE reference = ?
+         LIMIT 1`,
+        [requireCode(reference.trim().toUpperCase())],
       );
       return rows[0] ? mapBooking(rows[0]) : null;
     } catch (error) {

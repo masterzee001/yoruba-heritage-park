@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check } from "lucide-react";
 
-import { submitPublicBookingRequest } from "@/booking/booking-functions";
+import {
+  lookupPublicBookingOrPaymentStatus,
+  submitPublicBookingRequest,
+  type PublicStatusLookupResult,
+} from "@/booking/booking-functions";
 import { PageHero } from "@/components/site/Section";
 import { projectStatus } from "@/config/project-status";
 import { TICKET_TYPES } from "@/lib/mock-data";
@@ -50,6 +54,11 @@ function TicketsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [bookingReference, setBookingReference] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [statusReference, setStatusReference] = useState(checkoutReturn.paymentReference ?? "");
+  const [statusLookupResult, setStatusLookupResult] = useState<PublicStatusLookupResult | null>(
+    null,
+  );
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const selectedTicket = TICKET_TYPES.find((t) => t.id === ticket);
   const bookingEnabled = projectStatus.bookingEnabled;
@@ -114,6 +123,31 @@ function TicketsPage() {
     }
   }
 
+  async function handleStatusLookup() {
+    const reference = statusReference.trim();
+    if (!reference) {
+      setStatusLookupResult({
+        ok: false,
+        message: "Enter a booking or payment reference.",
+      });
+      return;
+    }
+
+    setCheckingStatus(true);
+    try {
+      const result = await lookupPublicBookingOrPaymentStatus({ data: { reference } });
+      setStatusLookupResult(result);
+    } catch (error) {
+      console.error(error);
+      setStatusLookupResult({
+        ok: false,
+        message: "Status could not be checked right now. Please try again.",
+      });
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
   return (
     <>
       <PageHero
@@ -134,6 +168,14 @@ function TicketsPage() {
             provider={checkoutReturn.provider}
           />
         ) : null}
+
+        <StatusLookupPanel
+          reference={statusReference}
+          onReferenceChange={setStatusReference}
+          result={statusLookupResult}
+          checking={checkingStatus}
+          onSubmit={() => void handleStatusLookup()}
+        />
 
         <ol className="mb-10 flex items-center gap-4 text-xs">
           {["Choose", "Schedule", "Details"].map((label, i) => {
@@ -335,8 +377,9 @@ function TicketsPage() {
                     {durationOfStayDays === 1 ? "" : "s"}
                   </p>
                   <p className="mt-6 rounded-sm border border-border bg-background p-4 text-sm text-muted-foreground">
-                    Payment is not active for this request. The team will review availability before
-                    any confirmation or payment collection.
+                    {paymentEnabled
+                      ? "The team will review availability before sending confirmed payment instructions."
+                      : "Payment is not active for this request. The team will review availability before any confirmation or payment collection."}
                   </p>
                 </div>
               </div>
@@ -396,6 +439,110 @@ function TicketsPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function StatusLookupPanel({
+  reference,
+  onReferenceChange,
+  result,
+  checking,
+  onSubmit,
+}: {
+  reference: string;
+  onReferenceChange: (value: string) => void;
+  result: PublicStatusLookupResult | null;
+  checking: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="mb-10 border border-border bg-background p-5">
+      <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr] lg:items-start">
+        <div>
+          <p className="eyebrow">Check status</p>
+          <h2 className="mt-2 font-serif text-2xl text-forest-deep">
+            Booking or payment reference
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Enter a reference to see the current review and payment status. Final payment
+            confirmation depends on verified provider records.
+          </p>
+        </div>
+        <div>
+          <form
+            className="flex flex-col gap-3 sm:flex-row"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSubmit();
+            }}
+          >
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Booking or payment reference</span>
+              <input
+                value={reference}
+                onChange={(event) => onReferenceChange(event.currentTarget.value)}
+                placeholder="YHP-B-... or YHP-PAY-..."
+                className="w-full rounded-sm border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={checking}
+              className="rounded-full bg-forest-deep px-5 py-2.5 text-sm text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checking ? "Checking" : "Check status"}
+            </button>
+          </form>
+
+          {result ? <StatusLookupResult result={result} /> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusLookupResult({ result }: { result: PublicStatusLookupResult }) {
+  if (!result.ok) {
+    return (
+      <p className="mt-4 rounded-sm border border-brass/30 bg-brass/10 px-3 py-2 text-sm text-forest-deep">
+        {result.message}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-sm border border-forest/20 bg-forest/10 p-4 text-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-medium text-forest-deep">{result.statusLabel}</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          {result.kind === "payment" ? "Payment" : "Booking"}
+        </p>
+      </div>
+      <p className="mt-2 text-muted-foreground">{result.detail}</p>
+      <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+        <StatusLookupField label="Reference" value={result.reference} />
+        <StatusLookupField label="Amount" value={result.amountLabel} />
+        <StatusLookupField label="Provider" value={result.providerLabel} />
+        <StatusLookupField label="Verification" value={result.verificationLabel} />
+        <StatusLookupField label="Latest payment" value={result.bookingReference} />
+        <StatusLookupField label="Visit date" value={result.visitDateLabel} />
+      </dl>
+      {result.nextStep ? (
+        <p className="mt-4 rounded-sm border border-border bg-background p-3 text-xs text-muted-foreground">
+          {result.nextStep}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function StatusLookupField({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 font-medium text-forest-deep">{value}</dd>
+    </div>
   );
 }
 
