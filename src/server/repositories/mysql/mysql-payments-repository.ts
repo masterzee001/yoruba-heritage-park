@@ -492,7 +492,7 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
         `INSERT INTO payment_provider_settings (
           id, provider_code, display_name, mode, enabled, public_key, secret_reference,
           currency, minimum_amount_minor, configuration_json, updated_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, JSON_OBJECT('configuredBy', 'master_admin', 'liveCaptureEnabled', false), ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           display_name = VALUES(display_name),
           mode = VALUES(mode),
@@ -501,6 +501,7 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
           secret_reference = VALUES(secret_reference),
           currency = VALUES(currency),
           minimum_amount_minor = VALUES(minimum_amount_minor),
+          configuration_json = VALUES(configuration_json),
           updated_by_user_id = VALUES(updated_by_user_id)`,
         [
           id,
@@ -512,6 +513,7 @@ export class MysqlPaymentsRepository implements PaymentsRepository {
           input.secretReference?.trim() || null,
           input.currency.trim().toUpperCase(),
           input.minimumAmountMinor,
+          JSON.stringify(input.configurationJson ?? {}),
           updatedByUserId,
         ],
       );

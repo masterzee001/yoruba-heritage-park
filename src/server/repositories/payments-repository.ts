@@ -14,6 +14,7 @@ export interface UpsertPaymentProviderSettingsInput {
   readonly secretReference?: string | null;
   readonly currency: string;
   readonly minimumAmountMinor: number;
+  readonly configurationJson?: unknown;
 }
 
 export interface UpsertDonationCampaignInput {

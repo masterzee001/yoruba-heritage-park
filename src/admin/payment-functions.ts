@@ -13,7 +13,16 @@ export interface AdminPaymentProviderSettings {
   readonly secretReference: string | null;
   readonly currency: string;
   readonly minimumAmountMinor: number;
+  readonly configuration: AdminPaymentProviderConfiguration;
   readonly updatedAt: string;
+}
+
+export interface AdminPaymentProviderConfiguration {
+  readonly webhookSecretReference?: string;
+  readonly webhookIdReference?: string;
+  readonly webhookId?: string;
+  readonly successUrl?: string;
+  readonly cancelUrl?: string;
 }
 
 export interface AdminPaymentProviderReadiness {
@@ -64,6 +73,11 @@ export interface SavePaymentProviderSettingsInput {
   readonly secretReference?: string | null;
   readonly currency?: string;
   readonly minimumAmountMinor?: number;
+  readonly webhookSecretReference?: string | null;
+  readonly webhookIdReference?: string | null;
+  readonly webhookId?: string | null;
+  readonly successUrl?: string | null;
+  readonly cancelUrl?: string | null;
 }
 
 export interface SaveDonationCampaignInput {
@@ -114,6 +128,7 @@ export const listPaymentProviderSettings = createServerFn({ method: "GET" }).han
     secretReference: provider.secretReference,
     currency: provider.currency,
     minimumAmountMinor: provider.minimumAmountMinor,
+    configuration: toAdminPaymentProviderConfiguration(provider.configurationJson),
     updatedAt: provider.updatedAt.toISOString(),
   }));
 });
@@ -169,6 +184,7 @@ export const savePaymentProviderSettings = createServerFn({ method: "POST" })
       return { ok: false, message: "Currency must be NGN or USD." };
     }
     const currency = normalisePaymentCurrency(requestedCurrency);
+    const configuration = buildProviderConfiguration(data);
     if (!providerCode || !/^[a-z0-9_]+$/.test(providerCode)) {
       return {
         ok: false,
@@ -193,6 +209,7 @@ export const savePaymentProviderSettings = createServerFn({ method: "POST" })
         secretReference: data.secretReference ?? null,
         currency,
         minimumAmountMinor: Math.max(0, Math.trunc(data.minimumAmountMinor ?? 0)),
+        configurationJson: configuration,
       },
       principal.userId,
     );
@@ -212,6 +229,7 @@ export const savePaymentProviderSettings = createServerFn({ method: "POST" })
         enabled: saved.enabled,
         hasPublicKey: Boolean(saved.publicKey),
         hasSecretReference: Boolean(saved.secretReference),
+        configurationKeys: Object.keys(configuration),
       },
     });
     return { ok: true, message: "Payment provider settings saved." };
@@ -479,6 +497,43 @@ function toAdminDonationCampaign(campaign: {
   };
 }
 
+function buildProviderConfiguration(
+  input: SavePaymentProviderSettingsInput,
+): AdminPaymentProviderConfiguration {
+  const configuration: {
+    webhookSecretReference?: string;
+    webhookIdReference?: string;
+    webhookId?: string;
+    successUrl?: string;
+    cancelUrl?: string;
+  } = {};
+  const webhookSecretReference = normaliseEnvReference(input.webhookSecretReference);
+  const webhookIdReference = normaliseEnvReference(input.webhookIdReference);
+  const webhookId = normalisePlainText(input.webhookId);
+  const successUrl = normaliseInternalUrl(input.successUrl);
+  const cancelUrl = normaliseInternalUrl(input.cancelUrl);
+
+  if (webhookSecretReference) configuration.webhookSecretReference = webhookSecretReference;
+  if (webhookIdReference) configuration.webhookIdReference = webhookIdReference;
+  if (webhookId) configuration.webhookId = webhookId;
+  if (successUrl) configuration.successUrl = successUrl;
+  if (cancelUrl) configuration.cancelUrl = cancelUrl;
+
+  return configuration;
+}
+
+function toAdminPaymentProviderConfiguration(value: unknown): AdminPaymentProviderConfiguration {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const record = value as Record<string, unknown>;
+  return {
+    webhookSecretReference: readString(record.webhookSecretReference),
+    webhookIdReference: readString(record.webhookIdReference),
+    webhookId: readString(record.webhookId),
+    successUrl: readString(record.successUrl),
+    cancelUrl: readString(record.cancelUrl),
+  };
+}
+
 function toAdminPaymentWebhookEvent(event: {
   readonly id: string;
   readonly providerCode: string;
@@ -505,6 +560,28 @@ function toAdminPaymentWebhookEvent(event: {
     matchedBy: processing.matchedBy,
     statusMutationApplied: processing.statusMutationApplied,
   };
+}
+
+function normaliseEnvReference(value: string | null | undefined): string | undefined {
+  const trimmed = normalisePlainText(value);
+  if (!trimmed) return undefined;
+  return /^[A-Z][A-Z0-9_]{1,63}$/.test(trimmed) ? trimmed : undefined;
+}
+
+function normaliseInternalUrl(value: string | null | undefined): string | undefined {
+  const trimmed = normalisePlainText(value);
+  if (!trimmed) return undefined;
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return undefined;
+  return trimmed.length <= 200 ? trimmed : undefined;
+}
+
+function normalisePlainText(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function readWebhookProcessingMetadata(payload: unknown): {

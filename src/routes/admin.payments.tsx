@@ -153,6 +153,39 @@ const webhookSetupGuide = [
   },
 ] as const;
 
+const providerDefaults = {
+  paypal: {
+    providerCode: "paypal",
+    displayName: "PayPal",
+    secretReference: "PAYPAL_SECRET_KEY",
+    webhookSecretReference: "",
+    webhookIdReference: "PAYPAL_WEBHOOK_ID",
+    webhookId: "",
+    successUrl: "/tickets?checkout=success",
+    cancelUrl: "/tickets?checkout=cancelled",
+  },
+  paystack: {
+    providerCode: "paystack",
+    displayName: "Paystack",
+    secretReference: "PAYSTACK_SECRET_KEY",
+    webhookSecretReference: "",
+    webhookIdReference: "",
+    webhookId: "",
+    successUrl: "/tickets?checkout=success",
+    cancelUrl: "/tickets?checkout=cancelled",
+  },
+  stripe: {
+    providerCode: "stripe",
+    displayName: "Stripe",
+    secretReference: "STRIPE_SECRET_KEY",
+    webhookSecretReference: "STRIPE_WEBHOOK_SECRET",
+    webhookIdReference: "",
+    webhookId: "",
+    successUrl: "/tickets?checkout=success",
+    cancelUrl: "/tickets?checkout=cancelled",
+  },
+} as const;
+
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
@@ -174,6 +207,11 @@ function AdminPaymentsRoute() {
     secretReference: "PAYPAL_SECRET_KEY",
     currency: "NGN",
     minimumAmountMinor: 0,
+    webhookSecretReference: "",
+    webhookIdReference: "PAYPAL_WEBHOOK_ID",
+    webhookId: "",
+    successUrl: "/tickets?checkout=success",
+    cancelUrl: "/tickets?checkout=cancelled",
   });
   const [campaignForm, setCampaignForm] = useState({
     campaignCode: "heritage-support",
@@ -267,6 +305,33 @@ function AdminPaymentsRoute() {
   ];
   const completePreviewAction = () =>
     setNotice("Preview action completed locally. No production record was created.");
+
+  function applyProviderPreset(providerCode: keyof typeof providerDefaults) {
+    const preset = providerDefaults[providerCode];
+    setProviderForm((current) => ({
+      ...current,
+      ...preset,
+    }));
+  }
+
+  function editProviderSettings(provider: AdminPaymentProviderSettings) {
+    setProviderForm({
+      providerCode: provider.providerCode,
+      displayName: provider.displayName,
+      mode: provider.mode,
+      enabled: provider.enabled,
+      publicKey: provider.publicKey ?? "",
+      secretReference: provider.secretReference ?? "",
+      currency: provider.currency,
+      minimumAmountMinor: provider.minimumAmountMinor,
+      webhookSecretReference: provider.configuration.webhookSecretReference ?? "",
+      webhookIdReference: provider.configuration.webhookIdReference ?? "",
+      webhookId: provider.configuration.webhookId ?? "",
+      successUrl: provider.configuration.successUrl ?? "",
+      cancelUrl: provider.configuration.cancelUrl ?? "",
+    });
+    setNotice(`${provider.displayName} settings loaded for editing.`);
+  }
 
   async function handleSaveProvider(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -405,6 +470,18 @@ function AdminPaymentsRoute() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
           <form className="grid gap-3" onSubmit={handleSaveProvider}>
+            <div className="flex flex-wrap gap-2">
+              {(["paypal", "paystack", "stripe"] as const).map((providerCode) => (
+                <button
+                  key={providerCode}
+                  type="button"
+                  onClick={() => applyProviderPreset(providerCode)}
+                  className="rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
+                >
+                  {providerDefaults[providerCode].displayName}
+                </button>
+              ))}
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <ProviderInput
                 label="Provider code"
@@ -470,6 +547,60 @@ function AdminPaymentsRoute() {
                 }
               />
             </div>
+            <div className="grid gap-3 rounded-sm border border-border bg-cream/30 p-4">
+              <div>
+                <h3 className="font-serif text-lg text-forest-deep">
+                  Webhook and checkout references
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Store environment variable names and internal return paths only. API secrets stay
+                  in cPanel environment variables.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ProviderInput
+                  label="Webhook secret env reference"
+                  value={providerForm.webhookSecretReference}
+                  onChange={(value) =>
+                    setProviderForm((current) => ({
+                      ...current,
+                      webhookSecretReference: value,
+                    }))
+                  }
+                />
+                <ProviderInput
+                  label="Webhook ID env reference"
+                  value={providerForm.webhookIdReference}
+                  onChange={(value) =>
+                    setProviderForm((current) => ({
+                      ...current,
+                      webhookIdReference: value,
+                    }))
+                  }
+                />
+                <ProviderInput
+                  label="Webhook ID value"
+                  value={providerForm.webhookId}
+                  onChange={(value) =>
+                    setProviderForm((current) => ({ ...current, webhookId: value }))
+                  }
+                />
+                <ProviderInput
+                  label="Success return path"
+                  value={providerForm.successUrl}
+                  onChange={(value) =>
+                    setProviderForm((current) => ({ ...current, successUrl: value }))
+                  }
+                />
+                <ProviderInput
+                  label="Cancel return path"
+                  value={providerForm.cancelUrl}
+                  onChange={(value) =>
+                    setProviderForm((current) => ({ ...current, cancelUrl: value }))
+                  }
+                />
+              </div>
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -517,6 +648,31 @@ function AdminPaymentsRoute() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Secret reference: {provider.secretReference ?? "Not set"}
                     </p>
+                    <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                      <p>
+                        Webhook secret:{" "}
+                        {provider.configuration.webhookSecretReference ?? "Not configured"}
+                      </p>
+                      <p>
+                        Webhook ID:{" "}
+                        {provider.configuration.webhookIdReference ??
+                          provider.configuration.webhookId ??
+                          "Not configured"}
+                      </p>
+                      <p>
+                        Return paths:{" "}
+                        {provider.configuration.successUrl || provider.configuration.cancelUrl
+                          ? `${provider.configuration.successUrl ?? "No success path"} / ${provider.configuration.cancelUrl ?? "No cancel path"}`
+                          : "Not configured"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => editProviderSettings(provider)}
+                      className="mt-3 rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
+                    >
+                      Edit settings
+                    </button>
                     {providerReadiness
                       ?.filter((readiness) => readiness.providerCode === provider.providerCode)
                       .map((readiness) => (
