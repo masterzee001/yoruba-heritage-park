@@ -146,7 +146,7 @@ jobs:
           for attempt in {1..12}; do
             if curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/ > /dev/null \
               && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/about > /dev/null \
-              && curl --fail --silent --show-error --location https://yhp-preview.deedoc.org/brand/yhp-favicon.png > /dev/null; then
+              && curl --fail --silent --show-error --location --head https://yhp-preview.deedoc.org/brand/yhp-favicon.png > /dev/null; then
               exit 0
             fi
 
