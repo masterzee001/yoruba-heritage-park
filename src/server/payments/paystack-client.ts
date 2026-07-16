@@ -3,10 +3,12 @@ import type {
   PaymentProviderSettingsRecord,
   PaymentRecord,
 } from "../repositories/repository-types";
+import { appendCheckoutReturnParams } from "./checkout-return-url";
 
 export interface PaystackCredentials {
   readonly publicKey: string;
   readonly secretKey: string;
+  readonly callbackUrl?: string;
 }
 
 export interface PaystackConfigurationResult {
@@ -25,6 +27,7 @@ export interface PaystackTransactionInitializeDraft {
     readonly paymentReference: string;
     readonly source: "yoruba_heritage_park";
   };
+  readonly callback_url?: string;
 }
 
 export interface PaystackTransactionInitializeResponse {
@@ -55,6 +58,9 @@ export function resolvePaystackConfiguration(
   const publicKey = settings.publicKey?.trim() || env.PAYSTACK_PUBLIC_KEY?.trim();
   const secretReference = settings.secretReference?.trim() || "PAYSTACK_SECRET_KEY";
   const secretKey = env[secretReference]?.trim();
+  const config = readPaystackConfigurationJson(settings.configurationJson);
+  const callbackUrl =
+    config.successUrl?.trim() || env.PAYSTACK_CHECKOUT_CALLBACK_URL?.trim() || undefined;
   const missingConfiguration = [
     ...(!publicKey ? ["Paystack public key"] : []),
     ...(!secretKey ? [`${secretReference} environment value`] : []),
@@ -66,13 +72,14 @@ export function resolvePaystackConfiguration(
 
   return {
     ok: true,
-    credentials: { publicKey, secretKey },
+    credentials: { publicKey, secretKey, callbackUrl },
     missingConfiguration: [],
   };
 }
 
 export function buildPaystackTransactionInitializeDraft(
   payment: PaymentRecord,
+  credentials?: Pick<PaystackCredentials, "callbackUrl">,
 ): PaystackTransactionInitializeDraft {
   return {
     email: payment.payerEmail || "payments@yorubaheritagepark.com",
@@ -84,6 +91,15 @@ export function buildPaystackTransactionInitializeDraft(
       paymentReference: payment.reference,
       source: "yoruba_heritage_park",
     },
+    ...(credentials?.callbackUrl
+      ? {
+          callback_url: appendCheckoutReturnParams(credentials.callbackUrl, {
+            status: "success",
+            paymentReference: payment.reference,
+            providerCode: "paystack",
+          }),
+        }
+      : {}),
   };
 }
 
@@ -98,7 +114,7 @@ export async function initializePaystackTransaction(
       Authorization: `Bearer ${credentials.secretKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(buildPaystackTransactionInitializeDraft(payment)),
+    body: JSON.stringify(buildPaystackTransactionInitializeDraft(payment, credentials)),
   });
 
   if (!response.ok) {
@@ -114,4 +130,13 @@ export async function initializePaystackTransaction(
     );
   }
   return payload;
+}
+
+function readPaystackConfigurationJson(value: unknown): {
+  readonly successUrl?: string;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return {
+    successUrl: typeof value.successUrl === "string" ? value.successUrl : undefined,
+  };
 }

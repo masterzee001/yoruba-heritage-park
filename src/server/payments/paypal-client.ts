@@ -3,6 +3,7 @@ import type {
   PaymentProviderSettingsRecord,
   PaymentRecord,
 } from "../repositories/repository-types";
+import { appendCheckoutReturnParams } from "./checkout-return-url";
 
 export type PayPalEnvironment = "sandbox" | "live";
 
@@ -10,6 +11,8 @@ export interface PayPalCredentials {
   readonly environment: PayPalEnvironment;
   readonly clientId: string;
   readonly secretKey: string;
+  readonly successUrl?: string;
+  readonly cancelUrl?: string;
 }
 
 export interface PayPalConfigurationResult {
@@ -31,6 +34,10 @@ export interface PayPalOrderDraft {
       readonly custom_id: string;
     },
   ];
+  readonly application_context?: {
+    readonly return_url: string;
+    readonly cancel_url: string;
+  };
 }
 
 export interface PayPalOrderResponse {
@@ -72,6 +79,10 @@ export function resolvePayPalConfiguration(
   const clientId = settings.publicKey?.trim() || env.PAYPAL_CLIENT_ID?.trim();
   const secretReference = settings.secretReference?.trim() || "PAYPAL_SECRET_KEY";
   const secretKey = env[secretReference]?.trim();
+  const config = readPayPalConfigurationJson(settings.configurationJson);
+  const successUrl =
+    config.successUrl?.trim() || env.PAYPAL_CHECKOUT_SUCCESS_URL?.trim() || undefined;
+  const cancelUrl = config.cancelUrl?.trim() || env.PAYPAL_CHECKOUT_CANCEL_URL?.trim() || undefined;
   const missingConfiguration = [
     ...(!clientId ? ["PayPal client ID"] : []),
     ...(!secretKey ? [`${secretReference} environment value`] : []),
@@ -83,12 +94,15 @@ export function resolvePayPalConfiguration(
 
   return {
     ok: true,
-    credentials: { environment, clientId, secretKey },
+    credentials: { environment, clientId, secretKey, successUrl, cancelUrl },
     missingConfiguration: [],
   };
 }
 
-export function buildPayPalOrderDraft(payment: PaymentRecord): PayPalOrderDraft {
+export function buildPayPalOrderDraft(
+  payment: PaymentRecord,
+  credentials?: Pick<PayPalCredentials, "successUrl" | "cancelUrl">,
+): PayPalOrderDraft {
   const currency = normalisePaymentCurrency(payment.currency);
   return {
     intent: "CAPTURE",
@@ -103,6 +117,22 @@ export function buildPayPalOrderDraft(payment: PaymentRecord): PayPalOrderDraft 
         custom_id: payment.id,
       },
     ],
+    ...(credentials?.successUrl && credentials.cancelUrl
+      ? {
+          application_context: {
+            return_url: appendCheckoutReturnParams(credentials.successUrl, {
+              status: "success",
+              paymentReference: payment.reference,
+              providerCode: "paypal",
+            }),
+            cancel_url: appendCheckoutReturnParams(credentials.cancelUrl, {
+              status: "cancelled",
+              paymentReference: payment.reference,
+              providerCode: "paypal",
+            }),
+          },
+        }
+      : {}),
   };
 }
 
@@ -145,7 +175,7 @@ export async function createPayPalOrder(
         Authorization: `${token.token_type} ${token.access_token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(buildPayPalOrderDraft(payment)),
+      body: JSON.stringify(buildPayPalOrderDraft(payment, credentials)),
     },
   );
 
@@ -154,6 +184,17 @@ export async function createPayPalOrder(
   }
 
   return (await response.json()) as PayPalOrderResponse;
+}
+
+function readPayPalConfigurationJson(value: unknown): {
+  readonly successUrl?: string;
+  readonly cancelUrl?: string;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return {
+    successUrl: typeof value.successUrl === "string" ? value.successUrl : undefined,
+    cancelUrl: typeof value.cancelUrl === "string" ? value.cancelUrl : undefined,
+  };
 }
 
 function resolvePayPalEnvironment(

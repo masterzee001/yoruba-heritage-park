@@ -12,6 +12,8 @@ export type {
   PreparePaymentRequestResult,
 } from "./payment-request-service";
 export { PaymentCheckoutService } from "./payment-checkout-service";
+export { appendCheckoutReturnParams } from "./checkout-return-url";
+export type { CheckoutReturnStatus } from "./checkout-return-url";
 export type {
   PaymentCheckoutServiceOptions,
   PrepareCheckoutInput,

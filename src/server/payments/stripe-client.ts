@@ -3,6 +3,7 @@ import type {
   PaymentProviderSettingsRecord,
   PaymentRecord,
 } from "../repositories/repository-types";
+import { appendCheckoutReturnParams } from "./checkout-return-url";
 
 export interface StripeCredentials {
   readonly publishableKey: string;
@@ -92,8 +93,16 @@ export function buildStripeCheckoutSessionDraft(
 ): StripeCheckoutSessionDraft {
   return {
     mode: "payment",
-    successUrl: credentials.successUrl,
-    cancelUrl: credentials.cancelUrl,
+    successUrl: appendCheckoutReturnParams(credentials.successUrl, {
+      status: "success",
+      paymentReference: payment.reference,
+      providerCode: "stripe",
+    }),
+    cancelUrl: appendCheckoutReturnParams(credentials.cancelUrl, {
+      status: "cancelled",
+      paymentReference: payment.reference,
+      providerCode: "stripe",
+    }),
     clientReferenceId: payment.reference,
     ...(payment.payerEmail ? { customerEmail: payment.payerEmail } : {}),
     currency: normalisePaymentCurrency(payment.currency).toLowerCase() as "ngn" | "usd",

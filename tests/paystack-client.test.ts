@@ -46,7 +46,11 @@ describe("Paystack client foundation", () => {
   });
 
   test("builds a transaction initialization draft in subunits", () => {
-    expect(buildPaystackTransactionInitializeDraft(makePaymentRecord())).toEqual({
+    expect(
+      buildPaystackTransactionInitializeDraft(makePaymentRecord(), {
+        callbackUrl: "https://example.test/tickets",
+      }),
+    ).toEqual({
       email: "visitor@example.test",
       amount: 500000,
       currency: "NGN",
@@ -56,14 +60,16 @@ describe("Paystack client foundation", () => {
         paymentReference: "YHP-PAY-TEST",
         source: "yoruba_heritage_park",
       },
+      callback_url:
+        "https://example.test/tickets?checkout=success&paymentReference=YHP-PAY-TEST&provider=paystack",
     });
   });
 
   test("uses injected fetch client for transaction initialization", async () => {
-    const fetchCalls: string[] = [];
+    const fetchCalls: Array<{ url: string; body: string }> = [];
     const client = {
-      async fetch(input: string | URL): Promise<Response> {
-        fetchCalls.push(String(input));
+      async fetch(input: string | URL, init?: RequestInit): Promise<Response> {
+        fetchCalls.push({ url: String(input), body: String(init?.body) });
         return Response.json({
           status: true,
           message: "Authorization URL created",
@@ -77,12 +83,20 @@ describe("Paystack client foundation", () => {
     };
 
     const response = await initializePaystackTransaction(
-      { publicKey: "pk_test", secretKey: "sk_test" },
+      {
+        publicKey: "pk_test",
+        secretKey: "sk_test",
+        callbackUrl: "https://example.test/tickets",
+      },
       makePaymentRecord(),
       client,
     );
 
-    expect(fetchCalls).toEqual(["https://api.paystack.co/transaction/initialize"]);
+    expect(fetchCalls[0].url).toBe("https://api.paystack.co/transaction/initialize");
+    expect(JSON.parse(fetchCalls[0].body)).toMatchObject({
+      callback_url:
+        "https://example.test/tickets?checkout=success&paymentReference=YHP-PAY-TEST&provider=paystack",
+    });
     expect(response.data?.authorization_url).toBe("https://checkout.paystack.com/access-code");
   });
 });

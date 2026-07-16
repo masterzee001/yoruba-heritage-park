@@ -61,8 +61,10 @@ describe("Stripe client foundation", () => {
 
     expect(draft).toEqual({
       mode: "payment",
-      successUrl: "https://example.test/payments/success",
-      cancelUrl: "https://example.test/payments/cancel",
+      successUrl:
+        "https://example.test/payments/success?checkout=success&paymentReference=YHP-PAY-TEST&provider=stripe",
+      cancelUrl:
+        "https://example.test/payments/cancel?checkout=cancelled&paymentReference=YHP-PAY-TEST&provider=stripe",
       clientReferenceId: "YHP-PAY-TEST",
       customerEmail: "visitor@example.test",
       currency: "usd",
@@ -106,6 +108,8 @@ describe("Stripe client foundation", () => {
     expect(fetchCalls[0].url).toBe("https://api.stripe.com/v1/checkout/sessions");
     expect(fetchCalls[0].body).toContain("mode=payment");
     expect(fetchCalls[0].body).toContain("client_reference_id=YHP-PAY-TEST");
+    expect(fetchCalls[0].body).toContain("checkout%3Dsuccess");
+    expect(fetchCalls[0].body).toContain("checkout%3Dcancelled");
     expect(session.id).toBe("cs_test_123");
   });
 });

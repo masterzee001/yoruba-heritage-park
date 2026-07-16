@@ -8,6 +8,15 @@ import { projectStatus } from "@/config/project-status";
 import { TICKET_TYPES } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/tickets")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    checkout:
+      search.checkout === "success" || search.checkout === "cancelled"
+        ? search.checkout
+        : undefined,
+    paymentReference:
+      typeof search.paymentReference === "string" ? search.paymentReference : undefined,
+    provider: typeof search.provider === "string" ? search.provider : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Ticket Details — Yoruba Heritage Park" },
@@ -22,6 +31,7 @@ export const Route = createFileRoute("/tickets")({
 });
 
 function TicketsPage() {
+  const checkoutReturn = Route.useSearch();
   const [step, setStep] = useState(1);
   const [ticket, setTicket] = useState(TICKET_TYPES[0].id);
   const [visitDate, setVisitDate] = useState("");
@@ -117,6 +127,14 @@ function TicketsPage() {
       />
 
       <section className="container-y py-16">
+        {checkoutReturn.checkout ? (
+          <CheckoutReturnNotice
+            status={checkoutReturn.checkout}
+            paymentReference={checkoutReturn.paymentReference}
+            provider={checkoutReturn.provider}
+          />
+        ) : null}
+
         <ol className="mb-10 flex items-center gap-4 text-xs">
           {["Choose", "Schedule", "Details"].map((label, i) => {
             const n = i + 1;
@@ -379,6 +397,49 @@ function TicketsPage() {
       </section>
     </>
   );
+}
+
+function CheckoutReturnNotice({
+  status,
+  paymentReference,
+  provider,
+}: {
+  status: "success" | "cancelled";
+  paymentReference?: string;
+  provider?: string;
+}) {
+  const providerLabel = provider ? formatProvider(provider) : "the payment provider";
+  const successful = status === "success";
+  return (
+    <div
+      className={`mb-10 rounded-sm border px-5 py-4 text-sm ${
+        successful
+          ? "border-forest/25 bg-forest/10 text-forest-deep"
+          : "border-brass/30 bg-brass/10 text-forest-deep"
+      }`}
+    >
+      <p className="font-medium">
+        {successful ? "Checkout returned for verification" : "Checkout was not completed"}
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        {successful
+          ? `We received your return from ${providerLabel}. Payment confirmation is completed only after the provider webhook is verified by the administration team.`
+          : `You returned from ${providerLabel} without completing checkout. No payment has been marked as received.`}
+      </p>
+      {paymentReference ? (
+        <p className="mt-3 text-xs font-medium text-forest-deep">
+          Payment reference: {paymentReference}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function formatProvider(value: string): string {
+  if (value === "paypal") return "PayPal";
+  if (value === "paystack") return "Paystack";
+  if (value === "stripe") return "Stripe";
+  return value;
 }
 
 function TextField({

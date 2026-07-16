@@ -97,6 +97,22 @@ describe("PayPal client foundation", () => {
     });
   });
 
+  test("adds return URLs to PayPal order drafts when configured", () => {
+    expect(
+      buildPayPalOrderDraft(makePaymentRecord(), {
+        successUrl: "https://example.test/tickets",
+        cancelUrl: "https://example.test/tickets",
+      }),
+    ).toMatchObject({
+      application_context: {
+        return_url:
+          "https://example.test/tickets?checkout=success&paymentReference=YHP-PAY-TEST&provider=paypal",
+        cancel_url:
+          "https://example.test/tickets?checkout=cancelled&paymentReference=YHP-PAY-TEST&provider=paypal",
+      },
+    });
+  });
+
   test("uses injected fetch client for token and order requests", async () => {
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     const client = {
