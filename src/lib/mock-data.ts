@@ -1,5 +1,8 @@
 // Demonstration content for preview mode. Final operational details remain pending.
 
+import cultureArchitectureImg from "@/assets/culture-architecture.jpg";
+import waterReflectionImg from "@/assets/water-reflection.jpg";
+
 export const SITE = {
   name: "Yoruba Heritage Park",
   location: "Ogun State, Nigeria",
@@ -36,8 +39,7 @@ export const EXPERIENCES = [
     duration: "Duration pending",
     availability: "Pending confirmation",
     summary: "Quiet, guided walks through the forest for reflection, prayer and stillness.",
-    image:
-      "https://images.unsplash.com/photo-1441829266145-6d4bfb46f1e5?auto=format&fit=crop&w=1400&q=80",
+    image: waterReflectionImg,
   },
   {
     slug: "purification",
@@ -78,8 +80,7 @@ export const EXPERIENCES = [
     availability: "Enquiry only",
     summary:
       "Personal and family Oríkì consultations, written or recorded, with heritage guidance.",
-    image:
-      "https://images.unsplash.com/photo-1524492514790-8c34a72e59f2?auto=format&fit=crop&w=1400&q=80",
+    image: cultureArchitectureImg,
   },
 ];
 
