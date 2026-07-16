@@ -46,6 +46,9 @@ export interface AdminRoleDefinition extends DemoRecord {
 }
 
 export type AuditOutcome =
+  | "success"
+  | "denied"
+  | "failed"
   | "successful_preview"
   | "denied_preview"
   | "failed_preview"
@@ -55,6 +58,7 @@ export interface AdminAuditLog extends DemoRecord {
   id: string;
   reference: string;
   occurredAt: string;
+  occurredDate: string;
   userPlaceholder: string;
   action: string;
   module: PermissionArea;

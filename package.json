@@ -18,6 +18,7 @@
     "auth:create-admin": "bun scripts/auth-create-admin.ts",
     "auth:generate-bootstrap-sql": "bun scripts/auth-generate-bootstrap-sql.ts",
     "payment:qa": "bun scripts/payment-sandbox-qa.ts",
+    "admin:qa": "bun scripts/admin-operator-qa.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",

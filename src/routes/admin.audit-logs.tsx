@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckCircle2, Copy, Download } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { RotateCw } from "lucide-react";
 import {
   AdminBreadcrumbs,
   AdminDataTable,
@@ -12,14 +12,11 @@ import {
   AdminPageHeader,
   AdminSearchInput,
   AdminStatusBadge,
-  DemoBadge,
   DetailRow,
-  FeatureDisabledNotice,
   FilterChip,
-  PreviewModeBanner,
   type AdminColumn,
 } from "@/admin/components";
-import { adminService } from "@/admin/services";
+import { listAdminAuditLogs } from "@/admin/audit-log-functions";
 import type {
   AdminAuditLog,
   AuditLogFilters,
@@ -37,6 +34,9 @@ export const Route = createFileRoute("/admin/audit-logs")({
 });
 
 const OUTCOME_LABEL: Record<AuditOutcome, string> = {
+  success: "Success",
+  denied: "Denied",
+  failed: "Failed",
   successful_preview: "Successful Preview",
   denied_preview: "Denied Preview",
   failed_preview: "Failed Preview",
@@ -44,6 +44,9 @@ const OUTCOME_LABEL: Record<AuditOutcome, string> = {
 };
 
 const OUTCOME_TONE: Record<AuditOutcome, StatusTone> = {
+  success: "success",
+  denied: "warning",
+  failed: "danger",
   successful_preview: "success",
   denied_preview: "warning",
   failed_preview: "danger",
@@ -75,31 +78,30 @@ function AdminAuditLogsRoute() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<AuditLogFilters>({ module: "all", outcome: "all" });
-  const [notice, setNotice] = useState<string | null>(null);
+
+  const loadLogs = useCallback(async () => {
+    setError(null);
+    const list = await listAdminAuditLogs({ data: filters });
+    setRows(list);
+    setSelectedId((current) =>
+      current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
+    );
+  }, [filters]);
 
   useEffect(() => {
     let cancelled = false;
-    adminService.auditLogs
-      .list(filters)
-      .then((list) => {
-        if (cancelled) return;
-        setRows(list);
-        setSelectedId((current) =>
-          current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
-        );
-      })
-      .catch(() => !cancelled && setError("Audit logs could not be loaded."));
+    loadLogs().catch(() => {
+      if (!cancelled) setError("Audit logs could not be loaded.");
+    });
     return () => {
       cancelled = true;
     };
-  }, [filters]);
+  }, [loadLogs]);
 
   const selected = useMemo(
     () => rows?.find((row) => row.id === selectedId) ?? null,
     [rows, selectedId],
   );
-  const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
 
   return (
     <>
@@ -107,12 +109,8 @@ function AdminAuditLogsRoute() {
       <AdminPageHeader
         eyebrow="Governance"
         title="Audit logs"
-        description="Audit records shown here are demonstration data. Production audit logging is not yet connected."
-      />
-      <PreviewModeBanner message="Audit records shown here are demonstration data. Production audit logging is not yet connected." />
-      <FeatureDisabledNotice
-        feature="Production audit capture and export"
-        reason="No real browser data, IP address, device fingerprint, tamper-proof log or export file is captured."
+        description="Review database-backed administrator actions, payment review notes, and security events."
+        actions={<AdminStatusBadge tone="success">Database-backed</AdminStatusBadge>}
       />
       <AdminFilterBar>
         <AdminSearchInput
@@ -125,6 +123,9 @@ function AdminAuditLogsRoute() {
         {(
           [
             "all",
+            "success",
+            "denied",
+            "failed",
             "successful_preview",
             "denied_preview",
             "failed_preview",
@@ -151,13 +152,22 @@ function AdminAuditLogsRoute() {
           aria-label="Module"
         >
           <option value="all">All modules</option>
-          {["dashboard", "content", "incidents", "users", "roles", "settings", "audit_logs"].map(
-            (module) => (
-              <option key={module} value={module}>
-                {module}
-              </option>
-            ),
-          )}
+          {[
+            "dashboard",
+            "content",
+            "events",
+            "bookings",
+            "payments",
+            "incidents",
+            "users",
+            "roles",
+            "settings",
+            "audit_logs",
+          ].map((module) => (
+            <option key={module} value={module}>
+              {module}
+            </option>
+          ))}
         </select>
         <input
           type="date"
@@ -168,8 +178,15 @@ function AdminAuditLogsRoute() {
           className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
           aria-label="Audit date"
         />
+        <button
+          type="button"
+          onClick={() => void loadLogs()}
+          className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest"
+        >
+          <RotateCw className="size-3.5" aria-hidden />
+          Refresh
+        </button>
       </AdminFilterBar>
-      {notice ? <PreviewNotice>{notice}</PreviewNotice> : null}
       {error ? (
         <AdminErrorState description={error} />
       ) : !rows ? (
@@ -180,9 +197,9 @@ function AdminAuditLogsRoute() {
             columns={columns}
             rows={rows}
             rowKey={(row) => row.id}
-            caption="Audit preview records"
+            caption="Database audit records"
             emptyTitle="No audit records"
-            emptyDescription="No preview audit records match the selected filters."
+            emptyDescription="No database audit records match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -190,12 +207,9 @@ function AdminAuditLogsRoute() {
               eyebrow={selected.reference}
               title={selected.action}
               actions={
-                <>
-                  <AdminStatusBadge tone={OUTCOME_TONE[selected.outcome]}>
-                    {OUTCOME_LABEL[selected.outcome]}
-                  </AdminStatusBadge>
-                  <DemoBadge />
-                </>
+                <AdminStatusBadge tone={OUTCOME_TONE[selected.outcome]}>
+                  {OUTCOME_LABEL[selected.outcome]}
+                </AdminStatusBadge>
               }
             >
               <dl>
@@ -203,55 +217,14 @@ function AdminAuditLogsRoute() {
                 <DetailRow label="User">{selected.userPlaceholder}</DetailRow>
                 <DetailRow label="Module">{selected.module}</DetailRow>
                 <DetailRow label="Record">{selected.recordReference}</DetailRow>
-                <DetailRow label="IP placeholder">{selected.ipPlaceholder}</DetailRow>
+                <DetailRow label="IP address">{selected.ipPlaceholder}</DetailRow>
                 <DetailRow label="Device">{selected.devicePlaceholder}</DetailRow>
                 <DetailRow label="Details">{selected.details}</DetailRow>
               </dl>
-              <div className="mt-6 grid gap-2 sm:grid-cols-2">
-                <PreviewButton
-                  icon={<Download className="size-3.5" />}
-                  onClick={completePreviewAction}
-                >
-                  Export preview action
-                </PreviewButton>
-                <PreviewButton icon={<Copy className="size-3.5" />} onClick={completePreviewAction}>
-                  Copy-reference preview
-                </PreviewButton>
-              </div>
             </AdminDetailPanel>
           ) : null}
         </div>
       )}
     </>
-  );
-}
-
-function PreviewNotice({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-3 rounded-sm border border-forest/20 bg-forest/10 px-4 py-3 text-xs text-forest-deep">
-      <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <p>{children}</p>
-    </div>
-  );
-}
-
-function PreviewButton({
-  children,
-  icon,
-  onClick,
-}: {
-  children: ReactNode;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium hover:border-forest"
-    >
-      {icon}
-      {children}
-    </button>
   );
 }

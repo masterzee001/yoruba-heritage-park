@@ -155,12 +155,12 @@ function TicketsPage() {
         title="Visit requests, in three considered steps."
         intro={
           paymentEnabled
-            ? "Submit a visit request. Payment options will be shown only after provider confirmation."
+            ? "Submit a visit request. Approved payment instructions are sent only after administrator review."
             : "Submit a visit request for review. Payment collection is not active yet."
         }
       />
 
-      <section className="container-y py-16">
+      <section className="container-y py-16 pb-24 md:pb-16">
         {checkoutReturn.checkout ? (
           <CheckoutReturnNotice
             status={checkoutReturn.checkout}
@@ -202,7 +202,7 @@ function TicketsPage() {
         </ol>
 
         <div className="grid gap-10 md:grid-cols-[1.6fr_1fr]">
-          <div className="border border-border bg-background p-8">
+          <div className="border border-border bg-background p-5 sm:p-8">
             {message && step !== 4 ? (
               <p className="mb-6 rounded-sm border border-brass/30 bg-brass/10 px-3 py-2 text-sm text-forest-deep">
                 {message}
@@ -378,7 +378,7 @@ function TicketsPage() {
                   </p>
                   <p className="mt-6 rounded-sm border border-border bg-background p-4 text-sm text-muted-foreground">
                     {paymentEnabled
-                      ? "The team will review availability before sending confirmed payment instructions."
+                      ? "The team will review availability before sending approved payment instructions. Payment is confirmed only after provider verification."
                       : "Payment is not active for this request. The team will review availability before any confirmation or payment collection."}
                   </p>
                 </div>
@@ -428,12 +428,12 @@ function TicketsPage() {
               </div>
               <div className="mt-3 flex justify-between border-t border-border pt-3 font-serif text-lg text-forest-deep">
                 <dt>Pricing</dt>
-                <dd>{paymentEnabled ? "Available at checkout" : "Pending confirmation"}</dd>
+                <dd>{paymentEnabled ? "After admin review" : "Pending confirmation"}</dd>
               </div>
             </dl>
             <p className="mt-4 text-xs text-muted-foreground">
               Booking requests are saved for administrator review. Payment collection is separate
-              and not active yet.
+              and confirmed only after provider verification.
             </p>
           </aside>
         </div>
