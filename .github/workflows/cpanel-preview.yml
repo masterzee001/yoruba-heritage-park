@@ -64,9 +64,48 @@ jobs:
           CPANEL_FTP_HOST: ${{ secrets.CPANEL_FTP_HOST }}
           CPANEL_FTP_USERNAME: ${{ secrets.CPANEL_FTP_USERNAME }}
           CPANEL_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          PAYMENT_CHECKOUT_ENABLED: ${{ secrets.PAYMENT_CHECKOUT_ENABLED }}
+          PAYMENT_ALLOW_LIVE_CAPTURE: ${{ secrets.PAYMENT_ALLOW_LIVE_CAPTURE }}
+          PAYMENT_PUBLIC_BASE_URL: ${{ secrets.PAYMENT_PUBLIC_BASE_URL }}
+          PAYPAL_ENVIRONMENT: ${{ secrets.PAYPAL_ENVIRONMENT }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_SECRET_KEY: ${{ secrets.PAYPAL_SECRET_KEY }}
+          PAYPAL_WEBHOOK_ID: ${{ secrets.PAYPAL_WEBHOOK_ID }}
+          PAYPAL_CHECKOUT_SUCCESS_URL: ${{ secrets.PAYPAL_CHECKOUT_SUCCESS_URL }}
+          PAYPAL_CHECKOUT_CANCEL_URL: ${{ secrets.PAYPAL_CHECKOUT_CANCEL_URL }}
+          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          PAYSTACK_WEBHOOK_SECRET: ${{ secrets.PAYSTACK_WEBHOOK_SECRET }}
+          PAYSTACK_CHECKOUT_CALLBACK_URL: ${{ secrets.PAYSTACK_CHECKOUT_CALLBACK_URL }}
           SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
           TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
         run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const keys = [
+            "PAYMENT_CHECKOUT_ENABLED",
+            "PAYMENT_ALLOW_LIVE_CAPTURE",
+            "PAYMENT_PUBLIC_BASE_URL",
+            "PAYPAL_ENVIRONMENT",
+            "PAYPAL_CLIENT_ID",
+            "PAYPAL_SECRET_KEY",
+            "PAYPAL_WEBHOOK_ID",
+            "PAYPAL_CHECKOUT_SUCCESS_URL",
+            "PAYPAL_CHECKOUT_CANCEL_URL",
+            "PAYSTACK_PUBLIC_KEY",
+            "PAYSTACK_SECRET_KEY",
+            "PAYSTACK_WEBHOOK_SECRET",
+            "PAYSTACK_CHECKOUT_CALLBACK_URL",
+          ];
+
+          const lines = keys
+            .filter((key) => process.env[key])
+            .map((key) => `${key}=${process.env[key]}`);
+
+          fs.writeFileSync(".cpanel-runtime.env", `${lines.join("\n")}\n`);
+          NODE
+
           lftp -u "$CPANEL_FTP_USERNAME","$CPANEL_FTP_PASSWORD" "$CPANEL_FTP_HOST" <<EOF
           set ftp:ssl-allow no
           set net:max-retries 5
@@ -81,6 +120,7 @@ jobs:
           put app.cjs -o app.cjs
           put package.json -o package.json
           put bun.lock -o bun.lock
+          put .cpanel-runtime.env -o .cpanel-runtime.env
 
           set cmd:fail-exit no
           rm -r .output-cpanel-next

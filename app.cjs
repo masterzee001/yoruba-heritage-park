@@ -8,6 +8,7 @@ const host = "0.0.0.0";
 const passengerListenTarget = "passenger";
 const serverEntry = path.join(__dirname, ".output-cpanel", "server", "index.mjs");
 const publicDir = path.join(__dirname, ".output-cpanel", "public");
+const runtimeEnvFiles = [path.join(__dirname, ".env"), path.join(__dirname, ".cpanel-runtime.env")];
 const stagingMessage = "Yoruba Heritage Park staging deployment is being prepared.";
 const staticPrefixes = ["/assets/", "/brand/", "/reference/"];
 const mimeTypes = {
@@ -24,6 +25,33 @@ const mimeTypes = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
 };
+
+function loadRuntimeEnv(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+
+  const contents = fs.readFileSync(filePath, "utf8");
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1);
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || process.env[key] !== undefined) {
+      continue;
+    }
+
+    process.env[key] = value;
+  }
+}
 
 function listen(server) {
   if (port) {
@@ -134,6 +162,10 @@ if (port) {
 } else {
   delete process.env.NITRO_PORT;
   delete process.env.NITRO_HOST;
+}
+
+for (const runtimeEnvFile of runtimeEnvFiles) {
+  loadRuntimeEnv(runtimeEnvFile);
 }
 
 if (fs.existsSync(serverEntry)) {
