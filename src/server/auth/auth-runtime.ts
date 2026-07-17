@@ -77,6 +77,16 @@ export async function getCurrentAdminAuthState(pathname = "/admin"): Promise<Adm
     };
   }
 
+  if (token) {
+    setCookie(config.sessionCookieName, token, {
+      path: "/",
+      expires: principal.sessionExpiresAt,
+      httpOnly: true,
+      secure: shouldUseSecureCookie(config, getRuntimeRequestContext()),
+      sameSite: "lax",
+    });
+  }
+
   const requiredPermission = getRequiredPermissionForPath(pathname);
   const forbidden = requiredPermission ? !hasPermission(principal, requiredPermission) : false;
   return {
@@ -106,7 +116,7 @@ export function getRuntimeRequestContext(): RequestContext {
 export function setAdminSessionCookie(cookieHeader: string): void {
   const parsed = parseSetCookie(cookieHeader);
   setCookie(parsed.name, parsed.value, {
-    path: parsed.path,
+    path: "/",
     expires: parsed.expires,
     httpOnly: parsed.httpOnly,
     secure: parsed.secure,
@@ -116,6 +126,7 @@ export function setAdminSessionCookie(cookieHeader: string): void {
 
 export function clearAdminSessionCookie(): void {
   const config = getAuthConfig();
+  deleteCookie(config.sessionCookieName, { path: "/" });
   deleteCookie(config.sessionCookieName, { path: "/admin" });
 }
 
@@ -130,7 +141,7 @@ export function setAdminCsrfCookie(
 ): void {
   const config = getAuthConfig();
   setCookie(getAdminCsrfCookieName(config.sessionCookieName), csrfToken, {
-    path: "/admin",
+    path: "/",
     expires: absoluteExpiresAt,
     httpOnly: false,
     secure: shouldUseSecureCookie(config, requestContext),
@@ -140,6 +151,7 @@ export function setAdminCsrfCookie(
 
 export function clearAdminCsrfCookie(): void {
   const config = getAuthConfig();
+  deleteCookie(getAdminCsrfCookieName(config.sessionCookieName), { path: "/" });
   deleteCookie(getAdminCsrfCookieName(config.sessionCookieName), { path: "/admin" });
 }
 

@@ -38,7 +38,7 @@ export function buildSessionCookie(token: string, options: SessionCookieOptions)
     httpOnly: true,
     sameSite: "Lax",
     secure: shouldUseSecureCookie(options.config, options.requestContext),
-    path: "/admin",
+    path: "/",
     expires: options.absoluteExpiresAt,
   });
 }
@@ -48,7 +48,7 @@ export function buildExpiredSessionCookie(config: AuthConfig): string {
     httpOnly: true,
     sameSite: "Lax",
     secure: config.nodeEnv === "production",
-    path: "/admin",
+    path: "/",
     expires: new Date(0),
     maxAge: 0,
   });

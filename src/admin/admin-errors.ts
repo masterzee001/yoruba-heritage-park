@@ -6,6 +6,9 @@ export function getAdminErrorMessage(error: unknown, fallback: string): string {
     }
 
     const message = error.message.trim();
+    if (message === "Authentication failed.") {
+      return "Your administrator session has expired. Sign in again.";
+    }
     if (message && message !== "Failed to fetch") return message;
   }
 

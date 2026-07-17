@@ -120,7 +120,7 @@ describe("session and cookie helpers", () => {
     });
     expect(header).toContain("HttpOnly");
     expect(header).toContain("SameSite=Lax");
-    expect(header).toContain("Path=/admin");
+    expect(header).toContain("Path=/");
     expect(header).toContain("Secure");
     expect(
       getSessionTokenFromCookie("yhp_admin=abc_123456789012345678901234567890", "yhp_admin"),
