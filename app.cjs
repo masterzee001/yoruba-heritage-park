@@ -32,8 +32,9 @@ function loadRuntimeEnv(filePath) {
   }
 
   const contents = fs.readFileSync(filePath, "utf8");
-  for (const line of contents.split(/\r?\n/)) {
-    const trimmed = line.trim();
+  for (const [index, line] of contents.split(/\r?\n/).entries()) {
+    const normalizedLine = index === 0 ? line.replace(/^\uFEFF/, "") : line;
+    const trimmed = normalizedLine.trim();
     if (!trimmed || trimmed.startsWith("#")) {
       continue;
     }
@@ -44,7 +45,14 @@ function loadRuntimeEnv(filePath) {
     }
 
     const key = trimmed.slice(0, separatorIndex).trim();
-    const value = trimmed.slice(separatorIndex + 1);
+    let value = trimmed.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || process.env[key] !== undefined) {
       continue;
     }
