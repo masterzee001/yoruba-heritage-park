@@ -84,7 +84,16 @@ const integerFromEnv = (defaultValue: number, minimum: number, maximum: number) 
     z.coerce.number().int().min(minimum).max(maximum).default(defaultValue),
   );
 const booleanFromEnv = (defaultValue: boolean) =>
-  z.preprocess(emptyToUndefined, z.coerce.boolean().default(defaultValue));
+  z.preprocess((value) => {
+    if (typeof value !== "string") return emptyToUndefined(value);
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "") return undefined;
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    if (["0", "false", "no", "off"].includes(normalized)) return false;
+
+    return value;
+  }, z.boolean().default(defaultValue));
 const urlText = z.preprocess(emptyToUndefined, z.string().trim().url().optional());
 const cookieNameSchema = z
   .preprocess(emptyToUndefined, z.string().trim().min(1).max(64).default("yhp_admin"))

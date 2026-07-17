@@ -101,6 +101,22 @@ describe("server environment validation", () => {
     );
   });
 
+  test("parses false boolean environment strings safely", () => {
+    const env = getServerEnv({
+      source: {
+        AUTH_TRUST_PROXY: "false",
+        PAYMENT_CHECKOUT_ENABLED: "true",
+        PAYMENT_ALLOW_LIVE_CAPTURE: "false",
+        SMTP_SECURE: "0",
+      },
+    });
+
+    expect(env.auth.trustProxy).toBe(false);
+    expect(env.payments.checkoutEnabled).toBe(true);
+    expect(env.payments.allowLiveCapture).toBe(false);
+    expect(env.email.smtp.secure).toBe(false);
+  });
+
   test("validates server-only email configuration", () => {
     const env = getServerEnv({
       source: {
