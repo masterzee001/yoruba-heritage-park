@@ -14,7 +14,7 @@ import {
   AdminSearchInput,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -148,7 +148,7 @@ function AdminIncidentsRoute() {
       />
       <FeatureDisabledNotice
         feature="Incident dispatch and notifications"
-        reason="Assignment, acknowledgement, resolution and closure actions are local preview state only."
+        reason="Assignment, acknowledgement, resolution and closure actions are pending operational setup."
       />
 
       <AdminFilterBar>
@@ -237,13 +237,13 @@ function AdminIncidentsRoute() {
           {selected ? (
             <AdminDetailPanel
               eyebrow={selected.reference}
-              title={`${CATEGORY_LABEL[selected.category]} · ${SEVERITY_LABEL[selected.severity]}`}
+              title={`${CATEGORY_LABEL[selected.category]} — ${SEVERITY_LABEL[selected.severity]}`}
               actions={
                 <>
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >

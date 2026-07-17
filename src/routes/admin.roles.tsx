@@ -14,6 +14,7 @@ import {
   PermissionNotice,
   type AdminColumn,
 } from "@/admin/components";
+import { getAdminErrorMessage } from "@/admin/admin-errors";
 import { listAdminRoles } from "@/admin/governance-functions";
 import type { AdminRoleDefinition } from "@/admin/types";
 
@@ -52,7 +53,10 @@ function AdminRolesRoute() {
         setRows(list);
         setSelectedId(list[0]?.id ?? null);
       })
-      .catch(() => !cancelled && setError("Role records could not be loaded."));
+      .catch(
+        (error: unknown) =>
+          !cancelled && setError(getAdminErrorMessage(error, "Role records could not be loaded.")),
+      );
     return () => {
       cancelled = true;
     };

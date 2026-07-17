@@ -13,7 +13,7 @@ import {
   AdminPageHeader,
   AdminSearchInput,
   AdminStatusBadge,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -44,7 +44,7 @@ const TYPE_LABEL: Record<MediaType, string> = {
   image: "Image",
   document: "Document",
   audio: "Audio",
-  video_placeholder: "Video Placeholder",
+  video_placeholder: "Video Pending",
 };
 
 const USAGE_LABEL: Record<MediaUsage, string> = {
@@ -130,9 +130,9 @@ function AdminMediaRoute() {
       <AdminPageHeader
         eyebrow="Content operations"
         title="Media library"
-        description="Preview media metadata management. Media upload and file storage are not enabled in preview mode."
+        description="Media metadata management. Upload and file storage are pending operational setup."
       />
-      <PreviewModeBanner message="Media upload and file storage are not enabled in preview mode." />
+      <PreviewModeBanner message="Media upload and file storage are pending operational setup." />
       <FeatureDisabledNotice
         feature="Media upload and file storage"
         reason={
@@ -265,7 +265,7 @@ function AdminMediaRoute() {
                   <AdminStatusBadge tone={REVIEW_TONE[selected.reviewState]}>
                     {REVIEW_LABEL[selected.reviewState]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >

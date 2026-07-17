@@ -43,6 +43,6 @@ export function AdminStatusBadge({ tone = "neutral", children, className }: Prop
   );
 }
 
-export function DemoBadge() {
-  return <AdminStatusBadge tone="preview">Demo</AdminStatusBadge>;
+export function PendingBadge() {
+  return <AdminStatusBadge tone="preview">Pending</AdminStatusBadge>;
 }

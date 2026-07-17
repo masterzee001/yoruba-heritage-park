@@ -89,4 +89,4 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
 ];
 
-export const ADMIN_NAV_FLAT: AdminNavItem[] = ADMIN_NAV.flatMap((g) => g.items);
+export const ADMIN_NAV_FLAT: AdminNavItem[] = ADMIN_NAV.flatMap((group) => group.items);

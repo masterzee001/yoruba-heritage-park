@@ -16,7 +16,7 @@ import {
   AdminPageHeader,
   AdminSearchInput,
   AdminStatusBadge,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -36,7 +36,7 @@ import type {
 export const Route = createFileRoute("/admin/learning")({
   beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
-    meta: [{ title: "Learning Hub — Administrator" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Learning Hub ? Administrator" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminLearningRoute,
 });
@@ -151,7 +151,7 @@ function AdminLearningRoute() {
           </button>
         }
       />
-      <PreviewModeBanner message="Resource publishing and file storage are not connected in preview mode." />
+      <PreviewModeBanner message="Resource publishing and file storage are pending operational setup." />
       <FeatureDisabledNotice
         feature="Resource publishing and file storage"
         reason="No real uploads, downloads or public learning resources are created from this interface."
@@ -240,7 +240,7 @@ function AdminLearningRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >
@@ -250,10 +250,10 @@ function AdminLearningRoute() {
                 <DetailRow label="Description">{selected.description}</DetailRow>
                 <DetailRow label="Featured">{selected.featured ? "Yes" : "No"}</DetailRow>
                 <DetailRow label="Access level">{selected.accessLevel}</DetailRow>
-                <DetailRow label="File placeholder">
+                <DetailRow label="File status">
                   {selected.filePlaceholder ?? "Not connected"}
                 </DetailRow>
-                <DetailRow label="Audio placeholder">
+                <DetailRow label="Audio status">
                   {selected.audioPlaceholder ?? "Not connected"}
                 </DetailRow>
                 <DetailRow label="Review state">{selected.reviewState}</DetailRow>
@@ -269,7 +269,7 @@ function AdminLearningRoute() {
                   icon={<Upload className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  File-selection placeholder
+                  File selection pending
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
@@ -297,7 +297,7 @@ function AdminLearningRoute() {
         open={formMode !== null}
         onOpenChange={(open) => !open && setFormMode(null)}
         title={formMode === "edit" ? "Edit preview resource" : "New-resource preview"}
-        description="This form is a preview only. No resource is uploaded, published or stored."
+        description="No resource is uploaded, published or stored until file storage is connected."
       >
         <AdminFormSection title="Resource details" description="Awaiting authorised content.">
           <AdminField label="Resource title">
@@ -306,7 +306,7 @@ function AdminLearningRoute() {
               placeholder="Awaiting authorised content"
             />
           </AdminField>
-          <AdminField label="File placeholder">
+          <AdminField label="File status">
             <input
               className="rounded-sm border border-border px-3 py-2 text-sm"
               value="File storage not connected"

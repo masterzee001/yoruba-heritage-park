@@ -96,7 +96,7 @@ function SOSPage() {
           </p>
           {!sosLiveEnabled && (
             <div className="mt-6 max-w-xl rounded-sm border border-gold/30 bg-gold/10 p-4 text-sm text-gold">
-              Preview mode: this interface does not contact park response, emergency services or any
+              Not live: this interface does not contact park response, emergency services or any
               live monitoring team.
             </div>
           )}
@@ -145,7 +145,7 @@ function SOSPage() {
             </label>
             <div className="flex items-center gap-2 text-xs text-ivory/60">
               <MapPin className="size-3.5" /> GPS permission:{" "}
-              {sosLiveEnabled ? "requested on send" : "not requested in preview mode"}
+              {sosLiveEnabled ? "requested on send" : "not requested while SOS is offline"}
             </div>
           </div>
 
@@ -171,7 +171,7 @@ function SOSPage() {
           {(state === "ready" || state === "holding") && (
             <>
               <p className="text-xs uppercase tracking-widest text-ivory/60">
-                {sosLiveEnabled ? (state === "ready" ? "Ready" : "Press and hold") : "Preview mode"}
+                {sosLiveEnabled ? (state === "ready" ? "Ready" : "Press and hold") : "Not live"}
               </p>
               <button
                 onMouseDown={startHold}
@@ -290,7 +290,7 @@ function SOSPage() {
             disabled={!sosLiveEnabled}
             className="mt-8 text-[11px] uppercase tracking-widest text-ivory/30 hover:text-ivory/60 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Preview: failed connection state
+            Test failed connection state
           </button>
         </div>
       </div>

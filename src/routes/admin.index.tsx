@@ -39,7 +39,7 @@ function AdminDashboard() {
         eyebrow="Overview"
         title="Dashboard"
         description="Operational overview of the park administration portal."
-        meta="Preview environment · demonstration data only"
+        meta="Operational baseline"
       />
 
       <PreviewModeBanner />
@@ -61,7 +61,7 @@ function AdminDashboard() {
           <AdminStatCard
             label="Upcoming bookings"
             value={summary.upcomingBookings}
-            hint="Confirmed and pending demonstration bookings"
+            hint="Confirmed and pending booking records"
           />
           <AdminStatCard
             label="Pending enquiries"
@@ -83,10 +83,10 @@ function AdminDashboard() {
             service layer used here.
           </p>
           <ul className="mt-4 grid gap-2 text-sm text-charcoal">
-            <li>· Admin shell, sidebar and mobile drawer navigation are active.</li>
-            <li>· Preview-mode banner is shown wherever demonstration data appears.</li>
-            <li>· Every mock record is flagged with an isDemo indicator.</li>
-            <li>· No production feature processes live payments, email or SMS yet.</li>
+            <li>- Admin shell, sidebar and mobile drawer navigation are active.</li>
+            <li>- Pending modules are labelled before operational connection.</li>
+            <li>- Database-backed modules use server-side permission checks.</li>
+            <li>- No production feature processes live payments, email or SMS yet.</li>
           </ul>
         </div>
       </section>

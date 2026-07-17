@@ -20,7 +20,7 @@ import {
   AdminPageHeader,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   PreviewModeBanner,
@@ -90,7 +90,7 @@ function AdminSosConsole() {
       <AdminPageHeader
         eyebrow="Safety operations"
         title="SOS console"
-        description="SOS PREVIEW MODE: No live emergency response is connected. Demonstration alerts must never be treated as real incidents."
+        description="SOS is not approved for live operations. No emergency response workflow is connected."
         actions={
           <AdminStatusBadge tone="danger">
             <ShieldAlert className="size-3" aria-hidden />
@@ -101,7 +101,7 @@ function AdminSosConsole() {
 
       <PreviewModeBanner
         variant="danger"
-        message="SOS PREVIEW MODE. No live emergency response is connected. Demonstration alerts must never be treated as real incidents."
+        message="SOS is not approved for live operations. No emergency response workflow is connected."
       />
       <FeatureDisabledNotice
         feature="Live SOS dispatch, geolocation and notifications"
@@ -139,10 +139,10 @@ function AdminSosConsole() {
                         </AdminStatusBadge>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {a.category} · {a.locationLabel}
+                        {a.category} — {a.locationLabel}
                       </span>
                       <div className="mt-1">
-                        <DemoBadge />
+                        <PendingBadge />
                       </div>
                     </button>
                   </li>
@@ -154,15 +154,15 @@ function AdminSosConsole() {
           {selected ? (
             <AdminDetailPanel
               eyebrow={`Alert ${selected.reference}`}
-              title={`${STATUS_LABEL[selected.status]} · ${selected.category}`}
-              actions={<DemoBadge />}
+              title={`${STATUS_LABEL[selected.status]} — ${selected.category}`}
+              actions={<PendingBadge />}
             >
               <dl>
                 <DetailRow label="Visitor">
-                  {selected.visitorName ?? "Visitor placeholder"}
+                  {selected.visitorName ?? "Visitor details pending"}
                 </DetailRow>
                 <DetailRow label="Ticket reference">
-                  {selected.ticketReference ?? "Ticket placeholder"}
+                  {selected.ticketReference ?? "Ticket details pending"}
                 </DetailRow>
                 <DetailRow label="Location label">{selected.locationLabel}</DetailRow>
                 <DetailRow label="Latitude">{selected.latitudePlaceholder}</DetailRow>
@@ -174,16 +174,16 @@ function AdminSosConsole() {
                   </span>
                 </DetailRow>
                 <DetailRow label="Acknowledgement">
-                  {selected.acknowledgedAt ?? "Acknowledgement placeholder"}
+                  {selected.acknowledgedAt ?? "Acknowledgement pending"}
                 </DetailRow>
                 <DetailRow label="Assigned responder">
                   <span className="inline-flex items-center gap-1">
                     <User className="size-3" aria-hidden />
-                    {selected.assignedResponder ?? "Responder placeholder"}
+                    {selected.assignedResponder ?? "Responder pending"}
                   </span>
                 </DetailRow>
                 <DetailRow label="Response notes">
-                  {selected.responseNotes ?? "Response note placeholder"}
+                  {selected.responseNotes ?? "Response note pending"}
                 </DetailRow>
                 <DetailRow label="Resolution">{selected.resolutionPlaceholder}</DetailRow>
                 <DetailRow label="Related incident">{selected.relatedIncidentReference}</DetailRow>
@@ -201,7 +201,7 @@ function AdminSosConsole() {
                   Acknowledge test alert locally
                 </PreviewButton>
                 <PreviewButton icon={<User className="size-3.5" />} onClick={completePreviewAction}>
-                  Assign responder placeholder locally
+                  Assign responder after setup
                 </PreviewButton>
                 <PreviewButton
                   icon={<MessageSquarePlus className="size-3.5" />}
@@ -232,8 +232,7 @@ function AdminSosConsole() {
               <div className="mt-6 aspect-[16/8] w-full overflow-hidden rounded-sm border border-border bg-[oklch(0.94_0.02_140)]">
                 <div className="grid size-full place-items-center text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-2">
-                    <MapPin className="size-3.5" aria-hidden /> Map placeholder — pending mapping
-                    integration
+                    <MapPin className="size-3.5" aria-hidden /> Map pending setup integration
                   </span>
                 </div>
               </div>
@@ -248,7 +247,7 @@ function AdminSosConsole() {
 
       <p className="text-xs text-muted-foreground">
         <Ticket className="mr-1 inline size-3" aria-hidden />
-        Ticket, visitor and GPS values shown are demonstration placeholders only.
+        Ticket, visitor and GPS values are pending operational connection.
       </p>
     </>
   );

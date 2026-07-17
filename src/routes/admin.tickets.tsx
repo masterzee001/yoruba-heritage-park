@@ -65,9 +65,7 @@ function AdminTicketsRoute() {
         { label: "Visit date", value: row.visitDate },
         {
           label: "QR status",
-          value: projectStatus.ticketQrEnabled
-            ? row.qrStatus
-            : "QR validation disabled in preview mode",
+          value: projectStatus.ticketQrEnabled ? row.qrStatus : "QR validation is not enabled yet",
         },
         { label: "Check-in status", value: STATUS_LABEL[row.checkInStatus] },
         { label: "Checked in at", value: row.checkedInAt ?? "Not checked in" },

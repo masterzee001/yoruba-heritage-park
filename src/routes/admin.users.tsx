@@ -27,6 +27,7 @@ import {
   setAdminUserPassword,
   updateAdminUserStatus,
 } from "@/admin/governance-functions";
+import { getAdminErrorMessage } from "@/admin/admin-errors";
 import type {
   AdminRole,
   AdminUser,
@@ -97,7 +98,10 @@ function AdminUsersRoute() {
           current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
         );
       })
-      .catch(() => !cancelled && setError("User records could not be loaded."));
+      .catch(
+        (error: unknown) =>
+          !cancelled && setError(getAdminErrorMessage(error, "User records could not be loaded.")),
+      );
     return () => {
       cancelled = true;
     };
@@ -118,7 +122,24 @@ function AdminUsersRoute() {
           current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
         );
       })
-      .catch(() => setError("User records could not be loaded."));
+      .catch((error: unknown) =>
+        setError(getAdminErrorMessage(error, "User records could not be loaded.")),
+      );
+  };
+
+  const runUserAction = async (action: () => Promise<{ ok?: boolean; message?: string }>) => {
+    setError(null);
+    try {
+      const result = await action();
+      setNotice(result.message ?? "Action completed.");
+      if (result.ok === false) setError(result.message ?? "Action could not be completed.");
+      return result;
+    } catch (error) {
+      const message = getAdminErrorMessage(error, "Action could not be completed.");
+      setError(message);
+      setNotice(null);
+      return { ok: false, message };
+    }
   };
 
   return (
@@ -228,10 +249,11 @@ function AdminUsersRoute() {
                 <PreviewButton
                   icon={<Mail className="size-3.5" />}
                   onClick={async () => {
-                    const result = await sendAdminCredentialNotice({
-                      data: { id: selected.id, purpose: "invitation" },
-                    });
-                    setNotice(result.message);
+                    await runUserAction(() =>
+                      sendAdminCredentialNotice({
+                        data: { id: selected.id, purpose: "invitation" },
+                      }),
+                    );
                   }}
                 >
                   Send invite notice
@@ -239,10 +261,11 @@ function AdminUsersRoute() {
                 <PreviewButton
                   icon={<Mail className="size-3.5" />}
                   onClick={async () => {
-                    const result = await sendAdminCredentialNotice({
-                      data: { id: selected.id, purpose: "password_reset" },
-                    });
-                    setNotice(result.message);
+                    await runUserAction(() =>
+                      sendAdminCredentialNotice({
+                        data: { id: selected.id, purpose: "password_reset" },
+                      }),
+                    );
                   }}
                 >
                   Send reset notice
@@ -250,11 +273,12 @@ function AdminUsersRoute() {
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={async () => {
-                    const result = await updateAdminUserStatus({
-                      data: { id: selected.id, status: "active" },
-                    });
-                    setNotice(result.message);
-                    refreshUsers();
+                    const result = await runUserAction(() =>
+                      updateAdminUserStatus({
+                        data: { id: selected.id, status: "active" },
+                      }),
+                    );
+                    if (result.ok) refreshUsers();
                   }}
                 >
                   Restore active
@@ -295,8 +319,7 @@ function AdminUsersRoute() {
           <PasswordForm
             user={selected}
             onSubmit={async (input) => {
-              const result = await setAdminUserPassword({ data: input });
-              setNotice(result.message);
+              const result = await runUserAction(() => setAdminUserPassword({ data: input }));
               if (result.ok) {
                 setModal(null);
                 refreshUsers();
@@ -307,8 +330,7 @@ function AdminUsersRoute() {
           <UserForm
             user={modal === "edit" ? selected : null}
             onSubmit={async (input) => {
-              const result = await saveAdminUser({ data: input });
-              setNotice(result.message);
+              const result = await runUserAction(() => saveAdminUser({ data: input }));
               if (result.ok) {
                 setModal(null);
                 refreshUsers();
@@ -326,12 +348,13 @@ function AdminUsersRoute() {
         destructive
         onConfirm={async () => {
           if (!selected) return;
-          const result = await updateAdminUserStatus({
-            data: { id: selected.id, status: "suspended" },
-          });
+          const result = await runUserAction(() =>
+            updateAdminUserStatus({
+              data: { id: selected.id, status: "suspended" },
+            }),
+          );
           setSuspendOpen(false);
-          setNotice(result.message);
-          refreshUsers();
+          if (result.ok) refreshUsers();
         }}
       />
     </>

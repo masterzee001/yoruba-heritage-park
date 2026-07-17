@@ -7,10 +7,11 @@ import { AdminFilterBar, FilterChip } from "./AdminFilterBar";
 import { AdminLoadingState } from "./AdminLoadingState";
 import { AdminPageHeader } from "./AdminPageHeader";
 import { AdminSearchInput } from "./AdminSearchInput";
-import { AdminStatusBadge, DemoBadge } from "./AdminStatusBadge";
+import { AdminStatusBadge, PendingBadge } from "./AdminStatusBadge";
 import { AdminDetailPanel, DetailRow } from "./AdminDetailPanel";
 import { FeatureDisabledNotice } from "./FeatureDisabledNotice";
 import { PreviewModeBanner } from "./PreviewModeBanner";
+import { getAdminErrorMessage } from "../admin-errors";
 import type { DemoRecord, StatusTone } from "../types";
 
 export interface FilterOption<TValue extends string> {
@@ -67,7 +68,7 @@ export function AdminOperationPage<
   disabledReason,
   emptyTitle,
   emptyDescription,
-  actionLabel = "Preview action",
+  actionLabel = "Pending action",
 }: Props<TRecord, TStatus>) {
   const [records, setRecords] = useState<TRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +93,11 @@ export function AdminOperationPage<
               : null,
         );
       })
-      .catch(() => !cancelled && setError(`${title} records could not be loaded.`));
+      .catch(
+        (error: unknown) =>
+          !cancelled &&
+          setError(getAdminErrorMessage(error, `${title} records could not be loaded.`)),
+      );
     return () => {
       cancelled = true;
     };
@@ -109,10 +114,10 @@ export function AdminOperationPage<
         eyebrow={eyebrow}
         title={title}
         description={description}
-        actions={<AdminStatusBadge tone="preview">Demo data</AdminStatusBadge>}
+        actions={<AdminStatusBadge tone="preview">Setup pending</AdminStatusBadge>}
       />
 
-      <PreviewModeBanner message="This module uses demonstration records only. Local preview actions do not create, update or transmit production data." />
+      <PreviewModeBanner message="This module is pending a production repository. Actions here are disabled until the workflow is connected." />
 
       <AdminFilterBar>
         <AdminSearchInput
@@ -164,7 +169,7 @@ export function AdminOperationPage<
                   <AdminStatusBadge tone={statusMap.tones[status(selected)]}>
                     {statusMap.labels[status(selected)]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >
@@ -192,7 +197,7 @@ export function AdminOperationPage<
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No record selected">
               <p className="text-sm text-muted-foreground">
-                Select a demonstration record to inspect its administrative detail.
+                Select a record to inspect its administrative detail.
               </p>
             </AdminDetailPanel>
           )}
@@ -202,12 +207,12 @@ export function AdminOperationPage<
       <AdminConfirmationDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Complete preview action?"
-        description="This will only update local interface state for the current session."
-        confirmLabel="Complete locally"
+        title="Complete pending action?"
+        description="This workflow is not connected yet, so no production record will be changed."
+        confirmLabel="Acknowledge"
         onConfirm={() => {
           setConfirmOpen(false);
-          setLocalNotice("Preview action completed locally. No production record was created.");
+          setLocalNotice("This workflow is pending production connection. No record was changed.");
         }}
       />
     </>

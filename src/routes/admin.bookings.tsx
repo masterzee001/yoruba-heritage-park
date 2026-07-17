@@ -16,6 +16,7 @@ import {
   FilterChip,
   type AdminColumn,
 } from "@/admin/components";
+import { getAdminErrorMessage } from "@/admin/admin-errors";
 import {
   getAdminBookingPaymentHistory,
   listAdminBookings,
@@ -132,8 +133,10 @@ function AdminBookingsRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    loadBookings().catch(() => {
-      if (!cancelled) setError("Booking records could not be loaded.");
+    loadBookings().catch((error: unknown) => {
+      if (!cancelled) {
+        setError(getAdminErrorMessage(error, "Booking records could not be loaded."));
+      }
     });
     return () => {
       cancelled = true;

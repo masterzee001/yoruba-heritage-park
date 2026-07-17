@@ -13,7 +13,7 @@ import {
   AdminSearchInput,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -135,7 +135,7 @@ function AdminCeremoniesRoute() {
       <PreviewModeBanner message="Ceremony proposal, date and status actions are preview-only. No ceremony is officially confirmed." />
       <FeatureDisabledNotice
         feature="Ceremony confirmation"
-        reason="Packages, pricing, venue commitments and coordinator assignments are not connected in preview mode."
+        reason="Packages, pricing, venue commitments and coordinator assignments are pending operational setup."
       />
 
       <AdminFilterBar>
@@ -219,7 +219,7 @@ function AdminCeremoniesRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >

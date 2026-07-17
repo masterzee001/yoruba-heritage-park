@@ -13,7 +13,7 @@ import {
   AdminSearchInput,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -186,7 +186,7 @@ function AdminStayOwnRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >

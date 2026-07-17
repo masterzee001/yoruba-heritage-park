@@ -13,7 +13,7 @@ import {
   AdminSearchInput,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -104,7 +104,7 @@ function AdminOrikiRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action noted locally. No visitor communication was sent.");
 
   return (
     <>
@@ -112,13 +112,13 @@ function AdminOrikiRoute() {
       <AdminPageHeader
         eyebrow="Specialist services"
         title="Oríkì and heritage services"
-        description="Respectful consultation-management preview. No Oríkì content is generated or approved here."
+        description="Respectful consultation management. No Oríkì content is generated or approved here."
         actions={<AdminStatusBadge tone="preview">Cultural review pending</AdminStatusBadge>}
       />
-      <PreviewModeBanner message="No Oríkì content is generated or culturally approved through this preview interface." />
+      <PreviewModeBanner message="No Oríkì content is generated or culturally approved through this interface." />
       <FeatureDisabledNotice
         feature="Oríkì generation and cultural approval"
-        reason="This interface records preview workflow state only and does not assign real practitioners or send visitor communications."
+        reason="This interface records workflow state only and does not assign real practitioners or send visitor communications."
       />
 
       <AdminFilterBar>
@@ -178,7 +178,7 @@ function AdminOrikiRoute() {
             rowKey={(row) => row.id}
             caption="Oríkì consultation records"
             emptyTitle="No Oríkì requests"
-            emptyDescription="No preview requests match the selected filters."
+            emptyDescription="No requests match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -190,7 +190,7 @@ function AdminOrikiRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >
@@ -238,7 +238,7 @@ function AdminOrikiRoute() {
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No request selected">
-              <p className="text-sm text-muted-foreground">Select a preview Oríkì request.</p>
+              <p className="text-sm text-muted-foreground">Select an Oríkì request.</p>
             </AdminDetailPanel>
           )}
         </div>

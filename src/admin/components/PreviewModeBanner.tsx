@@ -1,4 +1,5 @@
 import { Info } from "lucide-react";
+
 import { projectStatus } from "@/config/project-status";
 
 interface Props {
@@ -6,10 +7,6 @@ interface Props {
   message?: string;
 }
 
-/**
- * Always-visible reminder that operational data shown is demonstration data.
- * Never remove this component from a route without explicit approval.
- */
 export function PreviewModeBanner({ variant = "default", message }: Props) {
   if (projectStatus.contentMode !== "preview") return null;
 
@@ -27,12 +24,10 @@ export function PreviewModeBanner({ variant = "default", message }: Props) {
     >
       <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
       <div className="min-w-0">
-        <p className="text-[10px] font-medium uppercase tracking-wide">
-          Demonstration data · preview mode
-        </p>
+        <p className="text-[10px] font-medium uppercase tracking-wide">Operational setup pending</p>
         <p className="mt-1 leading-relaxed">
           {message ??
-            "Records shown here are sample data. No production booking, payment, message or emergency response is connected."}
+            "This module is not connected to a production workflow yet. Confirm details before using it for operations."}
         </p>
       </div>
     </div>

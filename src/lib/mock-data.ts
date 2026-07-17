@@ -1,4 +1,4 @@
-// Demonstration content for preview mode. Final operational details remain pending.
+// Placeholder content for pending operational details.
 
 import orikiHeritagePresentationImg from "@/assets/oriki-heritage-presentation.png";
 import prayerWalkProcessionImg from "@/assets/prayer-walk-procession.png";

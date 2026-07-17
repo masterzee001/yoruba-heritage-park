@@ -8,7 +8,7 @@ export { AdminStatCard } from "./AdminStatCard";
 export { AdminDataTable, type AdminColumn } from "./AdminDataTable";
 export { AdminFilterBar, FilterChip } from "./AdminFilterBar";
 export { AdminSearchInput } from "./AdminSearchInput";
-export { AdminStatusBadge, DemoBadge } from "./AdminStatusBadge";
+export { AdminStatusBadge, PendingBadge } from "./AdminStatusBadge";
 export { AdminEmptyState } from "./AdminEmptyState";
 export { AdminLoadingState } from "./AdminLoadingState";
 export { AdminErrorState } from "./AdminErrorState";

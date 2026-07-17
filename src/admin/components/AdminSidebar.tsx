@@ -63,7 +63,7 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
                       <span
                         className={cn(base, "text-ivory/35")}
                         aria-disabled="true"
-                        title="Not available in preview mode"
+                        title="Not available yet"
                       >
                         {content}
                       </span>
@@ -92,7 +92,7 @@ export function AdminSidebar({ compact = false, onNavigate }: Props) {
       </nav>
 
       <div className="border-t border-ivory/10 px-5 py-4 text-[11px] text-ivory/50">
-        Preview mode · demonstration data only
+        Administrative workspace
       </div>
     </div>
   );

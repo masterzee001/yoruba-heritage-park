@@ -13,7 +13,7 @@ import {
   AdminSearchInput,
   AdminStatusBadge,
   AdminTimeline,
-  DemoBadge,
+  PendingBadge,
   DetailRow,
   FeatureDisabledNotice,
   FilterChip,
@@ -787,7 +787,7 @@ function AdminPaymentsRoute() {
                       </AdminStatusBadge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {provider.providerCode} · {provider.mode} · {provider.currency}
+                      {provider.providerCode} — {provider.mode} — {provider.currency}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Secret reference: {provider.secretReference ?? "Not set"}
@@ -1061,7 +1061,7 @@ function AdminPaymentsRoute() {
                   </AdminStatusBadge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {row.providerCode} · {row.providerEventId}
+                  {row.providerCode} — {row.providerEventId}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Payment: {row.paymentReference ?? "No local match"}
@@ -1198,7 +1198,7 @@ function AdminPaymentsRoute() {
                   <AdminStatusBadge tone={STATUS_TONE[selected.status]}>
                     {STATUS_LABEL[selected.status]}
                   </AdminStatusBadge>
-                  <DemoBadge />
+                  <PendingBadge />
                 </>
               }
             >

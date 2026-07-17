@@ -14,7 +14,7 @@ export function PermissionNotice({ message }: Props) {
       <ShieldOff className="mt-0.5 size-4 shrink-0" aria-hidden />
       <p>
         {message ??
-          "This permissions matrix is a user-interface preview only. Real authorisation must be enforced by the production server."}
+          "Role visibility in this interface is informational. Permission checks are enforced by the server."}
       </p>
     </div>
   );

@@ -82,7 +82,7 @@ function AdminAppointmentsRoute() {
         { value: "completed", label: "Completed" },
       ]}
       disabledFeature="Appointment scheduling"
-      disabledReason="Scheduling changes are local preview actions until booking and appointment repositories are implemented."
+      disabledReason="Scheduling changes will be available after the booking and appointment repositories are connected."
       actionLabel="Preview appointment action"
     />
   );

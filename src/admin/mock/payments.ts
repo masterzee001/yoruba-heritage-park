@@ -21,7 +21,7 @@ export const mockPayments: AdminPayment[] = [
         id: "pa-001",
         time: "2026-07-10T09:24:00Z",
         title: "Preview payment record created",
-        detail: "Payment processing is not enabled in preview mode.",
+        detail: "Payment processing is not enabled yet.",
       },
     ],
   },
