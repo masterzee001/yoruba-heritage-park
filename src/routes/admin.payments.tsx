@@ -29,6 +29,11 @@ import {
 } from "@/config/payment-launch-checklist";
 import { getPaymentProviderLaunchGuides } from "@/config/payment-provider-launch";
 import {
+  updateProviderFormCurrency,
+  updateProviderFormEnabled,
+  updateProviderFormMode,
+} from "@/admin/provider-form-state";
+import {
   getPaymentLaunchStatus,
   listAdminPayments,
   listDonationCampaigns,
@@ -645,12 +650,10 @@ function AdminPaymentsRoute() {
                 Mode
                 <select
                   value={providerForm.mode}
-                  onChange={(event) =>
-                    setProviderForm((current) => ({
-                      ...current,
-                      mode: event.currentTarget.value as "test" | "live",
-                    }))
-                  }
+                  onChange={(event) => {
+                    const mode = event.currentTarget.value as "test" | "live";
+                    setProviderForm((current) => updateProviderFormMode(current, mode));
+                  }}
                   className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
                 >
                   <option value="test">Test</option>
@@ -661,12 +664,10 @@ function AdminPaymentsRoute() {
                 Currency
                 <select
                   value={providerForm.currency}
-                  onChange={(event) =>
-                    setProviderForm((current) => ({
-                      ...current,
-                      currency: event.currentTarget.value,
-                    }))
-                  }
+                  onChange={(event) => {
+                    const currency = event.currentTarget.value;
+                    setProviderForm((current) => updateProviderFormCurrency(current, currency));
+                  }}
                   className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
                 >
                   {supportedPaymentCurrencies.map((currency) => (
@@ -749,12 +750,10 @@ function AdminPaymentsRoute() {
               <input
                 type="checkbox"
                 checked={providerForm.enabled}
-                onChange={(event) =>
-                  setProviderForm((current) => ({
-                    ...current,
-                    enabled: event.currentTarget.checked,
-                  }))
-                }
+                onChange={(event) => {
+                  const enabled = event.currentTarget.checked;
+                  setProviderForm((current) => updateProviderFormEnabled(current, enabled));
+                }}
               />
               Enable provider for future payment flows
             </label>
