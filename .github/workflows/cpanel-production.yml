@@ -56,6 +56,60 @@ jobs:
           echo "SSR_SERVER_FILE=$(basename "$SSR_SERVER_FILE")" >> "$GITHUB_ENV"
           echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
 
+      - name: Preflight explicit FTPS access
+        env:
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+        run: |
+          test -n "$CPANEL_PRODUCTION_FTPS_HOST"
+          test -n "$CPANEL_PRODUCTION_FTP_USERNAME"
+          test -n "$CPANEL_PRODUCTION_FTP_PASSWORD"
+
+          FTPS_URL="ftp://$CPANEL_PRODUCTION_FTPS_HOST:21"
+          PREFLIGHT_MARKER=".github-ftps-preflight-test"
+
+          cleanup_markers() {
+            lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          set net:max-retries 2
+          set net:timeout 30
+          set cmd:fail-exit no
+          cd "$CPANEL_APP_DIR"
+          rm "$PREFLIGHT_MARKER"
+          cd "$CPANEL_WEBROOT_DIR"
+          rm "$PREFLIGHT_MARKER"
+          EOF
+          }
+
+          trap cleanup_markers EXIT
+
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          set net:max-retries 5
+          set net:timeout 60
+          set cmd:fail-exit yes
+          set xfer:clobber on
+          echo "Explicit FTPS connection established"
+          cd "$CPANEL_APP_DIR"
+          echo "Production application directory accessible"
+          put /dev/null -o "$PREFLIGHT_MARKER"
+          rm "$PREFLIGHT_MARKER"
+          echo "Write/delete preflight passed for production application directory"
+          cd "$CPANEL_WEBROOT_DIR"
+          echo "Production webroot accessible"
+          put /dev/null -o "$PREFLIGHT_MARKER"
+          rm "$PREFLIGHT_MARKER"
+          echo "Write/delete preflight passed for production webroot"
+          EOF
+
+          cleanup_markers
+          trap - EXIT
+
       - name: Upload production build to cPanel
         env:
           CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
@@ -64,7 +118,7 @@ jobs:
           SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
           TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
         run: |
-          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftps://$CPANEL_PRODUCTION_FTPS_HOST" <<EOF
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
