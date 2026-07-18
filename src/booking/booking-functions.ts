@@ -100,6 +100,9 @@ export const submitPublicBookingRequest = createServerFn({ method: "POST" })
         .join("\n"),
     });
 
+    const { sendBookingCreatedNotifications } = await import("./booking-notifications");
+    await sendBookingCreatedNotifications(booking);
+
     return {
       ok: true,
       reference: booking.reference,

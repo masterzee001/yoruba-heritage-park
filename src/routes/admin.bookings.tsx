@@ -83,9 +83,10 @@ const columns: AdminColumn<AdminBooking>[] = [
 ];
 
 function AdminBookingsRoute() {
+  const routeSearch = Route.useSearch();
   const [records, setRecords] = useState<AdminBooking[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(routeSearch.search ?? "");
   const [status, setStatus] = useState<BookingStatus | "all">("all");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);

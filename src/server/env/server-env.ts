@@ -42,6 +42,7 @@ export interface ServerEnv {
   readonly email: {
     readonly deliveryMode: EmailDeliveryMode;
     readonly fromAddress?: string;
+    readonly adminAddress?: string;
     readonly fromName?: string;
     readonly publicBaseUrl?: string;
     readonly smtp: {
@@ -136,6 +137,7 @@ const baseEnvSchema = z.object({
     .preprocess(emptyToUndefined, z.enum(["disabled", "smtp"]).default("disabled"))
     .default("disabled"),
   EMAIL_FROM_ADDRESS: z.preprocess(emptyToUndefined, z.string().trim().email().optional()),
+  EMAIL_ADMIN_ADDRESS: z.preprocess(emptyToUndefined, z.string().trim().email().optional()),
   EMAIL_FROM_NAME: optionalText,
   EMAIL_PUBLIC_BASE_URL: urlText,
   SMTP_HOST: optionalText,
@@ -224,6 +226,7 @@ export function getServerEnv(options: ServerEnvOptions = {}): ServerEnv {
     email: {
       deliveryMode: env.EMAIL_DELIVERY_MODE,
       fromAddress: env.EMAIL_FROM_ADDRESS,
+      adminAddress: env.EMAIL_ADMIN_ADDRESS,
       fromName: env.EMAIL_FROM_NAME,
       publicBaseUrl: env.EMAIL_PUBLIC_BASE_URL,
       smtp: {

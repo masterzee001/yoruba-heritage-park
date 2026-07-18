@@ -13,6 +13,8 @@ import { TICKET_TYPES } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/tickets")({
   validateSearch: (search: Record<string, unknown>) => ({
+    bookingReference:
+      typeof search.bookingReference === "string" ? search.bookingReference : undefined,
     checkout:
       search.checkout === "success" || search.checkout === "cancelled"
         ? search.checkout
@@ -54,7 +56,9 @@ function TicketsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [bookingReference, setBookingReference] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [statusReference, setStatusReference] = useState(checkoutReturn.paymentReference ?? "");
+  const [statusReference, setStatusReference] = useState(
+    checkoutReturn.bookingReference ?? checkoutReturn.paymentReference ?? "",
+  );
   const [statusLookupResult, setStatusLookupResult] = useState<PublicStatusLookupResult | null>(
     null,
   );
