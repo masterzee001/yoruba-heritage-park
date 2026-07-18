@@ -26,16 +26,28 @@ import {
   updateAdminBookingWorkflow,
 } from "@/admin/booking-functions";
 import {
+  listPaymentProviderReadiness,
+  type AdminPaymentProviderReadiness,
   prepareBookingPaymentLink,
   prepareBookingPaymentRequest,
   type PrepareBookingPaymentLinkResult,
 } from "@/admin/payment-functions";
+import {
+  buildBookingPaymentProviderOptions,
+  canPreparePaymentForProvider,
+  getBookingPaymentProviderNotice,
+  getSelectedBookingPaymentProviderOption,
+  selectDefaultBookingPaymentProvider,
+} from "@/admin/booking-payment-ui";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import type { AdminBooking, BookingStatus, StatusTone } from "@/admin/types";
 import { supportedPaymentCurrencies } from "@/config/payment-currencies";
 
 export const Route = createFileRoute("/admin/bookings")({
   beforeLoad: ({ location }) => requireAdminRouteAccess(location),
+  validateSearch: (search: Record<string, unknown>) => ({
+    search: typeof search.search === "string" ? search.search : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Bookings — Administrator" }, { name: "robots", content: "noindex" }],
   }),
@@ -88,14 +100,21 @@ function AdminBookingsRoute() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState(routeSearch.search ?? "");
   const [status, setStatus] = useState<BookingStatus | "all">("all");
-  const [error, setError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [actioning, setActioning] = useState<"confirm" | "cancel" | "complete" | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentCurrency, setPaymentCurrency] = useState("NGN");
-  const [paymentProvider, setPaymentProvider] = useState("paypal");
+  const [paymentProvider, setPaymentProvider] = useState("");
+  const [paymentProviderTouched, setPaymentProviderTouched] = useState(false);
+  const [paymentProviderReadiness, setPaymentProviderReadiness] = useState<
+    AdminPaymentProviderReadiness[] | null
+  >(null);
+  const [paymentProviderReadinessLoading, setPaymentProviderReadinessLoading] = useState(false);
   const [preparingPayment, setPreparingPayment] = useState(false);
   const [preparingPaymentLink, setPreparingPaymentLink] = useState(false);
   const [paymentLinkResult, setPaymentLinkResult] =
@@ -105,13 +124,29 @@ function AdminBookingsRoute() {
   const [paymentHistoryError, setPaymentHistoryError] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
-    setError(null);
+    setPageError(null);
     const list = await listAdminBookings({ data: { search, status } });
     setRecords(list);
     setSelectedId((current) =>
       current && list.some((row) => row.id === current) ? current : (list[0]?.id ?? null),
     );
   }, [search, status]);
+
+  const loadPaymentProviderReadiness = useCallback(async () => {
+    setPaymentProviderReadinessLoading(true);
+    setPaymentError(null);
+    try {
+      const readiness = await listPaymentProviderReadiness();
+      setPaymentProviderReadiness(readiness);
+    } catch (error) {
+      setPaymentProviderReadiness(null);
+      setPaymentError(
+        getAdminErrorMessage(error, "Payment provider readiness could not be loaded."),
+      );
+    } finally {
+      setPaymentProviderReadinessLoading(false);
+    }
+  }, []);
 
   const loadPaymentHistory = useCallback(async (bookingId: string) => {
     setPaymentHistoryLoading(true);
@@ -136,7 +171,7 @@ function AdminBookingsRoute() {
     let cancelled = false;
     loadBookings().catch((error: unknown) => {
       if (!cancelled) {
-        setError(getAdminErrorMessage(error, "Booking records could not be loaded."));
+        setPageError(getAdminErrorMessage(error, "Booking records could not be loaded."));
       }
     });
     return () => {
@@ -144,17 +179,57 @@ function AdminBookingsRoute() {
     };
   }, [loadBookings]);
 
+  useEffect(() => {
+    loadPaymentProviderReadiness().catch((error: unknown) => {
+      setPaymentProviderReadiness(null);
+      setPaymentError(
+        getAdminErrorMessage(error, "Payment provider readiness could not be loaded."),
+      );
+    });
+  }, [loadPaymentProviderReadiness]);
+
   const selected = useMemo(
     () => records?.find((row) => row.id === selectedId) ?? null,
     [records, selectedId],
   );
+
+  const paymentProviderOptions = useMemo(
+    () => buildBookingPaymentProviderOptions(paymentProviderReadiness ?? []),
+    [paymentProviderReadiness],
+  );
+  const selectedPaymentProvider = useMemo(
+    () => getSelectedBookingPaymentProviderOption(paymentProviderOptions, paymentProvider),
+    [paymentProvider, paymentProviderOptions],
+  );
+  const paymentProviderNotice = useMemo(
+    () => getBookingPaymentProviderNotice(paymentProviderOptions, paymentProvider),
+    [paymentProvider, paymentProviderOptions],
+  );
+  const hasReadyPaymentProvider = paymentProviderOptions.some((option) => option.ready);
+  const paymentActionDisabled =
+    !selected ||
+    Boolean(actioning) ||
+    preparingPayment ||
+    preparingPaymentLink ||
+    paymentProviderReadinessLoading ||
+    selected.status === "cancelled" ||
+    selected.status === "refunded" ||
+    !canPreparePaymentForProvider(paymentProviderOptions, paymentProvider);
 
   useEffect(() => {
     setInternalNotes(selected?.internalNotes ?? "");
     setPaymentAmount(selected?.amountNgn ? String(selected.amountNgn) : "");
     setPaymentCurrency(selected?.currency ?? "NGN");
     setPaymentLinkResult(null);
+    setActionError(null);
+    setPaymentError(null);
   }, [selected?.id, selected?.internalNotes, selected?.amountNgn, selected?.currency]);
+
+  useEffect(() => {
+    setPaymentProvider((current) =>
+      selectDefaultBookingPaymentProvider(paymentProviderOptions, current, paymentProviderTouched),
+    );
+  }, [paymentProviderOptions, paymentProviderTouched]);
 
   useEffect(() => {
     if (!selected?.id) {
@@ -173,20 +248,20 @@ function AdminBookingsRoute() {
   async function handleWorkflowAction(action: "confirm" | "cancel" | "complete") {
     if (!selected) return;
     setActioning(action);
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
       const result = await updateAdminBookingWorkflow({
         data: { id: selected.id, action, internalNotes },
       });
       if (!result.ok || !result.booking) {
-        setError(result.message);
+        setActionError(result.message);
         return;
       }
       replaceRecord(result.booking);
       setNotice(result.message);
     } catch {
-      setError("Booking workflow action could not be completed.");
+      setActionError("Booking workflow action could not be completed.");
     } finally {
       setActioning(null);
     }
@@ -195,20 +270,20 @@ function AdminBookingsRoute() {
   async function handleSaveNotes() {
     if (!selected) return;
     setSavingNotes(true);
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
       const result = await saveAdminBookingNotes({
         data: { id: selected.id, internalNotes },
       });
       if (!result.ok || !result.booking) {
-        setError(result.message);
+        setActionError(result.message);
         return;
       }
       replaceRecord(result.booking);
       setNotice(result.message);
     } catch {
-      setError("Internal booking notes could not be saved.");
+      setActionError("Internal booking notes could not be saved.");
     } finally {
       setSavingNotes(false);
     }
@@ -216,9 +291,17 @@ function AdminBookingsRoute() {
 
   async function handlePreparePaymentRequest() {
     if (!selected) return;
+    if (!selectedPaymentProvider?.ready) {
+      setPaymentError(
+        paymentProviderNotice?.message ??
+          "Select a ready payment provider before preparing a payment request.",
+      );
+      return;
+    }
+
     const amountMinor = Math.round(Number(paymentAmount) * 100);
     setPreparingPayment(true);
-    setError(null);
+    setPaymentError(null);
     setNotice(null);
     try {
       const result = await prepareBookingPaymentRequest({
@@ -230,14 +313,18 @@ function AdminBookingsRoute() {
         },
       });
       if (!result.ok) {
-        setError(result.message);
+        setPaymentError(
+          result.missingConfiguration?.length
+            ? `${result.message} Missing: ${result.missingConfiguration.join(", ")}.`
+            : result.message,
+        );
         return;
       }
       setNotice(result.message);
       await loadBookings();
       await loadPaymentHistory(selected.id);
     } catch {
-      setError("Payment request could not be prepared.");
+      setPaymentError("Payment request could not be prepared.");
     } finally {
       setPreparingPayment(false);
     }
@@ -245,9 +332,17 @@ function AdminBookingsRoute() {
 
   async function handlePreparePaymentLink() {
     if (!selected) return;
+    if (!selectedPaymentProvider?.ready) {
+      setPaymentError(
+        paymentProviderNotice?.message ??
+          "Select a ready payment provider before preparing a checkout link.",
+      );
+      return;
+    }
+
     const amountMinor = Math.round(Number(paymentAmount) * 100);
     setPreparingPaymentLink(true);
-    setError(null);
+    setPaymentError(null);
     setNotice(null);
     setPaymentLinkResult(null);
     try {
@@ -261,7 +356,7 @@ function AdminBookingsRoute() {
       });
       setPaymentLinkResult(result);
       if (!result.ok) {
-        setError(
+        setPaymentError(
           result.missingConfiguration?.length
             ? `${result.message} Missing: ${result.missingConfiguration.join(", ")}.`
             : result.message,
@@ -272,7 +367,7 @@ function AdminBookingsRoute() {
       await loadBookings();
       await loadPaymentHistory(selected.id);
     } catch {
-      setError("Payment link could not be prepared.");
+      setPaymentError("Payment link could not be prepared.");
     } finally {
       setPreparingPaymentLink(false);
     }
@@ -284,7 +379,7 @@ function AdminBookingsRoute() {
       await navigator.clipboard.writeText(paymentLinkResult.checkoutUrl);
       setNotice("Payment link copied.");
     } catch {
-      setError("Payment link could not be copied by this browser.");
+      setPaymentError("Payment link could not be copied by this browser.");
     }
   }
 
@@ -326,8 +421,14 @@ function AdminBookingsRoute() {
         </div>
       ) : null}
 
-      {error ? (
-        <AdminErrorState description={error} />
+      {actionError ? (
+        <div className="rounded-sm border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {actionError}
+        </div>
+      ) : null}
+
+      {pageError ? (
+        <AdminErrorState description={pageError} />
       ) : !records ? (
         <AdminLoadingState rows={3} />
       ) : (
@@ -395,6 +496,23 @@ function AdminBookingsRoute() {
                     reconciliation.
                   </p>
                 </div>
+
+                {paymentError ? (
+                  <p className="rounded-sm border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {paymentError}
+                  </p>
+                ) : paymentProviderNotice ? (
+                  <p
+                    className={`rounded-sm border px-3 py-2 text-xs ${
+                      paymentProviderNotice.kind === "warning"
+                        ? "border-brass/30 bg-brass/10 text-forest-deep"
+                        : "border-border bg-cream/30 text-muted-foreground"
+                    }`}
+                  >
+                    {paymentProviderNotice.message}
+                  </p>
+                ) : null}
+
                 <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
                   <label className="grid min-w-0 gap-1.5 text-sm font-medium text-charcoal">
                     Approved amount
@@ -426,26 +544,43 @@ function AdminBookingsRoute() {
                     Provider
                     <select
                       value={paymentProvider}
-                      onChange={(event) => setPaymentProvider(event.currentTarget.value)}
+                      onChange={(event) => {
+                        setPaymentProviderTouched(true);
+                        setPaymentProvider(event.currentTarget.value);
+                      }}
                       className="w-full min-w-0 max-w-full rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                      disabled={
+                        paymentProviderOptions.length === 0 && !paymentProviderReadinessLoading
+                      }
                     >
-                      <option value="paypal">PayPal</option>
-                      <option value="paystack">Paystack</option>
-                      <option value="stripe">Stripe</option>
-                      <option value="pending_configuration">Pending configuration</option>
+                      <option value="" disabled>
+                        {paymentProviderReadinessLoading
+                          ? "Loading provider readiness..."
+                          : "Select a payment provider"}
+                      </option>
+                      {paymentProviderOptions.map((option) => (
+                        <option
+                          key={option.providerCode}
+                          value={option.providerCode}
+                          disabled={!option.supported}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
+                    {selectedPaymentProvider ? (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {selectedPaymentProvider.detail}
+                      </span>
+                    ) : null}
                   </label>
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => void handlePreparePaymentRequest()}
-                    disabled={
-                      preparingPayment ||
-                      Boolean(actioning) ||
-                      selected.status === "cancelled" ||
-                      selected.status === "refunded"
-                    }
+                    disabled={paymentActionDisabled}
                     className="inline-flex items-center gap-2 rounded-sm border border-brass/40 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-brass/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {preparingPayment ? "Preparing request" : "Prepare payment request"}
@@ -453,12 +588,7 @@ function AdminBookingsRoute() {
                   <button
                     type="button"
                     onClick={() => void handlePreparePaymentLink()}
-                    disabled={
-                      preparingPaymentLink ||
-                      Boolean(actioning) ||
-                      selected.status === "cancelled" ||
-                      selected.status === "refunded"
-                    }
+                    disabled={paymentActionDisabled}
                     className="inline-flex items-center gap-2 rounded-sm bg-forest-deep px-4 py-2 text-xs font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {preparingPaymentLink ? "Preparing link" : "Prepare checkout link"}
