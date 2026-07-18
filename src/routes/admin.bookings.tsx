@@ -394,8 +394,8 @@ function AdminBookingsRoute() {
                     reconciliation.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+                  <label className="grid min-w-0 gap-1.5 text-sm font-medium text-charcoal">
                     Approved amount
                     <input
                       type="number"
@@ -403,16 +403,16 @@ function AdminBookingsRoute() {
                       step="0.01"
                       value={paymentAmount}
                       onChange={(event) => setPaymentAmount(event.currentTarget.value)}
-                      className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                      className="w-full min-w-0 max-w-full rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
                       placeholder="Enter approved amount"
                     />
                   </label>
-                  <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                  <label className="grid min-w-0 gap-1.5 text-sm font-medium text-charcoal">
                     Currency
                     <select
                       value={paymentCurrency}
                       onChange={(event) => setPaymentCurrency(event.currentTarget.value)}
-                      className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                      className="w-full min-w-0 max-w-full rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
                     >
                       {supportedPaymentCurrencies.map((currency) => (
                         <option key={currency.code} value={currency.code}>
@@ -421,12 +421,12 @@ function AdminBookingsRoute() {
                       ))}
                     </select>
                   </label>
-                  <label className="grid gap-1.5 text-sm font-medium text-charcoal">
+                  <label className="grid min-w-0 gap-1.5 text-sm font-medium text-charcoal">
                     Provider
                     <select
                       value={paymentProvider}
                       onChange={(event) => setPaymentProvider(event.currentTarget.value)}
-                      className="rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
+                      className="w-full min-w-0 max-w-full rounded-sm border border-border bg-background px-3 py-2 text-sm font-normal"
                     >
                       <option value="paypal">PayPal</option>
                       <option value="paystack">Paystack</option>
@@ -435,32 +435,34 @@ function AdminBookingsRoute() {
                     </select>
                   </label>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handlePreparePaymentRequest()}
-                  disabled={
-                    preparingPayment ||
-                    Boolean(actioning) ||
-                    selected.status === "cancelled" ||
-                    selected.status === "refunded"
-                  }
-                  className="inline-flex w-fit items-center gap-2 rounded-sm border border-brass/40 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-brass/10 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {preparingPayment ? "Preparing request" : "Prepare payment request"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handlePreparePaymentLink()}
-                  disabled={
-                    preparingPaymentLink ||
-                    Boolean(actioning) ||
-                    selected.status === "cancelled" ||
-                    selected.status === "refunded"
-                  }
-                  className="inline-flex w-fit items-center gap-2 rounded-sm bg-forest-deep px-4 py-2 text-xs font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {preparingPaymentLink ? "Preparing link" : "Prepare checkout link"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handlePreparePaymentRequest()}
+                    disabled={
+                      preparingPayment ||
+                      Boolean(actioning) ||
+                      selected.status === "cancelled" ||
+                      selected.status === "refunded"
+                    }
+                    className="inline-flex items-center gap-2 rounded-sm border border-brass/40 px-4 py-2 text-xs font-medium text-forest-deep hover:bg-brass/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {preparingPayment ? "Preparing request" : "Prepare payment request"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handlePreparePaymentLink()}
+                    disabled={
+                      preparingPaymentLink ||
+                      Boolean(actioning) ||
+                      selected.status === "cancelled" ||
+                      selected.status === "refunded"
+                    }
+                    className="inline-flex items-center gap-2 rounded-sm bg-forest-deep px-4 py-2 text-xs font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {preparingPaymentLink ? "Preparing link" : "Prepare checkout link"}
+                  </button>
+                </div>
                 {paymentLinkResult?.ok && paymentLinkResult.checkoutUrl ? (
                   <div className="grid gap-3 rounded-sm border border-forest/20 bg-forest/10 p-3 text-xs">
                     <div>
