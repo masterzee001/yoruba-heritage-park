@@ -1,0 +1,154 @@
+name: Deploy cPanel Production
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cpanel-production
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      CPANEL_APP_DIR: /repositories/yoruba-heritage-park-production
+      CPANEL_WEBROOT_DIR: /public_html/yorubaheritageworld.com
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build cPanel output
+        run: bun run build:cpanel
+
+      - name: Install FTP client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Validate production deployment secrets
+        env:
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+        run: |
+          test -n "$CPANEL_PRODUCTION_FTPS_HOST"
+          test -n "$CPANEL_PRODUCTION_FTP_USERNAME"
+          test -n "$CPANEL_PRODUCTION_FTP_PASSWORD"
+
+      - name: Prepare restart marker
+        run: |
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > restart.txt
+          SSR_SERVER_FILE=".output-cpanel/server/_ssr/ssr.mjs"
+          if [ ! -f "$SSR_SERVER_FILE" ]; then
+            SSR_SERVER_FILE="$(find .output-cpanel/server/_ssr -maxdepth 1 -name 'server-*.mjs' -type f | sort | head -n 1)"
+          fi
+          test -n "$SSR_SERVER_FILE"
+          echo "SSR_SERVER_FILE=$(basename "$SSR_SERVER_FILE")" >> "$GITHUB_ENV"
+          echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
+
+      - name: Upload production build to cPanel
+        env:
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
+          TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
+        run: |
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftps://$CPANEL_PRODUCTION_FTPS_HOST" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          set net:max-retries 5
+          set net:timeout 60
+          set cmd:fail-exit yes
+          set xfer:clobber on
+
+          set cmd:fail-exit no
+          mkdir -p "$CPANEL_APP_DIR"
+          set cmd:fail-exit yes
+          cd "$CPANEL_APP_DIR"
+          put app.cjs -o app.cjs
+          put package.json -o package.json
+          put bun.lock -o bun.lock
+
+          set cmd:fail-exit no
+          rm -r .output-cpanel-next
+          rm -r .output-cpanel-prev
+          set cmd:fail-exit yes
+
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel .output-cpanel-next
+          put .output-cpanel/server/index.mjs -o .output-cpanel-next/server/index.mjs
+          put .output-cpanel/server/_runtime.mjs -o .output-cpanel-next/server/_runtime.mjs
+          put .output-cpanel/server/_ssr/$SSR_SERVER_FILE -o .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
+          put .output-cpanel/server/$TANSTACK_MANIFEST_FILE -o .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
+          cls .output-cpanel-next/server/index.mjs
+          cls .output-cpanel-next/server/_runtime.mjs
+          cls .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
+          cls .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
+
+          set cmd:fail-exit no
+          mv .output-cpanel .output-cpanel-prev
+          set cmd:fail-exit yes
+          mv .output-cpanel-next .output-cpanel
+
+          set cmd:fail-exit no
+          mkdir -p tmp
+          set cmd:fail-exit yes
+          put restart.txt -o tmp/restart.txt
+
+          set cmd:fail-exit no
+          mkdir -p "$CPANEL_WEBROOT_DIR"
+          set cmd:fail-exit yes
+          cd "$CPANEL_WEBROOT_DIR"
+          put deploy/cpanel/yhp-production.htaccess -o .htaccess
+
+          set cmd:fail-exit no
+          rm -r assets-next
+          rm -r brand-next
+          rm -r reference-next
+          rm -r assets-prev
+          rm -r brand-prev
+          rm -r reference-prev
+          set cmd:fail-exit yes
+
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/assets assets-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/brand brand-next
+          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/reference reference-next
+          cls assets-next/styles-*.css
+          cls assets-next/index-*.js
+          cls brand-next/yhp-favicon.png
+
+          set cmd:fail-exit no
+          mv assets assets-prev
+          mv brand brand-prev
+          mv reference reference-prev
+          set cmd:fail-exit yes
+          mv assets-next assets
+          mv brand-next brand
+          mv reference-next reference
+          EOF
+
+      - name: Verify production deployment
+        run: |
+          for attempt in {1..36}; do
+            if curl --fail --silent --show-error --location https://yorubaheritageworld.com/ > /dev/null \
+              && curl --fail --silent --show-error --location https://yorubaheritageworld.com/about > /dev/null \
+              && curl --fail --silent --show-error --location --head https://yorubaheritageworld.com/brand/yhp-favicon.png > /dev/null \
+              && curl --fail --silent --show-error --location https://www.yorubaheritageworld.com/ > /dev/null; then
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          curl --fail --show-error --location https://yorubaheritageworld.com/
