@@ -220,27 +220,27 @@ jobs:
             printf '%s\n' 'set net:timeout 60'
             printf '%s\n' 'set cmd:fail-exit yes'
             printf 'cd "%s"\n' "$CPANEL_APP_DIR"
-            printf '%s\n' 'cls -1 .env'
-            printf '%s\n' 'cls -1 app.cjs'
-            printf '%s\n' 'cls -1 package.json'
-            printf '%s\n' 'cls -1 bun.lock'
+            printf '%s\n' 'stat .env'
+            printf '%s\n' 'stat app.cjs'
+            printf '%s\n' 'stat package.json'
+            printf '%s\n' 'stat bun.lock'
             printf '%s\n' 'cd .output-cpanel'
             printf '%s\n' 'cd server'
-            printf '%s\n' 'cls -1 index.mjs'
-            printf 'cls -1 _ssr/%s\n' "$SSR_SERVER_FILE"
-            printf 'cls -1 %s\n' "$TANSTACK_MANIFEST_FILE"
+            printf '%s\n' 'stat index.mjs'
+            printf 'stat _ssr/%s\n' "$SSR_SERVER_FILE"
+            printf 'stat %s\n' "$TANSTACK_MANIFEST_FILE"
             printf '%s\n' 'cd ..'
             printf '%s\n' 'cd public'
             printf '%s\n' 'cls -1'
             printf '%s\n' 'cd ..'
             printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
-            printf '%s\n' 'cls -1 .htaccess'
+            printf '%s\n' 'stat .htaccess'
             printf 'cd assets\n'
-            printf 'cls -1 %s\n' "$PUBLIC_CSS_FILE"
-            printf 'cls -1 %s\n' "$PUBLIC_JS_FILE"
+            printf 'stat %s\n' "$PUBLIC_CSS_FILE"
+            printf 'stat %s\n' "$PUBLIC_JS_FILE"
             printf '%s\n' 'cd ..'
             printf '%s\n' 'cd brand'
-            printf '%s\n' 'cls -1 yhp-favicon.png'
+            printf '%s\n' 'stat yhp-favicon.png'
             printf '%s\n' 'cd ..'
             for dir in $PUBLIC_DIRS; do
               printf 'cd %s\n' "$dir"
