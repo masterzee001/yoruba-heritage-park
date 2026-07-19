@@ -76,9 +76,10 @@ jobs:
           PREFLIGHT_MARKER=".github-ftps-preflight-test"
 
           cleanup_markers() {
-            lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
           set net:max-retries 2
@@ -96,6 +97,7 @@ jobs:
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
           set net:max-retries 5
@@ -133,6 +135,7 @@ jobs:
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
             printf '%s\n' 'set net:max-retries 5'
@@ -216,6 +219,7 @@ jobs:
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
             printf '%s\n' 'set net:max-retries 5'
