@@ -191,7 +191,7 @@ jobs:
             done
           } > "$LFTP_SCRIPT"
 
-          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" -f "$LFTP_SCRIPT"
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" < "$LFTP_SCRIPT"
 
       - name: Verify uploaded production files
         env:
@@ -253,7 +253,7 @@ jobs:
             done
           } > "$LFTP_VERIFY_SCRIPT"
 
-          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" -f "$LFTP_VERIFY_SCRIPT"
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" < "$LFTP_VERIFY_SCRIPT"
 
       - name: Verify production deployment
         run: |
