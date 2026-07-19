@@ -14,8 +14,8 @@ jobs:
     timeout-minutes: 20
 
     env:
-      CPANEL_APP_DIR: /repositories/yoruba-heritage-park-production
-      CPANEL_WEBROOT_DIR: /public_html/yorubaheritageworld.com
+      CPANEL_APP_DIR: repositories/yoruba-heritage-park
+      CPANEL_WEBROOT_DIR: public_html/yorubaheritageworld.com
 
     steps:
       - name: Check out repository
@@ -73,25 +73,21 @@ jobs:
           test -n "$CPANEL_PRODUCTION_FTP_PASSWORD"
 
           FTPS_URL="ftp://$CPANEL_PRODUCTION_FTPS_HOST:21"
-          FTP_HOME_ROOT="/home/suwanee1155"
-          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
-          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
           PREFLIGHT_MARKER=".github-ftps-preflight-test"
 
           cleanup_markers() {
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
-          set ftp:home /home/suwanee1155
           set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
           set net:max-retries 2
           set net:timeout 30
           set cmd:fail-exit no
-          cd "$LFTP_APP_DIR"
+          cd "$CPANEL_APP_DIR"
           rm "$PREFLIGHT_MARKER"
-          cd "$LFTP_WEBROOT_DIR"
+          cd "$CPANEL_WEBROOT_DIR"
           rm "$PREFLIGHT_MARKER"
           EOF
           }
@@ -101,7 +97,6 @@ jobs:
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
-          set ftp:home /home/suwanee1155
           set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
@@ -110,12 +105,12 @@ jobs:
           set cmd:fail-exit yes
           set xfer:clobber on
           echo "Explicit FTPS connection established"
-          cd "$LFTP_APP_DIR"
+          cd "$CPANEL_APP_DIR"
           echo "Production application directory accessible"
           put /dev/null -o "$PREFLIGHT_MARKER"
           rm "$PREFLIGHT_MARKER"
           echo "Write/delete preflight passed for production application directory"
-          cd "$LFTP_WEBROOT_DIR"
+          cd "$CPANEL_WEBROOT_DIR"
           echo "Production webroot accessible"
           put /dev/null -o "$PREFLIGHT_MARKER"
           rm "$PREFLIGHT_MARKER"
@@ -135,15 +130,11 @@ jobs:
         run: |
           PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
           test -n "$PUBLIC_DIRS"
-          FTP_HOME_ROOT="/home/suwanee1155"
-          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
-          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
 
           LFTP_SCRIPT="$(mktemp)"
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
-            printf '%s\n' 'set ftp:home /home/suwanee1155'
             printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
@@ -152,9 +143,9 @@ jobs:
             printf '%s\n' 'set cmd:fail-exit yes'
             printf '%s\n' 'set xfer:clobber on'
             printf 'set cmd:fail-exit no\n'
-            printf 'mkdir -p "%s"\n' "$LFTP_APP_DIR"
+            printf 'mkdir -p "%s"\n' "$CPANEL_APP_DIR"
             printf '%s\n' 'set cmd:fail-exit yes'
-            printf 'cd "%s"\n' "$LFTP_APP_DIR"
+            printf 'cd "%s"\n' "$CPANEL_APP_DIR"
             printf '%s\n' 'put app.cjs -o app.cjs'
             printf '%s\n' 'put package.json -o package.json'
             printf '%s\n' 'put bun.lock -o bun.lock'
@@ -183,10 +174,8 @@ jobs:
             printf '%s\n' 'set cmd:fail-exit yes'
             printf '%s\n' 'put restart.txt -o tmp/restart.txt'
 
-            printf '%s\n' 'set cmd:fail-exit no'
-            printf 'mkdir -p "%s"\n' "$LFTP_WEBROOT_DIR"
-            printf '%s\n' 'set cmd:fail-exit yes'
-            printf 'cd "%s"\n' "$LFTP_WEBROOT_DIR"
+            printf 'mkdir -p "%s"\n' "$CPANEL_WEBROOT_DIR"
+            printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
             printf '%s\n' 'put deploy/cpanel/yhp-production.htaccess -o .htaccess'
 
             for dir in $PUBLIC_DIRS; do
@@ -223,22 +212,18 @@ jobs:
           test -n "$PUBLIC_JS_FILE"
           PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
           test -n "$PUBLIC_DIRS"
-          FTP_HOME_ROOT="/home/suwanee1155"
-          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
-          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
 
           LFTP_VERIFY_SCRIPT="$(mktemp)"
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
-            printf '%s\n' 'set ftp:home /home/suwanee1155'
             printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
             printf '%s\n' 'set net:max-retries 5'
             printf '%s\n' 'set net:timeout 60'
             printf '%s\n' 'set cmd:fail-exit yes'
-            printf 'cd "%s"\n' "$LFTP_APP_DIR"
+            printf 'cd "%s"\n' "$CPANEL_APP_DIR"
             printf '%s\n' 'cls -1 .env'
             printf '%s\n' 'cls -1 app.cjs'
             printf '%s\n' 'cls -1 package.json'
@@ -252,7 +237,7 @@ jobs:
             printf '%s\n' 'cd public'
             printf '%s\n' 'cls -1'
             printf '%s\n' 'cd ..'
-            printf 'cd "%s"\n' "$LFTP_WEBROOT_DIR"
+            printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
             printf '%s\n' 'cls -1 .htaccess'
             printf 'cd assets\n'
             printf 'cls -1 %s\n' "$PUBLIC_CSS_FILE"
