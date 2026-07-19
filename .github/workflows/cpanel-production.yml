@@ -52,9 +52,15 @@ jobs:
           if [ ! -f "$SSR_SERVER_FILE" ]; then
             SSR_SERVER_FILE="$(find .output-cpanel/server/_ssr -maxdepth 1 -name 'server-*.mjs' -type f | sort | head -n 1)"
           fi
+          PUBLIC_CSS_FILE="$(find .output-cpanel/public/assets -maxdepth 1 -name '*.css' -type f | sort | head -n 1)"
+          PUBLIC_JS_FILE="$(find .output-cpanel/public/assets -maxdepth 1 -name '*.js' -type f | sort | head -n 1)"
           test -n "$SSR_SERVER_FILE"
+          test -n "$PUBLIC_CSS_FILE"
+          test -n "$PUBLIC_JS_FILE"
           echo "SSR_SERVER_FILE=$(basename "$SSR_SERVER_FILE")" >> "$GITHUB_ENV"
           echo "TANSTACK_MANIFEST_FILE=$(basename .output-cpanel/server/_tanstack-start-manifest_v-*.mjs)" >> "$GITHUB_ENV"
+          echo "PUBLIC_CSS_FILE=$(basename "$PUBLIC_CSS_FILE")" >> "$GITHUB_ENV"
+          echo "PUBLIC_JS_FILE=$(basename "$PUBLIC_JS_FILE")" >> "$GITHUB_ENV"
 
       - name: Preflight explicit FTPS access
         env:
@@ -183,6 +189,66 @@ jobs:
 
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" -f "$LFTP_SCRIPT"
 
+      - name: Verify uploaded production files
+        env:
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
+          TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
+          PUBLIC_CSS_FILE: ${{ env.PUBLIC_CSS_FILE }}
+          PUBLIC_JS_FILE: ${{ env.PUBLIC_JS_FILE }}
+        run: |
+          test -n "$CPANEL_PRODUCTION_FTPS_HOST"
+          test -n "$CPANEL_PRODUCTION_FTP_USERNAME"
+          test -n "$CPANEL_PRODUCTION_FTP_PASSWORD"
+          test -n "$SSR_SERVER_FILE"
+          test -n "$TANSTACK_MANIFEST_FILE"
+          test -n "$PUBLIC_CSS_FILE"
+          test -n "$PUBLIC_JS_FILE"
+          PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
+          test -n "$PUBLIC_DIRS"
+
+          LFTP_VERIFY_SCRIPT="$(mktemp)"
+          {
+            printf '%s\n' 'set ftp:ssl-force true'
+            printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ssl:verify-certificate yes'
+            printf '%s\n' 'set net:max-retries 5'
+            printf '%s\n' 'set net:timeout 60'
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf 'cd "%s"\n' "$CPANEL_APP_DIR"
+            printf '%s\n' 'cls -1 .env'
+            printf '%s\n' 'cls -1 app.cjs'
+            printf '%s\n' 'cls -1 package.json'
+            printf '%s\n' 'cls -1 bun.lock'
+            printf '%s\n' 'cd .output-cpanel'
+            printf '%s\n' 'cd server'
+            printf '%s\n' 'cls -1 index.mjs'
+            printf 'cls -1 _ssr/%s\n' "$SSR_SERVER_FILE"
+            printf 'cls -1 %s\n' "$TANSTACK_MANIFEST_FILE"
+            printf '%s\n' 'cd ..'
+            printf '%s\n' 'cd public'
+            printf '%s\n' 'cls -1'
+            printf '%s\n' 'cd ..'
+            printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
+            printf '%s\n' 'cls -1 .htaccess'
+            printf 'cd assets\n'
+            printf 'cls -1 %s\n' "$PUBLIC_CSS_FILE"
+            printf 'cls -1 %s\n' "$PUBLIC_JS_FILE"
+            printf '%s\n' 'cd ..'
+            printf '%s\n' 'cd brand'
+            printf '%s\n' 'cls -1 yhp-favicon.png'
+            printf '%s\n' 'cd ..'
+            for dir in $PUBLIC_DIRS; do
+              printf 'cd %s\n' "$dir"
+              printf '%s\n' 'cls -1'
+              printf '%s\n' 'cd ..'
+            done
+          } > "$LFTP_VERIFY_SCRIPT"
+
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" -f "$LFTP_VERIFY_SCRIPT"
+
       - name: Verify production deployment
         run: |
           for attempt in {1..36}; do
@@ -209,6 +275,6 @@ jobs:
             echo "- Commit: $GITHUB_SHA"
             echo "- Application directory: $CPANEL_APP_DIR"
             echo "- Webroot: $CPANEL_WEBROOT_DIR"
-            echo "- Preview URL: https://yorubaheritageworld.com"
+            echo "- Production URL: https://yorubaheritageworld.com"
             echo "- WWW URL: https://www.yorubaheritageworld.com"
           } >> "$GITHUB_STEP_SUMMARY"
