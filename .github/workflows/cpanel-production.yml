@@ -217,7 +217,11 @@ jobs:
             lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" \
               -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ftp:use-tvfs yes; set ssl:verify-certificate yes; set ssl:check-hostname no; set net:max-retries 5; set net:timeout 60; set cmd:fail-exit yes; cd \"$remote_dir\"; cls -1a; bye" > "$listing_file"
 
-            grep -Fx "$expected_name" "$listing_file" > /dev/null
+            if ! grep -Fx "$expected_name" "$listing_file" > /dev/null; then
+              echo "Missing expected entry $expected_name in $remote_dir"
+              cat "$listing_file"
+              exit 1
+            fi
           }
 
           verify_listing "$CPANEL_APP_DIR" "app.cjs"
