@@ -80,6 +80,7 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
+          set ssl:check-hostname no
           set net:max-retries 2
           set net:timeout 30
           set cmd:fail-exit no
@@ -96,6 +97,7 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
+          set ssl:check-hostname no
           set net:max-retries 5
           set net:timeout 60
           set cmd:fail-exit yes
@@ -132,6 +134,7 @@ jobs:
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
             printf '%s\n' 'set ssl:verify-certificate yes'
+            printf '%s\n' 'set ssl:check-hostname no'
             printf '%s\n' 'set net:max-retries 5'
             printf '%s\n' 'set net:timeout 60'
             printf '%s\n' 'set cmd:fail-exit yes'
@@ -214,6 +217,7 @@ jobs:
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
             printf '%s\n' 'set ssl:verify-certificate yes'
+            printf '%s\n' 'set ssl:check-hostname no'
             printf '%s\n' 'set net:max-retries 5'
             printf '%s\n' 'set net:timeout 60'
             printf '%s\n' 'set cmd:fail-exit yes'
