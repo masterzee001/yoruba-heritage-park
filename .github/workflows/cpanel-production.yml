@@ -14,8 +14,8 @@ jobs:
     timeout-minutes: 20
 
     env:
-      CPANEL_APP_DIR: repositories/yoruba-heritage-park
-      CPANEL_WEBROOT_DIR: public_html/yorubaheritageworld.com
+      CPANEL_APP_DIR: /repositories/yoruba-heritage-park
+      CPANEL_WEBROOT_DIR: /public_html/yorubaheritageworld.com
 
     steps:
       - name: Check out repository
