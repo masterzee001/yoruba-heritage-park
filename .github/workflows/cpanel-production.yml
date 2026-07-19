@@ -142,9 +142,6 @@ jobs:
             printf '%s\n' 'set net:timeout 60'
             printf '%s\n' 'set cmd:fail-exit yes'
             printf '%s\n' 'set xfer:clobber on'
-            printf 'set cmd:fail-exit no\n'
-            printf 'mkdir -p "%s"\n' "$CPANEL_APP_DIR"
-            printf '%s\n' 'set cmd:fail-exit yes'
             printf 'cd "%s"\n' "$CPANEL_APP_DIR"
             printf '%s\n' 'put app.cjs -o app.cjs'
             printf '%s\n' 'put package.json -o package.json'
@@ -170,11 +167,10 @@ jobs:
             printf '%s\n' 'mv .output-cpanel-next .output-cpanel'
 
             printf '%s\n' 'set cmd:fail-exit no'
-            printf '%s\n' 'mkdir -p tmp'
+            printf '%s\n' 'cd tmp'
             printf '%s\n' 'set cmd:fail-exit yes'
-            printf '%s\n' 'put restart.txt -o tmp/restart.txt'
+            printf '%s\n' 'put restart.txt -o restart.txt'
 
-            printf 'mkdir -p "%s"\n' "$CPANEL_WEBROOT_DIR"
             printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
             printf '%s\n' 'put deploy/cpanel/yhp-production.htaccess -o .htaccess'
 
