@@ -37,9 +37,9 @@ jobs:
 
       - name: Validate production deployment secrets
         env:
-          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
-          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
-          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: suwanee1155
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
           test -n "$CPANEL_PRODUCTION_FTPS_HOST"
           test -n "$CPANEL_PRODUCTION_FTP_USERNAME"
@@ -64,9 +64,9 @@ jobs:
 
       - name: Preflight explicit FTPS access
         env:
-          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
-          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
-          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: suwanee1155
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
           test -n "$CPANEL_PRODUCTION_FTPS_HOST"
           test -n "$CPANEL_PRODUCTION_FTP_USERNAME"
@@ -127,9 +127,9 @@ jobs:
 
       - name: Upload production build to cPanel
         env:
-          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
-          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
-          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: suwanee1155
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
           SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
           TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
         run: |
@@ -206,9 +206,9 @@ jobs:
 
       - name: Verify uploaded production files
         env:
-          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_PRODUCTION_FTPS_HOST }}
-          CPANEL_PRODUCTION_FTP_USERNAME: ${{ secrets.CPANEL_PRODUCTION_FTP_USERNAME }}
-          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_PRODUCTION_FTP_PASSWORD }}
+          CPANEL_PRODUCTION_FTPS_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_PRODUCTION_FTP_USERNAME: suwanee1155
+          CPANEL_PRODUCTION_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
           SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
           TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
           PUBLIC_CSS_FILE: ${{ env.PUBLIC_CSS_FILE }}
