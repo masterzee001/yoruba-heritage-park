@@ -209,47 +209,31 @@ jobs:
           PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
           test -n "$PUBLIC_DIRS"
 
-          LFTP_VERIFY_SCRIPT="$(mktemp)"
-          {
-            printf '%s\n' 'set ftp:ssl-force true'
-            printf '%s\n' 'set ftp:ssl-protect-data true'
-            printf '%s\n' 'set ftp:use-tvfs yes'
-            printf '%s\n' 'set ssl:verify-certificate yes'
-            printf '%s\n' 'set ssl:check-hostname no'
-            printf '%s\n' 'set net:max-retries 5'
-            printf '%s\n' 'set net:timeout 60'
-            printf '%s\n' 'set cmd:fail-exit yes'
-            printf 'cd "%s"\n' "$CPANEL_APP_DIR"
-            printf '%s\n' 'stat .env'
-            printf '%s\n' 'stat app.cjs'
-            printf '%s\n' 'stat package.json'
-            printf '%s\n' 'stat bun.lock'
-            printf '%s\n' 'cd .output-cpanel'
-            printf '%s\n' 'cd server'
-            printf '%s\n' 'stat index.mjs'
-            printf 'stat _ssr/%s\n' "$SSR_SERVER_FILE"
-            printf 'stat %s\n' "$TANSTACK_MANIFEST_FILE"
-            printf '%s\n' 'cd ..'
-            printf '%s\n' 'cd public'
-            printf '%s\n' 'cls -1'
-            printf '%s\n' 'cd ..'
-            printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
-            printf '%s\n' 'stat .htaccess'
-            printf 'cd assets\n'
-            printf 'stat %s\n' "$PUBLIC_CSS_FILE"
-            printf 'stat %s\n' "$PUBLIC_JS_FILE"
-            printf '%s\n' 'cd ..'
-            printf '%s\n' 'cd brand'
-            printf '%s\n' 'stat yhp-favicon.png'
-            printf '%s\n' 'cd ..'
-            for dir in $PUBLIC_DIRS; do
-              printf 'cd %s\n' "$dir"
-              printf '%s\n' 'cls -1'
-              printf '%s\n' 'cd ..'
-            done
-          } > "$LFTP_VERIFY_SCRIPT"
+          verify_listing() {
+            remote_dir="$1"
+            expected_name="$2"
+            listing_file="$(mktemp)"
 
-          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" < "$LFTP_VERIFY_SCRIPT"
+            lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" \
+              -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ftp:use-tvfs yes; set ssl:verify-certificate yes; set ssl:check-hostname no; set net:max-retries 5; set net:timeout 60; set cmd:fail-exit yes; cd \"$remote_dir\"; cls -1a; bye" > "$listing_file"
+
+            grep -Fx "$expected_name" "$listing_file" > /dev/null
+          }
+
+          verify_listing "$CPANEL_APP_DIR" ".env"
+          verify_listing "$CPANEL_APP_DIR" "app.cjs"
+          verify_listing "$CPANEL_APP_DIR" "package.json"
+          verify_listing "$CPANEL_APP_DIR" "bun.lock"
+          verify_listing "$CPANEL_APP_DIR/.output-cpanel/server" "index.mjs"
+          verify_listing "$CPANEL_APP_DIR/.output-cpanel/server/_ssr" "$SSR_SERVER_FILE"
+          verify_listing "$CPANEL_APP_DIR/.output-cpanel/server" "$TANSTACK_MANIFEST_FILE"
+          verify_listing "$CPANEL_WEBROOT_DIR" ".htaccess"
+          verify_listing "$CPANEL_WEBROOT_DIR/assets" "$PUBLIC_CSS_FILE"
+          verify_listing "$CPANEL_WEBROOT_DIR/assets" "$PUBLIC_JS_FILE"
+          verify_listing "$CPANEL_WEBROOT_DIR/brand" "yhp-favicon.png"
+          for dir in $PUBLIC_DIRS; do
+            verify_listing "$CPANEL_WEBROOT_DIR/$dir" "$dir"
+          done
 
       - name: Verify production deployment
         run: |
