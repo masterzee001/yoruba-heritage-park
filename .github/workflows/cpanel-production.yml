@@ -118,79 +118,70 @@ jobs:
           SSR_SERVER_FILE: ${{ env.SSR_SERVER_FILE }}
           TANSTACK_MANIFEST_FILE: ${{ env.TANSTACK_MANIFEST_FILE }}
         run: |
-          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" <<EOF
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          set ssl:verify-certificate yes
-          set net:max-retries 5
-          set net:timeout 60
-          set cmd:fail-exit yes
-          set xfer:clobber on
+          PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
+          test -n "$PUBLIC_DIRS"
 
-          set cmd:fail-exit no
-          mkdir -p "$CPANEL_APP_DIR"
-          set cmd:fail-exit yes
-          cd "$CPANEL_APP_DIR"
-          put app.cjs -o app.cjs
-          put package.json -o package.json
-          put bun.lock -o bun.lock
+          LFTP_SCRIPT="$(mktemp)"
+          {
+            printf '%s\n' 'set ftp:ssl-force true'
+            printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ssl:verify-certificate yes'
+            printf '%s\n' 'set net:max-retries 5'
+            printf '%s\n' 'set net:timeout 60'
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf '%s\n' 'set xfer:clobber on'
+            printf 'set cmd:fail-exit no\n'
+            printf 'mkdir -p "%s"\n' "$CPANEL_APP_DIR"
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf 'cd "%s"\n' "$CPANEL_APP_DIR"
+            printf '%s\n' 'put app.cjs -o app.cjs'
+            printf '%s\n' 'put package.json -o package.json'
+            printf '%s\n' 'put bun.lock -o bun.lock'
 
-          set cmd:fail-exit no
-          rm -r .output-cpanel-next
-          rm -r .output-cpanel-prev
-          set cmd:fail-exit yes
+            printf '%s\n' 'set cmd:fail-exit no'
+            printf '%s\n' 'rm -r .output-cpanel-next'
+            printf '%s\n' 'rm -r .output-cpanel-prev'
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf '%s\n' 'mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel .output-cpanel-next'
+            printf 'put .output-cpanel/server/index.mjs -o .output-cpanel-next/server/index.mjs\n'
+            printf 'put .output-cpanel/server/_runtime.mjs -o .output-cpanel-next/server/_runtime.mjs\n'
+            printf 'put .output-cpanel/server/_ssr/%s -o .output-cpanel-next/server/_ssr/%s\n' "$SSR_SERVER_FILE" "$SSR_SERVER_FILE"
+            printf 'put .output-cpanel/server/%s -o .output-cpanel-next/server/%s\n' "$TANSTACK_MANIFEST_FILE" "$TANSTACK_MANIFEST_FILE"
+            printf 'cls .output-cpanel-next/server/index.mjs\n'
+            printf 'cls .output-cpanel-next/server/_runtime.mjs\n'
+            printf 'cls .output-cpanel-next/server/_ssr/%s\n' "$SSR_SERVER_FILE"
+            printf 'cls .output-cpanel-next/server/%s\n' "$TANSTACK_MANIFEST_FILE"
 
-          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel .output-cpanel-next
-          put .output-cpanel/server/index.mjs -o .output-cpanel-next/server/index.mjs
-          put .output-cpanel/server/_runtime.mjs -o .output-cpanel-next/server/_runtime.mjs
-          put .output-cpanel/server/_ssr/$SSR_SERVER_FILE -o .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
-          put .output-cpanel/server/$TANSTACK_MANIFEST_FILE -o .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
-          cls .output-cpanel-next/server/index.mjs
-          cls .output-cpanel-next/server/_runtime.mjs
-          cls .output-cpanel-next/server/_ssr/$SSR_SERVER_FILE
-          cls .output-cpanel-next/server/$TANSTACK_MANIFEST_FILE
+            printf '%s\n' 'set cmd:fail-exit no'
+            printf '%s\n' 'mv .output-cpanel .output-cpanel-prev'
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf '%s\n' 'mv .output-cpanel-next .output-cpanel'
 
-          set cmd:fail-exit no
-          mv .output-cpanel .output-cpanel-prev
-          set cmd:fail-exit yes
-          mv .output-cpanel-next .output-cpanel
+            printf '%s\n' 'set cmd:fail-exit no'
+            printf '%s\n' 'mkdir -p tmp'
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf '%s\n' 'put restart.txt -o tmp/restart.txt'
 
-          set cmd:fail-exit no
-          mkdir -p tmp
-          set cmd:fail-exit yes
-          put restart.txt -o tmp/restart.txt
+            printf '%s\n' 'set cmd:fail-exit no'
+            printf 'mkdir -p "%s"\n' "$CPANEL_WEBROOT_DIR"
+            printf '%s\n' 'set cmd:fail-exit yes'
+            printf 'cd "%s"\n' "$CPANEL_WEBROOT_DIR"
+            printf '%s\n' 'put deploy/cpanel/yhp-production.htaccess -o .htaccess'
 
-          set cmd:fail-exit no
-          mkdir -p "$CPANEL_WEBROOT_DIR"
-          set cmd:fail-exit yes
-          cd "$CPANEL_WEBROOT_DIR"
-          put deploy/cpanel/yhp-production.htaccess -o .htaccess
+            for dir in $PUBLIC_DIRS; do
+              printf '%s\n' 'set cmd:fail-exit no'
+              printf 'rm -r %s-next\n' "$dir"
+              printf 'rm -r %s-prev\n' "$dir"
+              printf '%s\n' 'set cmd:fail-exit yes'
+              printf 'mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/%s %s-next\n' "$dir" "$dir"
+              printf '%s\n' 'set cmd:fail-exit no'
+              printf 'mv %s %s-prev\n' "$dir" "$dir"
+              printf '%s\n' 'set cmd:fail-exit yes'
+              printf 'mv %s-next %s\n' "$dir" "$dir"
+            done
+          } > "$LFTP_SCRIPT"
 
-          set cmd:fail-exit no
-          rm -r assets-next
-          rm -r brand-next
-          rm -r reference-next
-          rm -r assets-prev
-          rm -r brand-prev
-          rm -r reference-prev
-          set cmd:fail-exit yes
-
-          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/assets assets-next
-          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/brand brand-next
-          mirror -R --delete --ignore-time --parallel=1 --verbose .output-cpanel/public/reference reference-next
-          cls assets-next/styles-*.css
-          cls assets-next/index-*.js
-          cls brand-next/yhp-favicon.png
-
-          set cmd:fail-exit no
-          mv assets assets-prev
-          mv brand brand-prev
-          mv reference reference-prev
-          set cmd:fail-exit yes
-          mv assets-next assets
-          mv brand-next brand
-          mv reference-next reference
-          EOF
+          lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "ftp://$CPANEL_PRODUCTION_FTPS_HOST:21" -f "$LFTP_SCRIPT"
 
       - name: Verify production deployment
         run: |
@@ -206,3 +197,18 @@ jobs:
           done
 
           curl --fail --show-error --location https://yorubaheritageworld.com/
+
+      - name: Write GitHub deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Production deployment"
+            echo ""
+            echo "- Workflow: $GITHUB_WORKFLOW"
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Application directory: $CPANEL_APP_DIR"
+            echo "- Webroot: $CPANEL_WEBROOT_DIR"
+            echo "- Preview URL: https://yorubaheritageworld.com"
+            echo "- WWW URL: https://www.yorubaheritageworld.com"
+          } >> "$GITHUB_STEP_SUMMARY"

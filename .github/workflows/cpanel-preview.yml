@@ -194,3 +194,17 @@ jobs:
           done
 
           curl --fail --show-error --location https://yhp-preview.deedoc.org/
+
+      - name: Write GitHub deployment summary
+        if: always()
+        run: |
+          {
+            echo "## Preview deployment"
+            echo ""
+            echo "- Workflow: $GITHUB_WORKFLOW"
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- Commit: $GITHUB_SHA"
+            echo "- Application directory: $CPANEL_APP_DIR"
+            echo "- Webroot: $CPANEL_WEBROOT_DIR"
+            echo "- Preview URL: https://yhp-preview.deedoc.org"
+          } >> "$GITHUB_STEP_SUMMARY"
