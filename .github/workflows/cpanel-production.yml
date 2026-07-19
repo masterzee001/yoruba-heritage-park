@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 20
 
     env:
-      CPANEL_APP_DIR: /repositories/yoruba-heritage-park
+      CPANEL_APP_DIR: /repositories/yoruba-heritage-park-production
       CPANEL_WEBROOT_DIR: /public_html/yorubaheritageworld.com
 
     steps:
@@ -235,7 +235,7 @@ jobs:
           verify_listing "$CPANEL_WEBROOT_DIR/assets" "$PUBLIC_JS_FILE"
           verify_listing "$CPANEL_WEBROOT_DIR/brand" "yhp-favicon.png"
           for dir in $PUBLIC_DIRS; do
-            verify_listing "$CPANEL_WEBROOT_DIR" "$dir"
+            verify_listing "$CPANEL_WEBROOT_DIR" "$dir/"
           done
 
       - name: Verify production deployment
