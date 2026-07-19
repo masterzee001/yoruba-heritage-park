@@ -193,10 +193,12 @@ function Home() {
               {["All", "Cultural", "Sacred", "Nature", "Workshops", "Facilities"].map((f, i) => (
                 <button
                   key={f}
+                  type="button"
+                  disabled
                   className={`rounded-full border px-3 py-1.5 text-xs transition ${
                     i === 0
                       ? "border-forest-deep bg-forest-deep text-ivory"
-                      : "border-border text-foreground/70 hover:border-forest"
+                      : "border-border text-foreground/70 opacity-60"
                   }`}
                 >
                   {f}

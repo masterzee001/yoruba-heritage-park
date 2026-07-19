@@ -857,12 +857,12 @@ function PaymentHistoryDetail({ label, children }: { label: string; children: Re
 function paymentStatusLabel(status: AdminBookingPaymentHistoryPayment["status"]): string {
   const labels: Record<AdminBookingPaymentHistoryPayment["status"], string> = {
     pending: "Pending",
-    successful: "Successful Preview",
+    successful: "Successful",
     failed: "Failed",
     abandoned: "Abandoned",
     reversed: "Reversed",
-    refund_pending: "Refund Pending Preview",
-    refunded: "Refunded Preview",
+    refund_pending: "Refund pending",
+    refunded: "Refunded",
   };
   return labels[status];
 }

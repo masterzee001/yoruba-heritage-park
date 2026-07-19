@@ -10,10 +10,17 @@ import {
 } from "@tanstack/react-router";
 import { type ReactNode } from "react";
 
-import appCss from "../styles.css?url";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
+import heroEntranceImg from "@/assets/hero-entrance.jpg";
 import { MobileBottomBar } from "@/components/site/MobileBottomBar";
+import { ObservabilityBootstrap } from "@/components/site/ObservabilityBootstrap";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import {
+  getObservabilityBootstrapData,
+  serializeObservabilityBootstrapData,
+} from "@/lib/observability";
+
+import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
@@ -84,7 +91,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "A premium Yorùbá cultural, spiritual and nature destination in Ogun State, Nigeria.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Yoruba Heritage Park" },
+      { property: "og:image", content: heroEntranceImg },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Yorùbá Heritage Park — Enter a Living Yorùbá World" },
+      {
+        name: "twitter:description",
+        content:
+          "A premium Yorùbá cultural, spiritual and nature destination in Ogun State, Nigeria.",
+      },
+      { name: "twitter:image", content: heroEntranceImg },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -108,10 +124,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const observability = getObservabilityBootstrapData();
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        {observability ? (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.__YHP_OBSERVABILITY__ = ${serializeObservabilityBootstrapData(observability)};`,
+            }}
+          />
+        ) : null}
       </head>
       <body>
         {children}
@@ -138,6 +163,7 @@ function RootComponent() {
           </main>
           <SiteFooter />
           <MobileBottomBar />
+          <ObservabilityBootstrap pathname={pathname} />
         </div>
       )}
     </QueryClientProvider>

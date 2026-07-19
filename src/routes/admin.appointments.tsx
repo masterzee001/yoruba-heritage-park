@@ -51,7 +51,7 @@ function AdminAppointmentsRoute() {
     <AdminOperationPage
       eyebrow="Visitor operations"
       title="Appointments"
-      description="Preview appointment requests and scheduling state."
+      description="Review appointment requests and scheduling state."
       loadRecords={(filters) => adminService.appointments.list(filters)}
       columns={columns}
       detailTitle={(row) => row.reference}
@@ -83,7 +83,7 @@ function AdminAppointmentsRoute() {
       ]}
       disabledFeature="Appointment scheduling"
       disabledReason="Scheduling changes will be available after the booking and appointment repositories are connected."
-      actionLabel="Preview appointment action"
+      actionLabel="Record appointment action"
     />
   );
 }

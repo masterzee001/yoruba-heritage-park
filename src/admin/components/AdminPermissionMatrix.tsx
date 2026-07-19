@@ -7,7 +7,7 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
   edit: "Edit",
   publish: "Publish",
   archive: "Archive",
-  export_preview: "Export Preview",
+  export_preview: "Export",
   assign: "Assign",
   acknowledge: "Acknowledge",
   resolve: "Resolve",
@@ -47,7 +47,7 @@ export function AdminPermissionMatrix({ permissions }: Props) {
   const rows = Object.entries(permissions) as Array<[PermissionArea, PermissionAction[]]>;
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">No permissions assigned in preview.</p>;
+    return <p className="text-sm text-muted-foreground">No permissions assigned yet.</p>;
   }
 
   return (
@@ -56,7 +56,7 @@ export function AdminPermissionMatrix({ permissions }: Props) {
         <thead className="bg-cream/50 uppercase tracking-widest text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium">Area</th>
-            <th className="px-3 py-2 font-medium">Preview permissions</th>
+            <th className="px-3 py-2 font-medium">Assigned permissions</th>
           </tr>
         </thead>
         <tbody>

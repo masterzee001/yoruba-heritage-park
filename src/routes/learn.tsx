@@ -47,7 +47,11 @@ function LearnPage() {
               <p className="mt-2 text-sm text-muted-foreground">
                 Resource details will be published following operational confirmation.
               </p>
-              <button className="mt-6 self-start text-xs font-medium text-forest-deep hover:text-clay">
+              <button
+                type="button"
+                disabled
+                className="mt-6 self-start text-xs font-medium text-forest-deep opacity-60"
+              >
                 {c.action} →
               </button>
             </div>

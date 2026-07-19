@@ -36,7 +36,7 @@ const STATUS_LABEL: Record<StayOwnStatus, string> = {
   contact_review: "Contact Review",
   information_requested: "Information Requested",
   inspection_proposed: "Inspection Proposed",
-  inspection_preview: "Inspection Preview",
+  inspection_preview: "Inspection Review",
   follow_up: "Follow-Up",
   closed: "Closed",
   not_proceeding: "Not Proceeding",
@@ -99,7 +99,7 @@ function AdminStayOwnRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action recorded locally. No production record was created.");
 
   return (
     <>
@@ -107,9 +107,9 @@ function AdminStayOwnRoute() {
       <AdminPageHeader
         eyebrow="Commercial enquiries"
         title="Stay & Own"
-        description="Preview enquiry-management interface only. Property transactions are outside the current system."
+        description="Manage Stay & Own enquiries and property interest records."
       />
-      <PreviewModeBanner message="This module manages preview enquiries only. Property transactions are outside the current system." />
+      <PreviewModeBanner message="This module records enquiry workflow state. Property transactions are not enabled." />
       <FeatureDisabledNotice
         feature="Property transactions"
         reason="Purchases, deposits, contracts, ownership records, legal transfers and property payments are not implemented."
@@ -155,8 +155,8 @@ function AdminStayOwnRoute() {
         >
           <option value="all">All inspections</option>
           <option value="not_started">Not started</option>
-          <option value="proposed_preview">Proposed preview</option>
-          <option value="inspection_preview">Inspection preview</option>
+          <option value="proposed_preview">Proposed</option>
+          <option value="inspection_preview">Inspection review</option>
         </select>
       </AdminFilterBar>
 
@@ -174,7 +174,7 @@ function AdminStayOwnRoute() {
             rowKey={(row) => row.id}
             caption="Stay & Own enquiry records"
             emptyTitle="No Stay & Own enquiries"
-            emptyDescription="No preview enquiries match the selected filters."
+            emptyDescription="No enquiries match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -212,31 +212,31 @@ function AdminStayOwnRoute() {
                   icon={<UserCheck className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Assign locally
+                  Assign enquiry
                 </PreviewButton>
                 <PreviewButton
                   icon={<CalendarPlus className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Propose inspection locally
+                  Propose inspection
                 </PreviewButton>
                 <PreviewButton
                   icon={<MessageSquarePlus className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Add note locally
+                  Add note
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Close enquiry locally
+                  Close enquiry
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No enquiry selected">
-              <p className="text-sm text-muted-foreground">Select a preview Stay & Own enquiry.</p>
+              <p className="text-sm text-muted-foreground">Select a Stay & Own enquiry.</p>
             </AdminDetailPanel>
           )}
         </div>

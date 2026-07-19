@@ -43,9 +43,9 @@ const STATUS_LABEL: Record<IncidentStatus, string> = {
   test: "Test",
   reported: "Reported",
   under_review: "Under Review",
-  acknowledged_preview: "Acknowledged Preview",
-  responding_preview: "Responding Preview",
-  resolved_preview: "Resolved Preview",
+  acknowledged_preview: "Acknowledged",
+  responding_preview: "Responding",
+  resolved_preview: "Resolved",
   false_alarm: "False Alarm",
   closed: "Closed",
 };
@@ -65,7 +65,7 @@ const SEVERITY_LABEL: Record<IncidentSeverity, string> = {
   low: "Low",
   moderate: "Moderate",
   high: "High",
-  critical_preview: "Critical Preview",
+  critical_preview: "Critical",
 };
 
 const CATEGORY_LABEL: Record<IncidentCategory, string> = {
@@ -131,7 +131,7 @@ function AdminIncidentsRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action completed locally. No production record was created.");
 
   return (
     <>
@@ -139,12 +139,12 @@ function AdminIncidentsRoute() {
       <AdminPageHeader
         eyebrow="Safety operations"
         title="Incidents"
-        description="INCIDENT PREVIEW MODE: No live emergency response, staff dispatch or external notification is connected."
-        actions={<AdminStatusBadge tone="danger">Preview only</AdminStatusBadge>}
+        description="TEST MODE: No live emergency response, staff dispatch or external notification is connected."
+        actions={<AdminStatusBadge tone="danger">Test only</AdminStatusBadge>}
       />
       <PreviewModeBanner
         variant="danger"
-        message="INCIDENT PREVIEW MODE. No live emergency response, staff dispatch or external notification is connected."
+        message="TEST MODE. No live emergency response, staff dispatch or external notification is connected."
       />
       <FeatureDisabledNotice
         feature="Incident dispatch and notifications"
@@ -229,9 +229,9 @@ function AdminIncidentsRoute() {
             columns={columns}
             rows={rows}
             rowKey={(row) => row.id}
-            caption="Incident preview records"
+            caption="Incident records"
             emptyTitle="No incident records"
-            emptyDescription="No preview incidents match the selected filters."
+            emptyDescription="No incidents match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -274,37 +274,37 @@ function AdminIncidentsRoute() {
                   icon={<UserCheck className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Local assignment preview
+                  Assign locally
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Local acknowledgement preview
+                  Acknowledge locally
                 </PreviewButton>
                 <PreviewButton
                   icon={<FileText className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Local note preview
+                  Add note locally
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Local resolution preview
+                  Mark resolved locally
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={() => setCloseOpen(true)}
                 >
-                  Closure confirmation preview
+                  Confirm closure
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No incident selected">
-              <p className="text-sm text-muted-foreground">Select a preview incident record.</p>
+              <p className="text-sm text-muted-foreground">Select an incident record.</p>
             </AdminDetailPanel>
           )}
         </div>
@@ -313,7 +313,7 @@ function AdminIncidentsRoute() {
       <AdminConfirmationDialog
         open={closeOpen}
         onOpenChange={setCloseOpen}
-        title="Close preview incident?"
+        title="Close incident?"
         description="This will only update local interface state for the current session."
         confirmLabel="Close locally"
         onConfirm={() => {

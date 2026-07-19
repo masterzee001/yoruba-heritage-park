@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHero } from "@/components/site/Section";
-import cultureImg from "@/assets/culture-architecture.jpg";
+import orikiHeroImg from "@/assets/oriki-heritage-presentation.png";
 
 export const Route = createFileRoute("/oriki")({
   head: () => ({
@@ -23,7 +23,7 @@ function OrikiPage() {
         eyebrow="Oríkì and Heritage"
         title="A name that carries you."
         intro="Personal and family Oríkì, presented in writing or audio, with heritage consultation."
-        image={cultureImg}
+        image={orikiHeroImg}
       />
 
       <section className="container-y grid gap-14 py-20 md:grid-cols-[1.2fr_1fr] md:gap-20">
@@ -72,7 +72,8 @@ function OrikiPage() {
             </label>
             <button
               type="button"
-              className="w-full rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory"
+              disabled
+              className="w-full cursor-not-allowed rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory opacity-70"
             >
               Send Enquiry
             </button>

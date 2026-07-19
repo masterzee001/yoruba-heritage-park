@@ -41,9 +41,9 @@ const STATUS_LABEL: Record<OrikiRequestStatus, string> = {
   under_review: "Under Review",
   awaiting_information: "Awaiting Information",
   consultation_proposed: "Consultation Proposed",
-  scheduled_preview: "Scheduled Preview",
+  scheduled_preview: "Scheduled",
   cultural_review: "Cultural Review",
-  completed_preview: "Completed Preview",
+  completed_preview: "Completed",
   closed: "Closed",
 };
 
@@ -104,7 +104,7 @@ function AdminOrikiRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Action noted locally. No visitor communication was sent.");
+    setNotice("Action recorded locally. No production record was created.");
 
   return (
     <>
@@ -214,25 +214,13 @@ function AdminOrikiRoute() {
                   icon={<UserCheck className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Assign for review locally
+                  Assign for review
                 </PreviewButton>
                 <PreviewButton
                   icon={<MessageSquarePlus className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Add internal note locally
-                </PreviewButton>
-                <PreviewButton
-                  icon={<CheckCircle2 className="size-3.5" />}
-                  onClick={completePreviewAction}
-                >
-                  Propose consultation locally
-                </PreviewButton>
-                <PreviewButton
-                  icon={<CheckCircle2 className="size-3.5" />}
-                  onClick={completePreviewAction}
-                >
-                  Close request locally
+                  Add note
                 </PreviewButton>
               </div>
             </AdminDetailPanel>

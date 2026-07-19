@@ -49,10 +49,18 @@ function StayPage() {
                   ))}
                 </ul>
                 <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4">
-                  <button className="rounded-full bg-forest-deep px-4 py-2 text-xs text-ivory">
+                  <button
+                    type="button"
+                    disabled
+                    className="cursor-not-allowed rounded-full bg-forest-deep px-4 py-2 text-xs text-ivory opacity-70"
+                  >
                     Request Information
                   </button>
-                  <button className="rounded-full border border-border px-4 py-2 text-xs">
+                  <button
+                    type="button"
+                    disabled
+                    className="cursor-not-allowed rounded-full border border-border px-4 py-2 text-xs opacity-70"
+                  >
                     Book an Inspection
                   </button>
                 </div>

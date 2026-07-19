@@ -48,7 +48,7 @@ function AdminCalendarRoute() {
     <AdminOperationPage
       eyebrow="Programme operations"
       title="Calendar"
-      description="Preview calendar view for programme scheduling records."
+      description="Review calendar records for programme scheduling."
       loadRecords={(filters) => adminService.events.calendar(filters)}
       columns={columns}
       detailTitle={(row) => row.title}
@@ -74,7 +74,7 @@ function AdminCalendarRoute() {
       ]}
       disabledFeature="Calendar scheduling"
       disabledReason="Schedule changes are disabled until the production repository layer is connected."
-      actionLabel="Preview calendar action"
+      actionLabel="Record calendar action"
     />
   );
 }

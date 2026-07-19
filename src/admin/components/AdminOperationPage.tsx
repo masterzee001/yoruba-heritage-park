@@ -114,10 +114,10 @@ export function AdminOperationPage<
         eyebrow={eyebrow}
         title={title}
         description={description}
-        actions={<AdminStatusBadge tone="preview">Setup pending</AdminStatusBadge>}
+        actions={<AdminStatusBadge tone="preview">Operational setup pending</AdminStatusBadge>}
       />
 
-      <PreviewModeBanner message="This module is pending a production repository. Actions here are disabled until the workflow is connected." />
+      <PreviewModeBanner message="This module is not yet connected to the production workflow. Actions remain disabled until configuration is complete." />
 
       <AdminFilterBar>
         <AdminSearchInput
@@ -212,7 +212,7 @@ export function AdminOperationPage<
         confirmLabel="Acknowledge"
         onConfirm={() => {
           setConfirmOpen(false);
-          setLocalNotice("This workflow is pending production connection. No record was changed.");
+          setLocalNotice("This workflow is awaiting production connection. No record was changed.");
         }}
       />
     </>

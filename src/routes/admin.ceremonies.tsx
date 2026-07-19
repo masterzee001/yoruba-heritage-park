@@ -42,9 +42,9 @@ const STATUS_LABEL: Record<CeremonyStatus, string> = {
   in_review: "In Review",
   awaiting_information: "Awaiting Information",
   date_proposed: "Date Proposed",
-  proposal_preview: "Proposal Preview",
-  scheduled_preview: "Scheduled Preview",
-  completed_preview: "Completed Preview",
+  proposal_preview: "Proposal Ready",
+  scheduled_preview: "Scheduled",
+  completed_preview: "Completed",
   cancelled: "Cancelled",
   closed: "Closed",
 };
@@ -122,7 +122,7 @@ function AdminCeremoniesRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action recorded locally. No production record was created.");
 
   return (
     <>
@@ -130,9 +130,9 @@ function AdminCeremoniesRoute() {
       <AdminPageHeader
         eyebrow="Specialist operations"
         title="Ceremonies"
-        description="Preview ceremony enquiry management without official confirmations, packages or pricing."
+        description="Manage ceremony enquiries without official confirmations, packages or pricing."
       />
-      <PreviewModeBanner message="Ceremony proposal, date and status actions are preview-only. No ceremony is officially confirmed." />
+      <PreviewModeBanner message="Ceremony proposal, date and status actions are configured for administrative review." />
       <FeatureDisabledNotice
         feature="Ceremony confirmation"
         reason="Packages, pricing, venue commitments and coordinator assignments are pending operational setup."
@@ -207,7 +207,7 @@ function AdminCeremoniesRoute() {
             rowKey={(row) => row.id}
             caption="Ceremony enquiry records"
             emptyTitle="No ceremony enquiries"
-            emptyDescription="No preview ceremony enquiries match the selected filters."
+            emptyDescription="No ceremony enquiries match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -246,31 +246,31 @@ function AdminCeremoniesRoute() {
                   icon={<ClipboardEdit className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Proposal preview
+                  Proposal review
                 </PreviewButton>
                 <PreviewButton
                   icon={<CalendarPlus className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Date proposal preview
+                  Date proposal
                 </PreviewButton>
                 <PreviewButton
                   icon={<MessageSquarePlus className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Internal note preview
+                  Internal note
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Status update preview
+                  Status update
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No enquiry selected">
-              <p className="text-sm text-muted-foreground">Select a preview ceremony enquiry.</p>
+              <p className="text-sm text-muted-foreground">Select a ceremony enquiry.</p>
             </AdminDetailPanel>
           )}
         </div>

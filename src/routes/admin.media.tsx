@@ -57,7 +57,7 @@ const USAGE_LABEL: Record<MediaUsage, string> = {
 
 const REVIEW_LABEL: Record<MediaReviewState, string> = {
   pending_review: "Pending review",
-  approved_preview: "Approved Preview",
+  approved_preview: "Approved",
   not_yet_published: "Not yet published",
 };
 
@@ -122,7 +122,7 @@ function AdminMediaRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action completed locally. No production record was created.");
 
   return (
     <>
@@ -218,14 +218,14 @@ function AdminMediaRoute() {
               rowKey={(row) => row.id}
               caption="Media records"
               emptyTitle="No media assets"
-              emptyDescription="No preview media assets match the selected filters."
+              emptyDescription="No media assets match the selected filters."
               onRowClick={(row) => setSelectedId(row.id)}
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rows.length === 0 ? (
                 <div className="rounded-sm border border-dashed border-border bg-background p-8 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
-                  No preview media assets match the selected filters.
+                  No media assets match the selected filters.
                 </div>
               ) : (
                 rows.map((row) => (
@@ -298,28 +298,28 @@ function AdminMediaRoute() {
                   icon={<Upload className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Replace-file preview
+                  Replace file
                 </PreviewButton>
                 <PreviewButton icon={<Copy className="size-3.5" />} onClick={completePreviewAction}>
-                  Copy-reference preview
+                  Copy reference
                 </PreviewButton>
                 <PreviewButton
                   icon={<Upload className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Upload-interface preview
+                  Upload form
                 </PreviewButton>
                 <PreviewButton
                   icon={<Trash2 className="size-3.5" />}
                   onClick={() => setDeleteOpen(true)}
                 >
-                  Delete confirmation preview
+                  Delete record
                 </PreviewButton>
               </div>
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No media selected">
-              <p className="text-sm text-muted-foreground">Select a preview media asset.</p>
+              <p className="text-sm text-muted-foreground">Select a media asset.</p>
             </AdminDetailPanel>
           )}
         </div>
@@ -328,8 +328,8 @@ function AdminMediaRoute() {
       <AdminConfirmationDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete preview media record?"
-        description="This does not delete a real file. It only confirms the preview workflow locally."
+        title="Delete media record?"
+        description="This does not delete a real file. It only confirms the local workflow."
         confirmLabel="Delete locally"
         destructive
         onConfirm={() => {

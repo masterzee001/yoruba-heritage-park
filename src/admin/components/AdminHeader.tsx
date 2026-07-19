@@ -14,7 +14,7 @@ interface Props {
 export function AdminHeader({
   operatorName = "Sample Operator",
   operatorInitials = "SO",
-  operatorRoleLabel = "Preview session",
+  operatorRoleLabel = "Administrator session",
   showLogout = false,
   onLogout,
 }: Props) {

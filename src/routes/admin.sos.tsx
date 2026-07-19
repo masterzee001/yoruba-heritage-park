@@ -82,7 +82,7 @@ function AdminSosConsole() {
 
   const selected = alerts?.find((a) => a.id === selectedId) ?? null;
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action completed locally. No production record was created.");
 
   return (
     <>
@@ -213,7 +213,7 @@ function AdminSosConsole() {
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Mark responding preview locally
+                  Mark responding locally
                 </PreviewButton>
                 <PreviewButton
                   icon={<CheckCircle2 className="size-3.5" />}
@@ -225,7 +225,7 @@ function AdminSosConsole() {
                   icon={<FilePlus2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Create related incident preview locally
+                  Create related incident locally
                 </PreviewButton>
               </div>
 

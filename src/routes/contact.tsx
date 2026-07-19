@@ -57,7 +57,11 @@ function ContactPage() {
                 className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2.5"
               />
             </label>
-            <button className="mt-2 w-full rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory">
+            <button
+              type="button"
+              disabled
+              className="mt-2 w-full cursor-not-allowed rounded-full bg-forest-deep px-5 py-3 text-sm text-ivory opacity-70"
+            >
               Send Message
             </button>
             <p className="text-xs text-muted-foreground">

@@ -27,7 +27,7 @@ export function PreviewModeBanner({ variant = "default", message }: Props) {
         <p className="text-[10px] font-medium uppercase tracking-wide">Operational setup pending</p>
         <p className="mt-1 leading-relaxed">
           {message ??
-            "This module is not connected to a production workflow yet. Confirm details before using it for operations."}
+            "This module is not yet connected to a production workflow. Confirm the required details before using it for operations."}
         </p>
       </div>
     </div>

@@ -65,12 +65,12 @@ export const Route = createFileRoute("/admin/payments")({
 
 const STATUS_LABEL: Record<PaymentStatus, string> = {
   pending: "Pending",
-  successful: "Successful Preview",
+  successful: "Successful",
   failed: "Failed",
   abandoned: "Abandoned",
   reversed: "Reversed",
-  refund_pending: "Refund Pending Preview",
-  refunded: "Refunded Preview",
+  refund_pending: "Refund pending",
+  refunded: "Refunded",
 };
 
 const STATUS_TONE: Record<PaymentStatus, StatusTone> = {
@@ -351,7 +351,7 @@ function AdminPaymentsRoute() {
     },
   ];
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action completed locally. No production record was created.");
 
   function applyProviderPreset(providerCode: keyof typeof providerDefaults) {
     const preset = providerDefaults[providerCode];
@@ -885,7 +885,7 @@ function AdminPaymentsRoute() {
                   </code>
                   {!provider.callbackUrl.startsWith("https://") ? (
                     <p className="mt-1 text-muted-foreground">
-                      Open this page from the preview or production domain to display the absolute
+                      Open this page from the public or production domain to display the absolute
                       provider callback URL.
                     </p>
                   ) : null}
@@ -1136,7 +1136,7 @@ function AdminPaymentsRoute() {
           <option value="not_applicable">Not applicable</option>
           <option value="unverified">Unverified</option>
           <option value="review_required">Review required</option>
-          <option value="preview_verified">Preview verified</option>
+          <option value="preview_verified">Verified</option>
         </select>
         <select
           value={filters.provider ?? "all"}
@@ -1185,7 +1185,7 @@ function AdminPaymentsRoute() {
             rowKey={(row) => row.id}
             caption="Payment administration records"
             emptyTitle="No payment records"
-            emptyDescription="No preview payments match the selected filters."
+            emptyDescription="No payments match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -1339,13 +1339,13 @@ function AdminPaymentsRoute() {
                   icon={<SearchCheck className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Request verification preview
+                  Request verification
                 </PreviewButton>
                 <PreviewButton
                   icon={<RotateCcw className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Refund-review preview
+                  Review refund
                 </PreviewButton>
                 <PreviewButton
                   icon={<CreditCard className="size-3.5" />}
@@ -1358,7 +1358,7 @@ function AdminPaymentsRoute() {
             </AdminDetailPanel>
           ) : (
             <AdminDetailPanel eyebrow="Selection" title="No payment selected">
-              <p className="text-sm text-muted-foreground">Select a preview payment record.</p>
+              <p className="text-sm text-muted-foreground">Select a payment record.</p>
             </AdminDetailPanel>
           )}
         </div>

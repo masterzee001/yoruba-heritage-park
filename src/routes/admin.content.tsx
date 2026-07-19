@@ -76,7 +76,7 @@ function AdminContentRoute() {
       ]}
       disabledFeature="Production publishing"
       disabledReason="Content approval and production publishing are disabled until the backend and editorial workflow are connected."
-      actionLabel="Preview content action"
+      actionLabel="Record content action"
     />
   );
 }

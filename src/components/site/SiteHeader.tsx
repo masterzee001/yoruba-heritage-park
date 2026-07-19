@@ -49,7 +49,8 @@ export function SiteHeader() {
           <button
             type="button"
             aria-label="Search"
-            className="hidden size-11 place-items-center rounded-full border border-gold/35 bg-forest-deep/25 text-ivory/90 transition duration-300 hover:border-gold/70 hover:bg-ivory/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-forest-deep xl:grid"
+            disabled
+            className="hidden size-11 place-items-center rounded-full border border-gold/35 bg-forest-deep/25 text-ivory/90 opacity-60 xl:grid"
           >
             <Search className="size-4" aria-hidden />
           </button>
@@ -96,7 +97,8 @@ export function SiteHeader() {
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                className="flex-1 rounded-full border border-gold/35 px-4 py-3 text-center text-sm text-ivory/85 transition hover:border-gold/70 hover:bg-ivory/10"
+                disabled
+                className="flex-1 rounded-full border border-gold/35 px-4 py-3 text-center text-sm text-ivory/85 opacity-60"
               >
                 Search
               </button>

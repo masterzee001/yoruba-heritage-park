@@ -85,7 +85,7 @@ function AdminTicketsRoute() {
       ]}
       disabledFeature="Ticket QR validation"
       disabledReason="No ticket QR code is issued or validated while ticketQrEnabled is false."
-      actionLabel="Preview check-in action"
+      actionLabel="Record check-in action"
     />
   );
 }

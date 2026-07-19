@@ -37,9 +37,9 @@ const OUTCOME_LABEL: Record<AuditOutcome, string> = {
   success: "Success",
   denied: "Denied",
   failed: "Failed",
-  successful_preview: "Successful Preview",
-  denied_preview: "Denied Preview",
-  failed_preview: "Failed Preview",
+  successful_preview: "Successful",
+  denied_preview: "Denied",
+  failed_preview: "Failed",
   informational: "Informational",
 };
 

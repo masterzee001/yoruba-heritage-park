@@ -8,8 +8,7 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
       {
         name: "description",
-        content:
-          "Yorùbá Heritage Park administrator portal — preview interface. Not a public page.",
+        content: "Yorùbá Heritage Park administrator portal. Not a public page.",
       },
     ],
   }),

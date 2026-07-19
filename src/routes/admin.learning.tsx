@@ -36,7 +36,7 @@ import type {
 export const Route = createFileRoute("/admin/learning")({
   beforeLoad: ({ location }) => requireAdminRouteAccess(location),
   head: () => ({
-    meta: [{ title: "Learning Hub ? Administrator" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Learning Hub — Administrator" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminLearningRoute,
 });
@@ -45,7 +45,7 @@ const STATUS_LABEL: Record<LearningStatus, string> = {
   draft: "Draft",
   in_review: "In Review",
   approved: "Approved",
-  published_preview: "Published Preview",
+  published_preview: "Published",
   archived: "Archived",
 };
 
@@ -131,7 +131,7 @@ function AdminLearningRoute() {
     [rows, selectedId],
   );
   const completePreviewAction = () =>
-    setNotice("Preview action completed locally. No production record was created.");
+    setNotice("Action completed locally. No production record was created.");
 
   return (
     <>
@@ -139,7 +139,7 @@ function AdminLearningRoute() {
       <AdminPageHeader
         eyebrow="Programme content"
         title="Learning hub"
-        description="Manage preview learning resources without publishing real educational files."
+        description="Manage learning resources while publishing is being prepared."
         actions={
           <button
             type="button"
@@ -147,11 +147,11 @@ function AdminLearningRoute() {
             className="inline-flex items-center gap-2 rounded-sm border border-border px-3 py-2 text-xs font-medium"
           >
             <FilePlus2 className="size-3.5" aria-hidden />
-            New-resource preview
+            New resource
           </button>
         }
       />
-      <PreviewModeBanner message="Resource publishing and file storage are pending operational setup." />
+      <PreviewModeBanner message="Resource publishing and file storage are pending configuration." />
       <FeatureDisabledNotice
         feature="Resource publishing and file storage"
         reason="No real uploads, downloads or public learning resources are created from this interface."
@@ -228,7 +228,7 @@ function AdminLearningRoute() {
             rowKey={(row) => row.id}
             caption="Learning resource records"
             emptyTitle="No learning resources"
-            emptyDescription="No preview resources match the selected filters."
+            emptyDescription="No learning resources match the selected filters."
             onRowClick={(row) => setSelectedId(row.id)}
           />
           {selected ? (
@@ -263,7 +263,7 @@ function AdminLearningRoute() {
                   icon={<Pencil className="size-3.5" />}
                   onClick={() => setFormMode("edit")}
                 >
-                  Edit preview form
+                  Edit resource
                 </PreviewButton>
                 <PreviewButton
                   icon={<Upload className="size-3.5" />}
@@ -275,7 +275,7 @@ function AdminLearningRoute() {
                   icon={<CheckCircle2 className="size-3.5" />}
                   onClick={completePreviewAction}
                 >
-                  Publish preview
+                  Publish resource
                 </PreviewButton>
                 <PreviewButton
                   icon={<Archive className="size-3.5" />}
@@ -296,7 +296,7 @@ function AdminLearningRoute() {
       <AdminModal
         open={formMode !== null}
         onOpenChange={(open) => !open && setFormMode(null)}
-        title={formMode === "edit" ? "Edit preview resource" : "New-resource preview"}
+        title={formMode === "edit" ? "Edit resource" : "New resource"}
         description="No resource is uploaded, published or stored until file storage is connected."
       >
         <AdminFormSection title="Resource details" description="Awaiting authorised content.">
@@ -321,7 +321,7 @@ function AdminLearningRoute() {
             }}
             className="rounded-sm bg-forest-deep px-4 py-2 text-sm text-ivory"
           >
-            Save preview locally
+            Save locally
           </button>
         </AdminFormSection>
       </AdminModal>
@@ -329,7 +329,7 @@ function AdminLearningRoute() {
       <AdminConfirmationDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
-        title="Archive preview resource?"
+        title="Archive resource?"
         description="This will only update local interface state for the current session."
         confirmLabel="Archive locally"
         onConfirm={() => {

@@ -81,7 +81,7 @@ function AdminEnquiriesRoute() {
       ]}
       disabledFeature="Outbound visitor messaging"
       disabledReason="Email, SMS and WhatsApp responses are disabled until production communication services are connected."
-      actionLabel="Preview enquiry action"
+      actionLabel="Record enquiry action"
     />
   );
 }

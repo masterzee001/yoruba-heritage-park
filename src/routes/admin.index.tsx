@@ -75,7 +75,7 @@ function AdminDashboard() {
         <div className="rounded-sm border border-border bg-background p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-serif text-xl text-forest-deep">Getting started</h2>
-            <AdminStatusBadge tone="preview">Phase 1</AdminStatusBadge>
+            <AdminStatusBadge tone="preview">Foundation phase</AdminStatusBadge>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             The administrator portal foundation is in place. Individual operational modules
@@ -86,7 +86,7 @@ function AdminDashboard() {
             <li>- Admin shell, sidebar and mobile drawer navigation are active.</li>
             <li>- Pending modules are labelled before operational connection.</li>
             <li>- Database-backed modules use server-side permission checks.</li>
-            <li>- No production feature processes live payments, email or SMS yet.</li>
+            <li>- Live payments, email and SMS remain locked behind environment configuration.</li>
           </ul>
         </div>
       </section>

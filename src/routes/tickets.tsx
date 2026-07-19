@@ -363,8 +363,9 @@ function TicketsPage() {
                 </div>
                 <h2 className="mt-6 font-serif text-3xl text-forest-deep">Request received</h2>
                 <p className="mt-3 text-muted-foreground">
-                  {message ??
-                    "Your booking request has been received for review before confirmation."}
+                  {message
+                    ? "Your booking request has been received for review before confirmation."
+                    : "Your booking request has been received for review before confirmation."}
                 </p>
                 <div className="mx-auto mt-10 max-w-sm border border-border bg-cream p-6 text-left">
                   <p className="eyebrow">Request summary</p>

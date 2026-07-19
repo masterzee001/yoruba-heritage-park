@@ -53,7 +53,7 @@ function AdminExperiencesRoute() {
     <AdminOperationPage
       eyebrow="Programme operations"
       title="Experiences"
-      description="Maintain preview experience records and readiness notes."
+      description="Maintain experience records and readiness notes."
       loadRecords={(filters) => adminService.experiences.list(filters)}
       columns={columns}
       detailTitle={(row) => row.title}
@@ -80,8 +80,8 @@ function AdminExperiencesRoute() {
         { value: "archived", label: "Archived" },
       ]}
       disabledFeature="Experience publishing"
-      disabledReason="Experience records are preview-only until repository writes and approval workflows are implemented."
-      actionLabel="Preview experience action"
+      disabledReason="Experience records remain in setup mode until repository writes and approval workflows are implemented."
+      actionLabel="Record experience action"
     />
   );
 }
