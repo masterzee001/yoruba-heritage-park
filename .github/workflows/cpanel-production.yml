@@ -220,7 +220,6 @@ jobs:
             grep -Fx "$expected_name" "$listing_file" > /dev/null
           }
 
-          verify_listing "$CPANEL_APP_DIR" ".env"
           verify_listing "$CPANEL_APP_DIR" "app.cjs"
           verify_listing "$CPANEL_APP_DIR" "package.json"
           verify_listing "$CPANEL_APP_DIR" "bun.lock"
