@@ -235,7 +235,7 @@ jobs:
           verify_listing "$CPANEL_WEBROOT_DIR/assets" "$PUBLIC_JS_FILE"
           verify_listing "$CPANEL_WEBROOT_DIR/brand" "yhp-favicon.png"
           for dir in $PUBLIC_DIRS; do
-            verify_listing "$CPANEL_WEBROOT_DIR/$dir" "$dir"
+            verify_listing "$CPANEL_WEBROOT_DIR" "$dir"
           done
 
       - name: Verify production deployment
