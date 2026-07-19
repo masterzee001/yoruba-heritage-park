@@ -86,9 +86,9 @@ jobs:
           set net:timeout 30
           set cmd:fail-exit no
           cd "$CPANEL_APP_DIR"
-          rm "$PREFLIGHT_MARKER"
+          rm -f "$PREFLIGHT_MARKER"
           cd "$CPANEL_WEBROOT_DIR"
-          rm "$PREFLIGHT_MARKER"
+          rm -f "$PREFLIGHT_MARKER"
           EOF
           }
 
