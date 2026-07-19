@@ -73,14 +73,16 @@ jobs:
           test -n "$CPANEL_PRODUCTION_FTP_PASSWORD"
 
           FTPS_URL="ftp://$CPANEL_PRODUCTION_FTPS_HOST:21"
-          LFTP_APP_DIR="${CPANEL_APP_DIR#/}"
-          LFTP_WEBROOT_DIR="${CPANEL_WEBROOT_DIR#/}"
+          FTP_HOME_ROOT="/home/suwanee1155"
+          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
+          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
           PREFLIGHT_MARKER=".github-ftps-preflight-test"
 
           cleanup_markers() {
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          set ftp:home /home/suwanee1155
           set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
@@ -99,6 +101,7 @@ jobs:
           lftp -u "$CPANEL_PRODUCTION_FTP_USERNAME","$CPANEL_PRODUCTION_FTP_PASSWORD" "$FTPS_URL" <<EOF
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          set ftp:home /home/suwanee1155
           set ftp:use-tvfs yes
           set ssl:verify-certificate yes
           set ssl:check-hostname no
@@ -132,13 +135,15 @@ jobs:
         run: |
           PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
           test -n "$PUBLIC_DIRS"
-          LFTP_APP_DIR="${CPANEL_APP_DIR#/}"
-          LFTP_WEBROOT_DIR="${CPANEL_WEBROOT_DIR#/}"
+          FTP_HOME_ROOT="/home/suwanee1155"
+          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
+          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
 
           LFTP_SCRIPT="$(mktemp)"
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ftp:home /home/suwanee1155'
             printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
@@ -218,13 +223,15 @@ jobs:
           test -n "$PUBLIC_JS_FILE"
           PUBLIC_DIRS="$(find .output-cpanel/public -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
           test -n "$PUBLIC_DIRS"
-          LFTP_APP_DIR="${CPANEL_APP_DIR#/}"
-          LFTP_WEBROOT_DIR="${CPANEL_WEBROOT_DIR#/}"
+          FTP_HOME_ROOT="/home/suwanee1155"
+          LFTP_APP_DIR="$FTP_HOME_ROOT$CPANEL_APP_DIR"
+          LFTP_WEBROOT_DIR="$FTP_HOME_ROOT$CPANEL_WEBROOT_DIR"
 
           LFTP_VERIFY_SCRIPT="$(mktemp)"
           {
             printf '%s\n' 'set ftp:ssl-force true'
             printf '%s\n' 'set ftp:ssl-protect-data true'
+            printf '%s\n' 'set ftp:home /home/suwanee1155'
             printf '%s\n' 'set ftp:use-tvfs yes'
             printf '%s\n' 'set ssl:verify-certificate yes'
             printf '%s\n' 'set ssl:check-hostname no'
