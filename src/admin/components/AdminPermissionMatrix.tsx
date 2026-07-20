@@ -44,7 +44,9 @@ interface Props {
 }
 
 export function AdminPermissionMatrix({ permissions }: Props) {
-  const rows = Object.entries(permissions) as Array<[PermissionArea, PermissionAction[]]>;
+  const rows = (Object.entries(permissions) as Array<[PermissionArea, PermissionAction[]]>).filter(
+    ([area]) => area !== "sos" && area !== "incidents",
+  );
 
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No permissions assigned yet.</p>;

@@ -447,7 +447,6 @@ function toPermissionArea(moduleCode: string): PermissionArea | null {
     "events",
     "bookings",
     "payments",
-    "sos",
     "users",
     "roles",
     "settings",
@@ -511,11 +510,7 @@ function toSettingsSnapshot(
       SMS: values.get("notifications.sms") ?? "Disabled",
       WhatsApp: values.get("notifications.whatsapp") ?? "Disabled",
     },
-    safety: {
-      "SOS mode": values.get("safety.sos_mode") ?? "Hidden until client approval",
-      "Emergency contacts":
-        values.get("safety.emergency_contacts") ?? "Awaiting authorised content",
-    },
+    safety: {},
     media: {
       "Upload mode": values.get("media.upload_mode") ?? "Disabled",
       "Storage provider": values.get("media.storage_provider") ?? "Not connected",

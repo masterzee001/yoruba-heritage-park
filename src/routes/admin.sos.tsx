@@ -30,7 +30,9 @@ import type { AdminSosAlert, SosStatus, StatusTone } from "@/admin/types";
 
 export const Route = createFileRoute("/admin/sos")({
   beforeLoad: ({ location }) => {
-    if (!projectStatus.sosLiveEnabled) throw redirect({ to: "/admin" });
+    if (!projectStatus.sosAdminVisible || !projectStatus.sosLiveEnabled) {
+      throw redirect({ to: "/admin" });
+    }
     return requireAdminRouteAccess(location);
   },
   head: () => ({

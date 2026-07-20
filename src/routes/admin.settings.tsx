@@ -26,12 +26,10 @@ export const Route = createFileRoute("/admin/settings")({
 const criticalFlags = [
   "bookingEnabled",
   "paymentEnabled",
-  "sosLiveEnabled",
   "authenticationEnabled",
   "emailEnabled",
   "smsEnabled",
   "whatsappEnabled",
-  "geolocationLiveEnabled",
   "ticketQrEnabled",
   "mediaUploadEnabled",
 ] as const;
@@ -95,7 +93,6 @@ function AdminSettingsRoute() {
           <AdminSettingsSection title="Booking" values={settings.booking} />
           <AdminSettingsSection title="Payments" values={settings.payments} />
           <AdminSettingsSection title="Notifications" values={settings.notifications} />
-          <AdminSettingsSection title="Safety" values={settings.safety} />
           <AdminSettingsSection title="Media" values={settings.media} />
           <AdminSettingsSection title="SEO" values={settings.seo} />
           <AdminSettingsSection title="Legal and privacy" values={settings.legalPrivacy} />

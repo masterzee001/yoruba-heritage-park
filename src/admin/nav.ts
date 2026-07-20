@@ -10,7 +10,6 @@ import {
   Image as ImageIcon,
   KeyRound,
   LayoutDashboard,
-  LifeBuoy,
   ScrollText,
   Settings,
   Ticket,
@@ -71,11 +70,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { to: "/admin/content", label: "Pages & content", icon: FileText },
       { to: "/admin/media", label: "Media library", icon: ImageIcon },
     ],
-  },
-  {
-    id: "safety",
-    label: "Safety",
-    items: [{ to: "/admin/incidents", label: "Incidents", icon: LifeBuoy }],
   },
   {
     id: "governance",

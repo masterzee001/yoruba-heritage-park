@@ -13,6 +13,8 @@ export interface ProjectStatus {
   readonly bookingEnabled: boolean;
   readonly paymentEnabled: boolean;
   readonly sosLiveEnabled: boolean;
+  readonly sosAdminVisible: boolean;
+  readonly sosNotificationsEnabled: boolean;
   readonly showPendingInformation: boolean;
   readonly authenticationEnabled: boolean;
   readonly emailEnabled: boolean;
@@ -28,6 +30,8 @@ export const projectStatus: ProjectStatus = {
   bookingEnabled: true,
   paymentEnabled: false,
   sosLiveEnabled: false,
+  sosAdminVisible: false,
+  sosNotificationsEnabled: false,
   showPendingInformation: true,
   authenticationEnabled: false,
   emailEnabled: false,

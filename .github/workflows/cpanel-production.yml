@@ -243,11 +243,27 @@ jobs:
 
       - name: Verify production deployment
         run: |
+          verify_application_page() {
+            url="$1"
+            expected="$2"
+            body_file="$(mktemp)"
+
+            curl --fail --silent --show-error --location "$url" --output "$body_file"
+            if grep -Fqi "It works! NodeJS" "$body_file"; then
+              echo "Generic Node.js placeholder returned by $url"
+              return 1
+            fi
+            if ! grep -Fq "$expected" "$body_file"; then
+              echo "Expected Yoruba Heritage Park page marker was not found at $url"
+              return 1
+            fi
+          }
+
           for attempt in {1..36}; do
-            if curl --fail --silent --show-error --location https://yorubaheritageworld.com/ > /dev/null \
-              && curl --fail --silent --show-error --location https://yorubaheritageworld.com/about > /dev/null \
+            if verify_application_page https://yorubaheritageworld.com/ '<title>Yorùbá Heritage Park' \
+              && verify_application_page https://yorubaheritageworld.com/about '<title>About — Yoruba Heritage Park' \
               && curl --fail --silent --show-error --location --head https://yorubaheritageworld.com/brand/yhp-favicon.png > /dev/null \
-              && curl --fail --silent --show-error --location https://www.yorubaheritageworld.com/ > /dev/null; then
+              && test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code} %{redirect_url}' https://www.yorubaheritageworld.com/)" = '301 https://yorubaheritageworld.com/'; then
               exit 0
             fi
 

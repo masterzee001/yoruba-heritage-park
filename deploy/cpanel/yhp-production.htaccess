@@ -1,4 +1,7 @@
 RewriteEngine On
+RewriteCond %{HTTP_HOST} ^www\.yorubaheritageworld\.com$ [NC]
+RewriteRule ^ https://yorubaheritageworld.com%{REQUEST_URI} [R=301,L,NE]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !^/$
