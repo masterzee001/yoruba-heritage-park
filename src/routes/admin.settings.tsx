@@ -63,8 +63,8 @@ function AdminSettingsRoute() {
         actions={<AdminStatusBadge tone="success">Operational settings</AdminStatusBadge>}
       />
       <FeatureDisabledNotice
-        feature="Critical launch controls"
-        reason="Environment variables, secrets, payment capture and live SOS activation remain locked outside the public admin UI."
+        feature="Provider-controlled capabilities"
+        reason="Live SOS, SMS, WhatsApp, QR validation and media uploads remain unavailable until their required operational providers and approvals are configured."
       />
       {notice ? (
         <div className="flex items-start gap-3 rounded-sm border border-forest/20 bg-forest/10 px-4 py-3 text-xs text-forest-deep">
@@ -98,7 +98,7 @@ function AdminSettingsRoute() {
           <AdminSettingsSection title="Legal and privacy" values={settings.legalPrivacy} />
           <AdminSettingsSection
             title="Feature controls"
-            description="Critical production flags remain false and locked."
+            description="Production capabilities are enabled only when their server-side dependencies are configured."
             values={flagValues}
             action={<Lock className="size-4 text-muted-foreground" aria-hidden />}
           />

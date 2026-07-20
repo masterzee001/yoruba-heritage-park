@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { projectStatus } from "@/config/project-status";
+
 import type {
   AdminRole,
   AdminRoleDefinition,
@@ -506,17 +508,17 @@ function toSettingsSnapshot(
       "Refund policy": values.get("payments.refund_policy") ?? "Awaiting authorised content",
     },
     notifications: {
-      Email: values.get("notifications.email") ?? "Disabled",
-      SMS: values.get("notifications.sms") ?? "Disabled",
-      WhatsApp: values.get("notifications.whatsapp") ?? "Disabled",
+      Email: projectStatus.emailEnabled ? "Enabled via SMTP" : "Not configured",
+      SMS: projectStatus.smsEnabled ? "Enabled" : "Provider not configured",
+      WhatsApp: projectStatus.whatsappEnabled ? "Enabled" : "Provider not configured",
     },
     safety: {},
     media: {
-      "Upload mode": values.get("media.upload_mode") ?? "Disabled",
-      "Storage provider": values.get("media.storage_provider") ?? "Not connected",
+      "Upload mode": projectStatus.mediaUploadEnabled ? "Enabled" : "Provider not configured",
+      "Storage provider": values.get("media.storage_provider") ?? "Provider required",
     },
     seo: {
-      "Meta review": values.get("seo.meta_review") ?? "Pending operational confirmation",
+      "Meta review": values.get("seo.meta_review") ?? "Production metadata published",
     },
     legalPrivacy: {
       "Legal terms": values.get("legal.terms") ?? "Awaiting authorised content",

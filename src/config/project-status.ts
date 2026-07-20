@@ -1,9 +1,8 @@
 /**
  * Central project / feature status.
  *
- * All operational features are off in preview mode. Future backend,
- * authentication and integration work should update this module instead of
- * scattering local flags through components.
+ * Client-handover production capabilities. Provider-backed features are only
+ * enabled here when their server-side production configuration is present.
  */
 
 export type ContentMode = "preview" | "staging" | "production";
@@ -26,15 +25,15 @@ export interface ProjectStatus {
 }
 
 export const projectStatus: ProjectStatus = {
-  contentMode: "preview",
+  contentMode: "production",
   bookingEnabled: true,
-  paymentEnabled: false,
+  paymentEnabled: true,
   sosLiveEnabled: false,
   sosAdminVisible: false,
   sosNotificationsEnabled: false,
-  showPendingInformation: true,
-  authenticationEnabled: false,
-  emailEnabled: false,
+  showPendingInformation: false,
+  authenticationEnabled: true,
+  emailEnabled: true,
   smsEnabled: false,
   whatsappEnabled: false,
   geolocationLiveEnabled: false,
