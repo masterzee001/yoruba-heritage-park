@@ -17,7 +17,7 @@ export interface BookingNotificationMailer {
 }
 
 export interface BookingNotificationOptions {
-  readonly logger?: Pick<Console, "error">;
+  readonly logger?: Pick<Console, "error" | "warn">;
   readonly mailer?: BookingNotificationMailer;
 }
 
@@ -58,11 +58,16 @@ export async function sendBookingCreatedNotifications(
 
 async function sendNotification(
   label: string,
-  logger: Pick<Console, "error">,
+  logger: Pick<Console, "error" | "warn">,
   action: () => Promise<EmailDeliveryResult>,
 ): Promise<void> {
   try {
-    await action();
+    const result = await action();
+    if (result.status === "skipped") {
+      logger.warn(`[booking-notifications] ${label} skipped`, {
+        message: redactSensitiveText(result.message),
+      });
+    }
   } catch (error) {
     logger.error(`[booking-notifications] ${label} failed`, sanitiseEmailError(error));
   }

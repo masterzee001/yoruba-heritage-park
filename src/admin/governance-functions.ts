@@ -36,6 +36,10 @@ interface SendAdminCredentialNoticeInput {
   readonly purpose?: "invitation" | "password_reset";
 }
 
+interface SendEmailDeliveryTestInput {
+  readonly toEmail?: string;
+}
+
 interface SaveAdminSettingInput {
   readonly group?: string;
   readonly key?: string;
@@ -305,11 +309,57 @@ export const listAdminRoles = createServerFn({ method: "GET" }).handler(async ()
 
 export const getAdminSettingsSnapshot = createServerFn({ method: "GET" }).handler(async () => {
   const { MysqlSettingsRepository } = await import("../server/repositories/mysql");
+  const { inspectEmailDeliveryConfiguration } =
+    await import("../server/notifications/email-service");
   const { requireAdminServerPermission } = await import("./server-permissions");
   await requireAdminServerPermission("settings.manage");
   const settings = await new MysqlSettingsRepository().listAll();
-  return toSettingsSnapshot(settings);
+  return toSettingsSnapshot(settings, inspectEmailDeliveryConfiguration());
 });
+
+export const runEmailDeliveryTest = createServerFn({ method: "POST" })
+  .validator((data: SendEmailDeliveryTestInput = {}) => data)
+  .handler(async ({ data }) => {
+    const { getRuntimeRequestContext } = await import("../server/auth/auth-runtime");
+    const { sendEmailDeliveryTest, verifyEmailDeliveryTransport } =
+      await import("../server/notifications/email-service");
+    const { MysqlAuditLogRepository } = await import("../server/repositories/mysql");
+    const { requireAdminServerPermission } = await import("./server-permissions");
+    const principal = await requireAdminServerPermission("settings.manage");
+
+    const verification = await verifyEmailDeliveryTransport();
+    if (!verification.ok) {
+      return {
+        ok: false,
+        message: verification.message,
+        diagnostics: verification.diagnostics,
+      };
+    }
+
+    const delivery = await sendEmailDeliveryTest(data.toEmail);
+    const requestContext = getRuntimeRequestContext();
+    await new MysqlAuditLogRepository().record({
+      actorUserId: principal.userId,
+      actionCode: "settings.email_delivery.test_sent",
+      moduleCode: "settings",
+      recordType: "email_delivery",
+      recordId: "smtp",
+      outcome: delivery.status === "sent" ? "success" : "failed",
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent,
+      metadataJson: {
+        deliveryStatus: delivery.status,
+        providerMessageId: delivery.providerMessageId ?? null,
+        recipientProvided: Boolean(data.toEmail?.trim()),
+      },
+    });
+
+    return {
+      ok: delivery.status === "sent",
+      message: delivery.message,
+      diagnostics: verification.diagnostics,
+    };
+  });
 
 export const saveAdminSetting = createServerFn({ method: "POST" })
   .validator((data: SaveAdminSettingInput) => data)
@@ -479,6 +529,18 @@ function toSettingsSnapshot(
     readonly settingKey: string;
     readonly valueJson: unknown;
   }>,
+  emailDiagnostics?: {
+    readonly ready: boolean;
+    readonly statusLabel: string;
+    readonly missingConfiguration: string[];
+    readonly invalidConfiguration: string[];
+    readonly fromAddressConfigured: boolean;
+    readonly adminAddressConfigured: boolean;
+    readonly publicBaseUrlConfigured: boolean;
+    readonly smtpHost?: string;
+    readonly smtpPort?: number;
+    readonly smtpSecure?: boolean;
+  },
 ): AdminSettingsSnapshot {
   const values = new Map(
     settings.map((setting) => [
@@ -508,7 +570,27 @@ function toSettingsSnapshot(
       "Refund policy": values.get("payments.refund_policy") ?? "Awaiting authorised content",
     },
     notifications: {
-      Email: projectStatus.emailEnabled ? "Enabled via SMTP" : "Not configured",
+      Email:
+        projectStatus.emailEnabled && emailDiagnostics?.ready
+          ? "Enabled via SMTP"
+          : (emailDiagnostics?.statusLabel ?? "Not configured"),
+      "Email sender": emailDiagnostics?.fromAddressConfigured ? "Configured" : "Missing",
+      "Admin recipient": emailDiagnostics?.adminAddressConfigured ? "Configured" : "Uses sender",
+      "Public email links": emailDiagnostics?.publicBaseUrlConfigured
+        ? "Production URL configured"
+        : "Missing EMAIL_PUBLIC_BASE_URL",
+      "SMTP endpoint": emailDiagnostics?.smtpHost
+        ? `${emailDiagnostics.smtpHost}:${emailDiagnostics.smtpPort ?? 587} (${emailDiagnostics.smtpSecure ? "secure" : "starttls"})`
+        : "Missing SMTP_HOST",
+      "Email blockers": [
+        ...(emailDiagnostics?.missingConfiguration ?? []),
+        ...(emailDiagnostics?.invalidConfiguration ?? []),
+      ].length
+        ? [
+            ...(emailDiagnostics?.missingConfiguration ?? []),
+            ...(emailDiagnostics?.invalidConfiguration ?? []),
+          ].join(", ")
+        : "None detected in application environment",
       SMS: projectStatus.smsEnabled ? "Enabled" : "Provider not configured",
       WhatsApp: projectStatus.whatsappEnabled ? "Enabled" : "Provider not configured",
     },

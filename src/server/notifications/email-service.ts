@@ -37,13 +37,39 @@ export interface EmailDeliveryOptions {
   readonly transportFactory?: EmailTransportFactory;
 }
 
+export interface EmailDeliveryProbeResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly diagnostics: EmailDeliveryDiagnostics;
+}
+
+export interface EmailDeliveryDiagnostics {
+  readonly ready: boolean;
+  readonly deliveryMode: "disabled" | "smtp" | "invalid";
+  readonly statusLabel: string;
+  readonly missingConfiguration: string[];
+  readonly invalidConfiguration: string[];
+  readonly fromAddressConfigured: boolean;
+  readonly adminAddressConfigured: boolean;
+  readonly publicBaseUrlConfigured: boolean;
+  readonly smtpHost?: string;
+  readonly smtpPort?: number;
+  readonly smtpSecure?: boolean;
+}
+
 interface EmailTransport {
+  verify?(): Promise<true | string>;
   sendMail(message: EmailMessage): Promise<{ readonly messageId?: string }>;
 }
 
 interface EmailMessage {
   readonly from: string;
   readonly to: string;
+  readonly replyTo?: string;
+  readonly envelope?: {
+    readonly from: string;
+    readonly to: string;
+  };
   readonly subject: string;
   readonly text: string;
   readonly html: string;
@@ -74,13 +100,9 @@ export async function sendAdminCredentialNotice(
   const { subject, text, html } = buildAdminCredentialNotice(input, {
     loginUrl: buildLoginUrl(context.env.email.publicBaseUrl),
   });
-  const result = await context.transport.sendMail({
-    from: formatFromAddress(context.env.email.fromAddress, context.env.email.fromName),
-    to: input.toEmail,
-    subject,
-    text,
-    html,
-  });
+  const result = await context.transport.sendMail(
+    buildEmailMessage(context, { to: input.toEmail, subject, text, html }),
+  );
 
   return {
     status: "sent",
@@ -104,13 +126,9 @@ export async function sendBookingAcknowledgementNotice(
   const { subject, text, html } = buildBookingAcknowledgementNotice(input, {
     statusUrl: buildBookingStatusUrl(context.env.email.publicBaseUrl, input.bookingReference),
   });
-  const result = await context.transport.sendMail({
-    from: formatFromAddress(context.env.email.fromAddress, context.env.email.fromName),
-    to: input.toEmail,
-    subject,
-    text,
-    html,
-  });
+  const result = await context.transport.sendMail(
+    buildEmailMessage(context, { to: input.toEmail, subject, text, html }),
+  );
 
   return {
     status: "sent",
@@ -137,17 +155,149 @@ export async function sendNewBookingNotification(
       input.bookingReference,
     ),
   });
-  const result = await context.transport.sendMail({
-    from: formatFromAddress(context.env.email.fromAddress, context.env.email.fromName),
-    to: resolveAdminRecipient(context.env.email.adminAddress, context.env.email.fromAddress),
-    subject,
-    text,
-    html,
-  });
+  const result = await context.transport.sendMail(
+    buildEmailMessage(context, {
+      to: resolveAdminRecipient(context.env.email.adminAddress, context.env.email.fromAddress),
+      subject,
+      text,
+      html,
+    }),
+  );
 
   return {
     status: "sent",
     message: "Email notification sent.",
+    providerMessageId: result.messageId,
+  };
+}
+
+export function inspectEmailDeliveryConfiguration(
+  source?: NodeJS.ProcessEnv,
+): EmailDeliveryDiagnostics {
+  try {
+    const env = getServerEnv({ source });
+    const missingConfiguration = [
+      ...(!env.email.fromAddress ? ["EMAIL_FROM_ADDRESS"] : []),
+      ...(!env.email.smtp.host ? ["SMTP_HOST"] : []),
+      ...(!env.email.smtp.user ? ["SMTP_USER"] : []),
+      ...(!env.email.smtp.password ? ["SMTP_PASSWORD"] : []),
+    ];
+    const ready = env.email.deliveryMode === "smtp" && missingConfiguration.length === 0;
+    return {
+      ready,
+      deliveryMode: env.email.deliveryMode,
+      statusLabel: ready
+        ? "SMTP ready"
+        : env.email.deliveryMode === "disabled"
+          ? "Disabled by EMAIL_DELIVERY_MODE"
+          : "SMTP configuration incomplete",
+      missingConfiguration,
+      invalidConfiguration: [],
+      fromAddressConfigured: Boolean(env.email.fromAddress),
+      adminAddressConfigured: Boolean(env.email.adminAddress),
+      publicBaseUrlConfigured: Boolean(env.email.publicBaseUrl),
+      smtpHost: env.email.smtp.host,
+      smtpPort: env.email.smtp.port,
+      smtpSecure: env.email.smtp.secure,
+    };
+  } catch (error) {
+    if (error instanceof ServerEnvError) {
+      const env = source ?? process.env;
+      const deliveryMode = env.EMAIL_DELIVERY_MODE === "smtp" ? "smtp" : "invalid";
+      return {
+        ready: false,
+        deliveryMode,
+        statusLabel: error.missingVariables.length
+          ? "SMTP configuration incomplete"
+          : "Email environment validation failed",
+        missingConfiguration: error.missingVariables,
+        invalidConfiguration: error.invalidVariables,
+        fromAddressConfigured: Boolean(env.EMAIL_FROM_ADDRESS?.trim()),
+        adminAddressConfigured: Boolean(env.EMAIL_ADMIN_ADDRESS?.trim()),
+        publicBaseUrlConfigured: Boolean(env.EMAIL_PUBLIC_BASE_URL?.trim()),
+        smtpHost: env.SMTP_HOST?.trim() || undefined,
+        smtpPort: Number(env.SMTP_PORT || 587),
+        smtpSecure: ["1", "true", "yes", "on"].includes(
+          String(env.SMTP_SECURE ?? "")
+            .trim()
+            .toLowerCase(),
+        ),
+      };
+    }
+    throw error;
+  }
+}
+
+export async function verifyEmailDeliveryTransport(
+  options: EmailDeliveryOptions = {},
+): Promise<EmailDeliveryProbeResult> {
+  const diagnostics = inspectEmailDeliveryConfiguration(options.env);
+  const context = resolveEmailContext(options);
+  if (!context) {
+    return {
+      ok: false,
+      message: diagnostics.statusLabel,
+      diagnostics,
+    };
+  }
+  if (!context.transport.verify) {
+    return {
+      ok: true,
+      message: "SMTP transport is configured. Runtime verification is not available.",
+      diagnostics,
+    };
+  }
+
+  await context.transport.verify();
+  return {
+    ok: true,
+    message: "SMTP login and transport verification succeeded.",
+    diagnostics,
+  };
+}
+
+export async function sendEmailDeliveryTest(
+  toEmail?: string,
+  options: EmailDeliveryOptions = {},
+): Promise<EmailDeliveryResult> {
+  const context = resolveEmailContext(options);
+  if (!context) {
+    return {
+      status: "skipped",
+      message:
+        "Email delivery is disabled or SMTP configuration is incomplete. No message was sent.",
+    };
+  }
+
+  const recipient = toEmail?.trim()
+    ? toEmail.trim()
+    : resolveAdminRecipient(context.env.email.adminAddress, context.env.email.fromAddress);
+  const sentAt = new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Lagos",
+  }).format(new Date());
+  const result = await context.transport.sendMail(
+    buildEmailMessage(context, {
+      to: recipient,
+      subject: "Yoruba Heritage Park email delivery test",
+      text: [
+        "This is a Yoruba Heritage Park production email delivery test.",
+        `Sent at: ${sentAt}`,
+        "",
+        "If this message arrived, SMTP authentication and outbound delivery are working from the application server.",
+      ].join("\n"),
+      html: [
+        "<p>This is a Yoruba Heritage Park production email delivery test.</p>",
+        `<p>Sent at: ${escapeHtml(sentAt)}</p>`,
+        "<p>If this message arrived, SMTP authentication and outbound delivery are working from the application server.</p>",
+      ].join(""),
+    }),
+  );
+
+  return {
+    status: "sent",
+    message: `Email test sent to ${recipient}. Check the inbox and spam folder for final delivery.`,
     providerMessageId: result.messageId,
   };
 }
@@ -200,11 +350,39 @@ function createDefaultTransport(config: EmailTransportConfig): EmailTransport {
     host: config.host,
     port: config.port,
     secure: config.secure,
+    connectionTimeout: 12_000,
+    greetingTimeout: 12_000,
+    socketTimeout: 20_000,
     auth: {
       user: config.user,
       pass: config.password,
     },
   });
+}
+
+function buildEmailMessage(
+  context: {
+    readonly env: ReturnType<typeof getServerEnv>;
+  },
+  message: Pick<EmailMessage, "to" | "subject" | "text" | "html">,
+): EmailMessage {
+  const fromAddress = context.env.email.fromAddress;
+  const smtpUser = context.env.email.smtp.user;
+  const envelopeFrom = resolveEnvelopeSender(smtpUser, fromAddress);
+  return {
+    from: formatFromAddress(fromAddress, context.env.email.fromName),
+    replyTo: fromAddress && fromAddress !== envelopeFrom ? fromAddress : undefined,
+    envelope: {
+      from: envelopeFrom,
+      to: message.to,
+    },
+    ...message,
+  };
+}
+
+function resolveEnvelopeSender(user: string | undefined, fromAddress: string | undefined): string {
+  if (user && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user)) return user;
+  return fromAddress ?? user ?? "";
 }
 
 function buildAdminCredentialNotice(

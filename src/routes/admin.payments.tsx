@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminRouteAccess } from "@/admin/require-admin-route-access";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { CheckCircle2, CreditCard, RotateCcw, SearchCheck } from "lucide-react";
+import {
+  Banknote,
+  CheckCircle2,
+  CreditCard,
+  Link2,
+  RotateCcw,
+  SearchCheck,
+  ShieldCheck,
+} from "lucide-react";
 import {
   AdminBreadcrumbs,
   AdminDataTable,
@@ -327,6 +335,24 @@ function AdminPaymentsRoute() {
       }),
     [adminOrigin, launchStatus, providerReadiness, webhookSetupGuide],
   );
+  const paymentSummary = useMemo(() => {
+    const list = rows ?? [];
+    return {
+      totalAmount: list.reduce((total, payment) => total + payment.amountNgn, 0),
+      successfulCount: list.filter((payment) => payment.status === "successful").length,
+      pendingCount: list.filter((payment) => payment.status === "pending").length,
+      reviewCount: list.filter((payment) => payment.verificationStatus === "review_required")
+        .length,
+    };
+  }, [rows]);
+  const providerSummary = useMemo(() => {
+    const list = providerReadiness ?? [];
+    return {
+      readyCount: list.filter((provider) => provider.integrationReady).length,
+      enabledCount: list.filter((provider) => provider.enabled).length,
+      liveCount: list.filter((provider) => provider.liveCaptureEnabled).length,
+    };
+  }, [providerReadiness]);
   const reconciliationColumns: AdminColumn<AdminPaymentWebhookEvent>[] = [
     ...webhookColumns,
     {
@@ -532,45 +558,75 @@ function AdminPaymentsRoute() {
         }
       />
 
-      <section className="grid gap-3 rounded-sm border border-border bg-background p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section className="overflow-hidden rounded-sm border border-forest-deep/20 bg-forest-deep text-ivory shadow-sm">
+        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
-            <p className="eyebrow">Launch controls</p>
-            <h2 className="mt-1 font-serif text-xl text-forest-deep">Payment activation status</h2>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Provider settings can be prepared in admin, but checkout and live capture require
-              explicit server-side launch flags before customers can complete payments.
+            <p className="eyebrow text-ivory/70">Payment command centre</p>
+            <h2 className="mt-2 font-serif text-3xl text-ivory">Handover payment operations</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ivory/75">
+              Monitor provider readiness, checkout controls, payment records, donation campaigns and
+              webhook intake from one production console.
             </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <PaymentMetric
+                icon={<Banknote className="size-4" aria-hidden />}
+                label="Tracked value"
+                value={formatAdminMoney(paymentSummary.totalAmount, "NGN")}
+                hint={`${rows?.length ?? 0} payment records`}
+              />
+              <PaymentMetric
+                icon={<CreditCard className="size-4" aria-hidden />}
+                label="Checkout"
+                value={launchStatus?.checkoutEnabled ? "Enabled" : "Gated"}
+                hint={launchStatus?.allowLiveCapture ? "Live capture allowed" : "Capture locked"}
+              />
+              <PaymentMetric
+                icon={<ShieldCheck className="size-4" aria-hidden />}
+                label="Providers"
+                value={`${providerSummary.readyCount}/${providerReadiness?.length ?? 0} ready`}
+                hint={`${providerSummary.enabledCount} enabled, ${providerSummary.liveCount} live`}
+              />
+              <PaymentMetric
+                icon={<SearchCheck className="size-4" aria-hidden />}
+                label="Review queue"
+                value={String(paymentSummary.reviewCount)}
+                hint={`${paymentSummary.pendingCount} pending payments`}
+              />
+            </div>
           </div>
-          <AdminStatusBadge tone={launchStatus?.allowLiveCapture ? "danger" : "preview"}>
-            {launchStatus?.allowLiveCapture ? "Live capture allowed" : "Live capture locked"}
-          </AdminStatusBadge>
-        </div>
-        <div className="grid gap-2 text-sm sm:grid-cols-4">
-          <LaunchFlag
-            label="Project payment flag"
-            enabled={launchStatus?.projectPaymentEnabled}
-            enabledText="Approved"
-            disabledText="Off"
-          />
-          <LaunchFlag
-            label="Checkout links"
-            enabled={launchStatus?.checkoutEnabled}
-            enabledText="Enabled"
-            disabledText="Disabled"
-          />
-          <LaunchFlag
-            label="Live capture"
-            enabled={launchStatus?.allowLiveCapture}
-            enabledText="Allowed"
-            disabledText="Locked"
-          />
-          <LaunchFlag
-            label="PayPal environment"
-            enabled={launchStatus?.paypalEnvironment === "live"}
-            enabledText="Live"
-            disabledText={launchStatus?.paypalEnvironment ?? "Sandbox"}
-          />
+          <div className="rounded-sm border border-ivory/15 bg-ivory/10 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-ivory/60">Launch state</p>
+                <h3 className="mt-2 font-serif text-xl text-ivory">
+                  {launchStatus?.allowLiveCapture ? "Production capture ready" : "Controlled mode"}
+                </h3>
+              </div>
+              <AdminStatusBadge tone={launchStatus?.allowLiveCapture ? "success" : "preview"}>
+                {launchStatus?.allowLiveCapture ? "Live" : "Locked"}
+              </AdminStatusBadge>
+            </div>
+            <div className="mt-4 grid gap-2">
+              <LaunchFlag
+                label="Project payment flag"
+                enabled={launchStatus?.projectPaymentEnabled}
+                enabledText="Enabled"
+                disabledText="Off"
+              />
+              <LaunchFlag
+                label="Checkout links"
+                enabled={launchStatus?.checkoutEnabled}
+                enabledText="Enabled"
+                disabledText="Disabled"
+              />
+              <LaunchFlag
+                label="Live capture"
+                enabled={launchStatus?.allowLiveCapture}
+                enabledText="Allowed"
+                disabledText="Locked"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -582,12 +638,11 @@ function AdminPaymentsRoute() {
               Payment operations checklist
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Track the remaining payment setup work without exposing provider secrets or activating
-              live capture before the final domain is ready.
+              Track production payment readiness without exposing provider secrets.
             </p>
           </div>
           <AdminStatusBadge
-            tone={launchChecklist.some((item) => item.state === "blocked") ? "danger" : "warning"}
+            tone={launchChecklist.some((item) => item.state === "blocked") ? "danger" : "success"}
           >
             {launchChecklist.filter((item) => item.state === "ready").length} /{" "}
             {launchChecklist.length} ready
@@ -766,18 +821,26 @@ function AdminPaymentsRoute() {
             </button>
           </form>
 
-          <div className="rounded-sm border border-border bg-cream/30 p-4">
-            <h3 className="font-serif text-lg text-forest-deep">Configured providers</h3>
+          <div className="rounded-sm border border-border bg-cream/30 p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="eyebrow">Provider vault</p>
+                <h3 className="mt-1 font-serif text-lg text-forest-deep">Configured providers</h3>
+              </div>
+              <AdminStatusBadge tone={providerSummary.readyCount ? "success" : "warning"}>
+                {providerSummary.readyCount} ready
+              </AdminStatusBadge>
+            </div>
             {!providers ? (
               <p className="mt-3 text-sm text-muted-foreground">Loading provider settings...</p>
             ) : providers.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No providers configured.</p>
             ) : (
-              <ul className="mt-3 grid gap-2 text-sm">
+              <ul className="mt-4 grid gap-3 text-sm">
                 {providers.map((provider) => (
                   <li
                     key={provider.id}
-                    className="rounded-sm border border-border bg-background p-3"
+                    className="rounded-sm border border-border bg-background p-4 shadow-sm"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-medium">{provider.displayName}</span>
@@ -791,7 +854,7 @@ function AdminPaymentsRoute() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       Secret reference: {provider.secretReference ?? "Not set"}
                     </p>
-                    <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                    <div className="mt-3 grid gap-1 rounded-sm border border-border bg-cream/30 p-3 text-xs text-muted-foreground">
                       <p>
                         Webhook secret:{" "}
                         {provider.configuration.webhookSecretReference ?? "Not configured"}
@@ -812,8 +875,9 @@ function AdminPaymentsRoute() {
                     <button
                       type="button"
                       onClick={() => editProviderSettings(provider)}
-                      className="mt-3 rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
+                      className="mt-3 inline-flex items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-xs font-medium hover:border-forest"
                     >
+                      <Link2 className="size-3.5" aria-hidden />
                       Edit settings
                     </button>
                     {providerReadiness
@@ -1410,6 +1474,37 @@ function formatPaymentAuditDate(value: string): string {
     timeStyle: "short",
     timeZone: "Africa/Lagos",
   }).format(new Date(value));
+}
+
+function formatAdminMoney(value: number, currency: string): string {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function PaymentMetric({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-sm border border-ivory/15 bg-ivory/10 p-4">
+      <div className="flex items-center gap-2 text-ivory/70">
+        {icon}
+        <p className="text-xs uppercase tracking-[0.16em]">{label}</p>
+      </div>
+      <p className="mt-3 font-serif text-2xl text-ivory">{value}</p>
+      <p className="mt-1 text-xs text-ivory/65">{hint}</p>
+    </div>
+  );
 }
 
 function ProviderInput({

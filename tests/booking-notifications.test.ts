@@ -32,6 +32,32 @@ describe("booking notification workflow", () => {
     expect(String(logEntries[0][0])).toContain("administrator booking notification failed");
     expect(JSON.stringify(logEntries[0][1])).not.toContain("secret-value");
   });
+
+  test("logs skipped booking emails for operational visibility", async () => {
+    const warnEntries: Array<[string, unknown]> = [];
+    const booking = makeBookingRecord();
+
+    await sendBookingCreatedNotifications(booking, {
+      logger: {
+        error() {},
+        warn(message, details) {
+          warnEntries.push([message, details]);
+        },
+      },
+      mailer: {
+        async sendVisitorAcknowledgement() {
+          return { status: "skipped", message: "Email delivery is disabled. No message was sent." };
+        },
+        async sendAdministratorNotice() {
+          return { status: "skipped", message: "SMTP_PASSWORD missing" };
+        },
+      },
+    });
+
+    expect(warnEntries).toHaveLength(2);
+    expect(String(warnEntries[0][0])).toContain("visitor booking acknowledgement skipped");
+    expect(String(warnEntries[1][0])).toContain("administrator booking notification skipped");
+  });
 });
 
 function makeBookingRecord(): BookingRecord {

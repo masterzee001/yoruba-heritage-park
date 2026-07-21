@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  inspectEmailDeliveryConfiguration,
   sendAdminCredentialNotice,
   sendBookingAcknowledgementNotice,
   sendNewBookingNotification,
@@ -100,6 +101,20 @@ describe("email notification service", () => {
     expect(sentMessages[0].subject).toContain("YHP-B-20260718-ABC124");
     expect(sentMessages[0].text).toContain("visitor@example.test");
     expect(sentMessages[0].text).toContain("Admin bookings");
+  });
+
+  test("reports missing SMTP configuration without exposing secrets", () => {
+    const result = inspectEmailDeliveryConfiguration({
+      EMAIL_DELIVERY_MODE: "smtp",
+      EMAIL_FROM_ADDRESS: "admin@example.test",
+      SMTP_HOST: "smtp.example.test",
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.statusLabel).toContain("incomplete");
+    expect(result.missingConfiguration).toContain("SMTP_USER");
+    expect(result.missingConfiguration).toContain("SMTP_PASSWORD");
+    expect(JSON.stringify(result)).not.toContain("smtp-password");
   });
 });
 
