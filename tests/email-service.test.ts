@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test";
 
 import {
   inspectEmailDeliveryConfiguration,
+  sendEmailDeliveryTest,
   sendAdminCredentialNotice,
   sendBookingAcknowledgementNotice,
   sendNewBookingNotification,
+  verifyEmailDeliveryTransport,
 } from "../src/server/notifications/email-service";
 
 describe("email notification service", () => {
@@ -103,6 +105,33 @@ describe("email notification service", () => {
     expect(sentMessages[0].text).toContain("Admin bookings");
   });
 
+  test("does not render undefined when booking phone is unavailable", async () => {
+    const sentMessages: Array<Record<string, string>> = [];
+    const result = await sendNewBookingNotification(
+      {
+        visitorEmail: "visitor@example.test",
+        visitorName: "Visitor Name",
+        bookingReference: "YHP-B-20260718-ABC125",
+        bookingType: "Prayer Walk",
+        requestedVisitDate: "18 Jul 2026",
+        guests: 4,
+      },
+      {
+        env: makeEmailEnv({ EMAIL_ADMIN_ADDRESS: "admin@example.test" }),
+        transportFactory: () => ({
+          async sendMail(message) {
+            sentMessages.push({ text: message.text, html: message.html });
+            return { messageId: "message-3" };
+          },
+        }),
+      },
+    );
+
+    expect(result.status).toBe("sent");
+    expect(sentMessages[0].text).toContain("Phone number: Not supplied");
+    expect(sentMessages[0].html).not.toContain("undefined");
+  });
+
   test("reports missing SMTP configuration without exposing secrets", () => {
     const result = inspectEmailDeliveryConfiguration({
       EMAIL_DELIVERY_MODE: "smtp",
@@ -115,6 +144,60 @@ describe("email notification service", () => {
     expect(result.missingConfiguration).toContain("SMTP_USER");
     expect(result.missingConfiguration).toContain("SMTP_PASSWORD");
     expect(JSON.stringify(result)).not.toContain("smtp-password");
+  });
+
+  test("verifies SMTP transport before operational test sends", async () => {
+    let verified = false;
+    const result = await verifyEmailDeliveryTransport({
+      env: makeEmailEnv(),
+      transportFactory: () => ({
+        async verify() {
+          verified = true;
+          return true;
+        },
+        async sendMail() {
+          throw new Error("sendMail should not be called by verify");
+        },
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(verified).toBe(true);
+    expect(result.message).toContain("verification succeeded");
+  });
+
+  test("sends a controlled SMTP delivery test with authenticated envelope sender", async () => {
+    const sentMessages: Array<{
+      readonly to: string;
+      readonly envelopeFrom: string | undefined;
+      readonly replyTo: string | undefined;
+      readonly subject: string;
+    }> = [];
+
+    const result = await sendEmailDeliveryTest("handover@example.test", {
+      env: makeEmailEnv({
+        EMAIL_FROM_ADDRESS: "admin@yorubaheritageworld.com",
+        SMTP_USER: "mailer@yorubaheritageworld.com",
+      }),
+      transportFactory: () => ({
+        async sendMail(message) {
+          sentMessages.push({
+            to: message.to,
+            envelopeFrom: message.envelope?.from,
+            replyTo: message.replyTo,
+            subject: message.subject,
+          });
+          return { messageId: "test-message-1" };
+        },
+      }),
+    });
+
+    expect(result.status).toBe("sent");
+    expect(sentMessages).toHaveLength(1);
+    expect(sentMessages[0].to).toBe("handover@example.test");
+    expect(sentMessages[0].envelopeFrom).toBe("mailer@yorubaheritageworld.com");
+    expect(sentMessages[0].replyTo).toBe("admin@yorubaheritageworld.com");
+    expect(sentMessages[0].subject).toContain("email delivery test");
   });
 });
 

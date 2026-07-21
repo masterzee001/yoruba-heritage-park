@@ -180,6 +180,8 @@ const providerDefaults = {
   },
 } as const;
 
+const paymentMerchantName = "OJA MI Ltd";
+
 function AdminPaymentsRoute() {
   const [rows, setRows] = useState<AdminPayment[] | null>(null);
   const [providers, setProviders] = useState<AdminPaymentProviderSettings[] | null>(null);
@@ -562,10 +564,12 @@ function AdminPaymentsRoute() {
         <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
             <p className="eyebrow text-ivory/70">Payment command centre</p>
-            <h2 className="mt-2 font-serif text-3xl text-ivory">Handover payment operations</h2>
+            <h2 className="mt-2 font-serif text-3xl text-ivory">
+              Premium payment and donation console
+            </h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ivory/75">
-              Monitor provider readiness, checkout controls, payment records, donation campaigns and
-              webhook intake from one production console.
+              Monitor {paymentMerchantName} provider readiness, checkout controls, payment records,
+              donation campaigns and webhook intake from one production console.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <PaymentMetric
@@ -588,9 +592,9 @@ function AdminPaymentsRoute() {
               />
               <PaymentMetric
                 icon={<SearchCheck className="size-4" aria-hidden />}
-                label="Review queue"
-                value={String(paymentSummary.reviewCount)}
-                hint={`${paymentSummary.pendingCount} pending payments`}
+                label="Merchant"
+                value={paymentMerchantName}
+                hint={`${paymentSummary.reviewCount} review items, ${paymentSummary.pendingCount} pending`}
               />
             </div>
           </div>
@@ -663,8 +667,8 @@ function AdminPaymentsRoute() {
               Donation and payment providers
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Configure provider metadata and server-side secret references. Raw secret keys should
-              stay in environment variables, not in browser-visible settings.
+              Configure merchant-facing provider metadata and server-side secret references. Raw
+              secret keys stay in environment variables, not in browser-visible settings.
             </p>
           </div>
           <AdminStatusBadge tone={projectStatus.paymentEnabled ? "warning" : "preview"}>
@@ -801,7 +805,14 @@ function AdminPaymentsRoute() {
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center justify-between gap-4 rounded-sm border border-border bg-cream/30 px-4 py-3 text-sm">
+              <span>
+                <span className="block font-medium text-charcoal">Enable provider</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  Makes this provider available to approved checkout preparation when server flags
+                  allow it.
+                </span>
+              </span>
               <input
                 type="checkbox"
                 checked={providerForm.enabled}
@@ -809,8 +820,8 @@ function AdminPaymentsRoute() {
                   const enabled = event.currentTarget.checked;
                   setProviderForm((current) => updateProviderFormEnabled(current, enabled));
                 }}
+                className="size-4 accent-forest"
               />
-              Enable provider for future payment flows
             </label>
             <button
               type="submit"
@@ -982,15 +993,33 @@ function AdminPaymentsRoute() {
               Campaign forms and suggested amounts
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Prepare donation campaign metadata in the style of a giving plugin. Public donation
-              forms and payment capture remain inactive until provider integration is approved.
+              Prepare donation campaign metadata with a giving-plugin style workflow: campaign
+              identity, suggested amounts, provider handoff and review status in one place.
             </p>
           </div>
-          <AdminStatusBadge tone="preview">Capture off</AdminStatusBadge>
+          <AdminStatusBadge tone={launchStatus?.checkoutEnabled ? "success" : "preview"}>
+            {launchStatus?.checkoutEnabled ? "Checkout ready" : "Checkout gated"}
+          </AdminStatusBadge>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
-          <form className="grid gap-3" onSubmit={handleSaveCampaign}>
+          <form
+            className="grid gap-4 rounded-sm border border-border bg-cream/20 p-4"
+            onSubmit={handleSaveCampaign}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Giving campaign
+                </p>
+                <h3 className="mt-1 font-serif text-lg text-forest-deep">
+                  {campaignForm.title || "Untitled campaign"}
+                </h3>
+              </div>
+              <AdminStatusBadge tone={campaignForm.status === "active" ? "success" : "warning"}>
+                {campaignForm.status}
+              </AdminStatusBadge>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <ProviderInput
                 label="Campaign code"
@@ -1044,10 +1073,39 @@ function AdminPaymentsRoute() {
                 className="rounded-sm border border-border bg-background px-3 py-2 text-sm"
               />
             </label>
+            <div className="rounded-sm border border-border bg-background p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Suggested giving amounts
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    These are shown as the admin-approved donation presets for this campaign.
+                  </p>
+                </div>
+                <AdminStatusBadge tone="info">NGN</AdminStatusBadge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {parseSuggestedAmounts(campaignForm.suggestedAmounts).length ? (
+                  parseSuggestedAmounts(campaignForm.suggestedAmounts).map((amount) => (
+                    <span
+                      key={amount}
+                      className="rounded-sm border border-forest/20 bg-forest/10 px-3 py-2 text-sm font-medium text-forest-deep"
+                    >
+                      {formatAdminMoney(amount / 100, "NGN")}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Enter comma-separated amounts to preview presets.
+                  </span>
+                )}
+              </div>
+            </div>
             <button
               type="submit"
               disabled={savingCampaign}
-              className="w-fit rounded-sm bg-forest-deep px-4 py-2 text-sm font-medium text-ivory disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-fit rounded-sm bg-forest-deep px-5 py-2.5 text-sm font-medium text-ivory shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
               {savingCampaign ? "Saving campaign" : "Save campaign"}
             </button>

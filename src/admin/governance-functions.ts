@@ -327,38 +327,61 @@ export const runEmailDeliveryTest = createServerFn({ method: "POST" })
     const { requireAdminServerPermission } = await import("./server-permissions");
     const principal = await requireAdminServerPermission("settings.manage");
 
-    const verification = await verifyEmailDeliveryTransport();
-    if (!verification.ok) {
+    try {
+      const verification = await verifyEmailDeliveryTransport();
+      if (!verification.ok) {
+        return {
+          ok: false,
+          message: verification.message,
+          diagnostics: verification.diagnostics,
+        };
+      }
+
+      const delivery = await sendEmailDeliveryTest(data.toEmail);
+      const requestContext = getRuntimeRequestContext();
+      await new MysqlAuditLogRepository().record({
+        actorUserId: principal.userId,
+        actionCode: "settings.email_delivery.test_sent",
+        moduleCode: "settings",
+        recordType: "email_delivery",
+        recordId: "smtp",
+        outcome: delivery.status === "sent" ? "success" : "failed",
+        ipAddress: requestContext.ipAddress,
+        userAgent: requestContext.userAgent,
+        metadataJson: {
+          deliveryStatus: delivery.status,
+          providerMessageId: delivery.providerMessageId ?? null,
+          recipientProvided: Boolean(data.toEmail?.trim()),
+        },
+      });
+
       return {
-        ok: false,
-        message: verification.message,
+        ok: delivery.status === "sent",
+        message: delivery.message,
         diagnostics: verification.diagnostics,
       };
+    } catch (error) {
+      const requestContext = getRuntimeRequestContext();
+      await new MysqlAuditLogRepository().record({
+        actorUserId: principal.userId,
+        actionCode: "settings.email_delivery.test_failed",
+        moduleCode: "settings",
+        recordType: "email_delivery",
+        recordId: "smtp",
+        outcome: "failed",
+        ipAddress: requestContext.ipAddress,
+        userAgent: requestContext.userAgent,
+        metadataJson: {
+          message: sanitiseOperationalError(error),
+          recipientProvided: Boolean(data.toEmail?.trim()),
+        },
+      });
+      return {
+        ok: false,
+        message: `SMTP test failed: ${sanitiseOperationalError(error)}`,
+        diagnostics: undefined,
+      };
     }
-
-    const delivery = await sendEmailDeliveryTest(data.toEmail);
-    const requestContext = getRuntimeRequestContext();
-    await new MysqlAuditLogRepository().record({
-      actorUserId: principal.userId,
-      actionCode: "settings.email_delivery.test_sent",
-      moduleCode: "settings",
-      recordType: "email_delivery",
-      recordId: "smtp",
-      outcome: delivery.status === "sent" ? "success" : "failed",
-      ipAddress: requestContext.ipAddress,
-      userAgent: requestContext.userAgent,
-      metadataJson: {
-        deliveryStatus: delivery.status,
-        providerMessageId: delivery.providerMessageId ?? null,
-        recipientProvided: Boolean(data.toEmail?.trim()),
-      },
-    });
-
-    return {
-      ok: delivery.status === "sent",
-      message: delivery.message,
-      diagnostics: verification.diagnostics,
-    };
   });
 
 export const saveAdminSetting = createServerFn({ method: "POST" })
@@ -607,6 +630,43 @@ function toSettingsSnapshot(
       "Privacy information": values.get("legal.privacy") ?? "Awaiting authorised content",
     },
   };
+}
+
+function sanitiseOperationalError(error: unknown): string {
+  const message =
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : "The provider did not accept the SMTP request.";
+  const code = readStringFromUnknown(error, "code");
+  const command = readStringFromUnknown(error, "command");
+  const responseCode = readNumberFromUnknown(error, "responseCode");
+  return [
+    redactSensitiveText(message),
+    code ? `code ${code}` : null,
+    responseCode ? `response ${responseCode}` : null,
+    command ? `during ${command}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function readStringFromUnknown(value: unknown, key: string): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : undefined;
+}
+
+function readNumberFromUnknown(value: unknown, key: string): number | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : undefined;
+}
+
+function redactSensitiveText(value: string): string {
+  return value
+    .replace(/(password|secret|token|pass)(?:\s*[:=]\s*|\s+)[^\s,]+/gi, "$1=[redacted]")
+    .replace(/(AUTH|LOGIN|PLAIN)\s+[A-Za-z0-9+/=._~-]+/gi, "$1 [redacted]")
+    .slice(0, 400);
 }
 
 function formatSettingValue(value: unknown): string {

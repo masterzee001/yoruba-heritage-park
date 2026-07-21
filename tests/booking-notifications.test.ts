@@ -14,6 +14,7 @@ describe("booking notification workflow", () => {
         error(message, details) {
           logEntries.push([message, details]);
         },
+        warn() {},
       },
       mailer: {
         async sendVisitorAcknowledgement() {

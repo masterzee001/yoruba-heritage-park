@@ -24,6 +24,7 @@ export interface NewBookingNotificationInput extends Omit<
   "toEmail"
 > {
   readonly visitorEmail: string;
+  readonly phone?: string;
 }
 
 export interface EmailDeliveryResult {
@@ -457,13 +458,14 @@ function buildNewBookingNotification(
   options: { readonly adminBookingsUrl: string },
 ): { readonly subject: string; readonly text: string; readonly html: string } {
   const subject = `New Yoruba Heritage Park booking - ${input.bookingReference}`;
+  const phone = input.phone?.trim() || "Not supplied";
   const text = [
     "A new booking request has been received.",
     "",
     `Reference: ${input.bookingReference}`,
     `Visitor name: ${input.visitorName}`,
     `Visitor email: ${input.visitorEmail}`,
-    `Phone number: ${input.phone}`,
+    `Phone number: ${phone}`,
     `Booking type: ${input.bookingType}`,
     `Requested visit date: ${input.requestedVisitDate}`,
     `Guests: ${input.guests}`,
@@ -475,7 +477,7 @@ function buildNewBookingNotification(
     `<dt>Reference</dt><dd>${escapeHtml(input.bookingReference)}</dd>`,
     `<dt>Visitor name</dt><dd>${escapeHtml(input.visitorName)}</dd>`,
     `<dt>Visitor email</dt><dd>${escapeHtml(input.visitorEmail)}</dd>`,
-    `<dt>Phone number</dt><dd>${escapeHtml(input.phone)}</dd>`,
+    `<dt>Phone number</dt><dd>${escapeHtml(phone)}</dd>`,
     `<dt>Booking type</dt><dd>${escapeHtml(input.bookingType)}</dd>`,
     `<dt>Requested visit date</dt><dd>${escapeHtml(input.requestedVisitDate)}</dd>`,
     `<dt>Guests</dt><dd>${escapeHtml(String(input.guests))}</dd>`,
